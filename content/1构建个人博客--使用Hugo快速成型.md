@@ -1,8 +1,15 @@
 ---
-title: "使用Hugo搭建个人博客"
+title: "1构建个人博客--使用Hugo快速成型"
 date: 2020-03-14T14:42:38+08:00
 draft: false
 ---
+## 概述
+人在武汉，病毒肆虐。  
+隔离久了，有点闷，闲余时间找点事情做。  
+建个博客吧， 内容不重要，写不写也不那么要紧，目前水平也写不出什么有深度的东西。  
+但是这个姿势一定要优美， 过程一定要折腾。  
+OK, 开干。
+
 ## 下载Hugo
 
 > https://github.com/gohugoio/hugo/releases
@@ -19,7 +26,9 @@ hugo new site .
 ```
 
 ## 编写正文
+```
 hugo new hello-world.md
+```
 
 ## 下载主题
 ```
@@ -71,5 +80,9 @@ cp -rf /git/blog/public/. /www/wwwroot/www.holdengong.com/
 hugo --theme=hyde -b https://holdengong.com/
 ```
 完成后推送到git仓库, 每小时会自动发布。
+
+## 其他
+如果没有或者不想用云服务器和自己域名, 可以挂载在github.io上, 详情自行搜索.  
+
 
 
