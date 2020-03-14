@@ -3,21 +3,26 @@
   xmlns:xhtml="http://www.w3.org/1999/xhtml">
   
   <url>
-    <loc>--theme=hyde/hugo1/</loc>
+    <loc>https://holdengong.com/hugo2/</loc>
+    <lastmod>2020-03-14T21:15:28+08:00</lastmod>
+  </url>
+  
+  <url>
+    <loc>https://holdengong.com/</loc>
+    <lastmod>2020-03-14T21:15:28+08:00</lastmod>
+  </url>
+  
+  <url>
+    <loc>https://holdengong.com/hugo1/</loc>
     <lastmod>2020-03-14T14:42:38+08:00</lastmod>
   </url>
   
   <url>
-    <loc>--theme=hyde/</loc>
-    <lastmod>2020-03-14T14:42:38+08:00</lastmod>
+    <loc>https://holdengong.com/categories/</loc>
   </url>
   
   <url>
-    <loc>--theme=hyde/categories/</loc>
-  </url>
-  
-  <url>
-    <loc>--theme=hyde/tags/</loc>
+    <loc>https://holdengong.com/tags/</loc>
   </url>
   
 </urlset>
