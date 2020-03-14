@@ -52,16 +52,20 @@
     <div class="posts">
 <article class="post">
   <h1 class="post-title">
-    <a href="https://holdengong.com/1%E4%BD%BF%E7%94%A8hugo%E6%90%AD%E5%BB%BA%E4%B8%AA%E4%BA%BA%E5%8D%9A%E5%AE%A2/">使用Hugo搭建个人博客</a>
+    <a href="https://holdengong.com/1%E6%9E%84%E5%BB%BA%E4%B8%AA%E4%BA%BA%E5%8D%9A%E5%AE%A2-%E4%BD%BF%E7%94%A8hugo%E5%BF%AB%E9%80%9F%E6%88%90%E5%9E%8B/">1构建个人博客--使用Hugo快速成型</a>
   </h1>
   <time datetime="2020-03-14T14:42:38&#43;0800" class="post-date">Sat, Mar 14, 2020</time>
-  下载Hugo  https://github.com/gohugoio/hugo/releases
+  概述 人在武汉，病毒肆虐。
+隔离久了，有点闷，闲余时间找点事情做。
+建个博客吧， 内容不重要，写不写也不那么要紧，目前水平也写不出什么有深度的东西。
+但是这个姿势一定要优美， 过程一定要折腾。
+OK, 开干。
+下载Hugo  https://github.com/gohugoio/hugo/releases
  笔者是Windows系统，下载hugo_0.67.0_Windows-64bit.zip，解压到本地后，将路径加入到环境变量。
 创建站点 首先创建一个git仓库
 拉取到本地
 如文件夹名为blog
-cd blog hugo new site . 编写正文 hugo new hello-world.md
-下载主题 cd theme git clone https://github.com/spf13/hyde.git 调试 hugo server --theme=hyde --buildDrafts 然后浏览器打开 http://localhost1313 可以查看效果
+cd blog hugo new site . 编写正文 hugo new hello-world.md 下载主题 cd theme git clone https://github.com/spf13/hyde.git 调试 hugo server --theme=hyde --buildDrafts 然后浏览器打开 http://localhost1313 可以查看效果
 发布 发布前将hello-world.md的draft字段修改为true, https://holdengong.com/ 为你网站的域名
 hugo --theme=hyde -b https://holdengong.com/ 执行完后会发现生成了public文件夹及内容
 部署 云服务器可以使用腾讯云的学生版  https://cloud.tencent.com/act/campus?fromSource=gwzcw.2432501.2432501.2432501&amp;utm_medium=cpc&amp;utm_id=gwzcw.2432501.2432501.2432501
@@ -69,11 +73,9 @@ hugo --theme=hyde -b https://holdengong.com/ 执行完后会发现生成了publi
  安装git yum -y install git 拉取git仓库, e.g.仓库目录为/git/blog
 宝塔新建站点 e.g.站点根路由为/www/wwwroot/www.holdengong.com
 定时发布 利用linux的定时任务做一个简单的定时发布
-在宝塔面板新建定时任务,每1小时执行linux脚本
-cd /git/blog git pull cp -rf /git/blog/public/. /www/wwwroot/www.
   
   <div class="read-more-link">
-    <a href="/1%E4%BD%BF%E7%94%A8hugo%E6%90%AD%E5%BB%BA%E4%B8%AA%E4%BA%BA%E5%8D%9A%E5%AE%A2/">Read More…</a>
+    <a href="/1%E6%9E%84%E5%BB%BA%E4%B8%AA%E4%BA%BA%E5%8D%9A%E5%AE%A2-%E4%BD%BF%E7%94%A8hugo%E5%BF%AB%E9%80%9F%E6%88%90%E5%9E%8B/">Read More…</a>
   </div>
   
 </article>
