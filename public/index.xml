@@ -6,100 +6,10 @@
     <description>Recent content on Holden Gong</description>
     <generator>Hugo -- gohugo.io</generator>
     <language>zh-Hans</language>
-    <lastBuildDate>Sat, 14 Mar 2020 23:00:55 +0800</lastBuildDate>
+    <lastBuildDate>Sat, 14 Mar 2020 21:15:28 +0800</lastBuildDate>
     
 	<atom:link href="https://holdengong.com/index.xml" rel="self" type="application/rss+xml" />
     
-    
-    <item>
-      <title>Test10</title>
-      <link>https://holdengong.com/test10/</link>
-      <pubDate>Sat, 14 Mar 2020 23:00:55 +0800</pubDate>
-      
-      <guid>https://holdengong.com/test10/</guid>
-      <description></description>
-    </item>
-    
-    <item>
-      <title>Test9</title>
-      <link>https://holdengong.com/test9/</link>
-      <pubDate>Sat, 14 Mar 2020 23:00:53 +0800</pubDate>
-      
-      <guid>https://holdengong.com/test9/</guid>
-      <description></description>
-    </item>
-    
-    <item>
-      <title>Test8</title>
-      <link>https://holdengong.com/test8/</link>
-      <pubDate>Sat, 14 Mar 2020 23:00:51 +0800</pubDate>
-      
-      <guid>https://holdengong.com/test8/</guid>
-      <description></description>
-    </item>
-    
-    <item>
-      <title>Test7</title>
-      <link>https://holdengong.com/test7/</link>
-      <pubDate>Sat, 14 Mar 2020 23:00:48 +0800</pubDate>
-      
-      <guid>https://holdengong.com/test7/</guid>
-      <description></description>
-    </item>
-    
-    <item>
-      <title>Test6</title>
-      <link>https://holdengong.com/test6/</link>
-      <pubDate>Sat, 14 Mar 2020 23:00:46 +0800</pubDate>
-      
-      <guid>https://holdengong.com/test6/</guid>
-      <description></description>
-    </item>
-    
-    <item>
-      <title>Test5</title>
-      <link>https://holdengong.com/test5/</link>
-      <pubDate>Sat, 14 Mar 2020 23:00:39 +0800</pubDate>
-      
-      <guid>https://holdengong.com/test5/</guid>
-      <description></description>
-    </item>
-    
-    <item>
-      <title>Test4</title>
-      <link>https://holdengong.com/test4/</link>
-      <pubDate>Sat, 14 Mar 2020 23:00:36 +0800</pubDate>
-      
-      <guid>https://holdengong.com/test4/</guid>
-      <description></description>
-    </item>
-    
-    <item>
-      <title>Test3</title>
-      <link>https://holdengong.com/test3/</link>
-      <pubDate>Sat, 14 Mar 2020 23:00:34 +0800</pubDate>
-      
-      <guid>https://holdengong.com/test3/</guid>
-      <description></description>
-    </item>
-    
-    <item>
-      <title>Test2</title>
-      <link>https://holdengong.com/test2/</link>
-      <pubDate>Sat, 14 Mar 2020 23:00:32 +0800</pubDate>
-      
-      <guid>https://holdengong.com/test2/</guid>
-      <description></description>
-    </item>
-    
-    <item>
-      <title>Test1</title>
-      <link>https://holdengong.com/test1/</link>
-      <pubDate>Sat, 14 Mar 2020 23:00:29 +0800</pubDate>
-      
-      <guid>https://holdengong.com/test1/</guid>
-      <description></description>
-    </item>
     
     <item>
       <title>2构建个人博客--使用Webhook自动发布</title>
