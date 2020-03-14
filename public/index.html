@@ -55,7 +55,7 @@
     <a href="https://holdengong.com/1%E4%BD%BF%E7%94%A8hugo%E6%90%AD%E5%BB%BA%E4%B8%AA%E4%BA%BA%E5%8D%9A%E5%AE%A2/">使用Hugo搭建个人博客</a>
   </h1>
   <time datetime="2020-03-14T14:42:38&#43;0800" class="post-date">Sat, Mar 14, 2020</time>
-  使用Hugo搭建个人博客 下载Hugo  https://github.com/gohugoio/hugo/releases
+  下载Hugo  https://github.com/gohugoio/hugo/releases
  笔者是Windows系统，下载hugo_0.67.0_Windows-64bit.zip，解压到本地后，将路径加入到环境变量。
 创建站点 首先创建一个git仓库
 拉取到本地
@@ -70,7 +70,7 @@ hugo --theme=hyde -b https://holdengong.com/ 执行完后会发现生成了publi
 宝塔新建站点 e.g.站点根路由为/www/wwwroot/www.holdengong.com
 定时发布 利用linux的定时任务做一个简单的定时发布
 在宝塔面板新建定时任务,每1小时执行linux脚本
-cd /git/blog git pull cp -rf /git/blog/public/.
+cd /git/blog git pull cp -rf /git/blog/public/. /www/wwwroot/www.
   
   <div class="read-more-link">
     <a href="/1%E4%BD%BF%E7%94%A8hugo%E6%90%AD%E5%BB%BA%E4%B8%AA%E4%BA%BA%E5%8D%9A%E5%AE%A2/">Read More…</a>

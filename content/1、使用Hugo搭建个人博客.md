@@ -3,8 +3,6 @@ title: "使用Hugo搭建个人博客"
 date: 2020-03-14T14:42:38+08:00
 draft: false
 ---
-# 使用Hugo搭建个人博客
-
 ## 下载Hugo
 
 > https://github.com/gohugoio/hugo/releases
@@ -64,6 +62,7 @@ cd /git/blog
 git pull
 cp -rf /git/blog/public/. /www/wwwroot/www.holdengong.com/
 ```
+后面会利用github的钩子来实现推送后自动发布
 
 ## 成功
 部署成功。  

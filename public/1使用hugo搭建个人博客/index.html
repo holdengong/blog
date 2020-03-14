@@ -51,8 +51,7 @@
     <div class="post">
   <h1>使用Hugo搭建个人博客</h1>
   <time datetime=2020-03-14T14:42:38&#43;0800 class="post-date">Sat, Mar 14, 2020</time>
-  <h1 id="使用hugo搭建个人博客">使用Hugo搭建个人博客</h1>
-<h2 id="下载hugo">下载Hugo</h2>
+  <h2 id="下载hugo">下载Hugo</h2>
 <blockquote>
 <p><a href="https://github.com/gohugoio/hugo/releases">https://github.com/gohugoio/hugo/releases</a></p>
 </blockquote>
@@ -96,7 +95,8 @@ git clone https://github.com/spf13/hyde.git
 <pre><code>cd /git/blog
 git pull
 cp -rf /git/blog/public/. /www/wwwroot/www.holdengong.com/
-</code></pre><h2 id="成功">成功</h2>
+</code></pre><p>后面会利用github的钩子来实现推送后自动发布</p>
+<h2 id="成功">成功</h2>
 <p>部署成功。<br>
 接下来只需要在本地content文件夹撰写日志, 然后编译</p>
 <pre><code>hugo --theme=hyde -b https://holdengong.com/
