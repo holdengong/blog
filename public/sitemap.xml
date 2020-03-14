@@ -3,17 +3,12 @@
   xmlns:xhtml="http://www.w3.org/1999/xhtml">
   
   <url>
-    <loc>https://holdengong.com/</loc>
-    <lastmod>2020-03-14T21:21:04+08:00</lastmod>
-  </url>
-  
-  <url>
-    <loc>https://holdengong.com/test/</loc>
-    <lastmod>2020-03-14T21:21:04+08:00</lastmod>
-  </url>
-  
-  <url>
     <loc>https://holdengong.com/hugo2/</loc>
+    <lastmod>2020-03-14T21:15:28+08:00</lastmod>
+  </url>
+  
+  <url>
+    <loc>https://holdengong.com/</loc>
     <lastmod>2020-03-14T21:15:28+08:00</lastmod>
   </url>
   
