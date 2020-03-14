@@ -6,9 +6,19 @@
     <description>Recent content on Holden Gong</description>
     <generator>Hugo -- gohugo.io</generator>
     <language>zh-Hans</language>
+    <lastBuildDate>Sat, 14 Mar 2020 12:50:38 +0800</lastBuildDate>
     
 	<atom:link href="https://holdengong.com/index.xml" rel="self" type="application/rss+xml" />
     
+    
+    <item>
+      <title>Hello</title>
+      <link>https://holdengong.com/hello/</link>
+      <pubDate>Sat, 14 Mar 2020 12:50:38 +0800</pubDate>
+      
+      <guid>https://holdengong.com/hello/</guid>
+      <description></description>
+    </item>
     
   </channel>
 </rss>

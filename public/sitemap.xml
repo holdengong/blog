@@ -3,11 +3,17 @@
   xmlns:xhtml="http://www.w3.org/1999/xhtml">
   
   <url>
-    <loc>https://holdengong.com/categories/</loc>
+    <loc>https://holdengong.com/hello/</loc>
+    <lastmod>2020-03-14T12:50:38+08:00</lastmod>
   </url>
   
   <url>
     <loc>https://holdengong.com/</loc>
+    <lastmod>2020-03-14T12:50:38+08:00</lastmod>
+  </url>
+  
+  <url>
+    <loc>https://holdengong.com/categories/</loc>
   </url>
   
   <url>
