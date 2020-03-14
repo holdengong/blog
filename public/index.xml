@@ -2,21 +2,39 @@
 <rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
   <channel>
     <title>Holden Gong</title>
-    <link>https://holdengong.com/</link>
+    <link>--theme=hyde/</link>
     <description>Recent content on Holden Gong</description>
     <generator>Hugo -- gohugo.io</generator>
     <language>zh-Hans</language>
-    <lastBuildDate>Sat, 14 Mar 2020 14:42:38 +0800</lastBuildDate>
+    <lastBuildDate>Sat, 14 Mar 2020 20:47:08 +0800</lastBuildDate>
     
-	<atom:link href="https://holdengong.com/index.xml" rel="self" type="application/rss+xml" />
+	<atom:link href="--theme=hyde/index.xml" rel="self" type="application/rss+xml" />
     
     
     <item>
+      <title>Test</title>
+      <link>--theme=hyde/test/</link>
+      <pubDate>Sat, 14 Mar 2020 20:47:08 +0800</pubDate>
+      
+      <guid>--theme=hyde/test/</guid>
+      <description></description>
+    </item>
+    
+    <item>
+      <title>Webhooktest</title>
+      <link>--theme=hyde/webhooktest/</link>
+      <pubDate>Sat, 14 Mar 2020 20:17:07 +0800</pubDate>
+      
+      <guid>--theme=hyde/webhooktest/</guid>
+      <description></description>
+    </item>
+    
+    <item>
       <title>1构建个人博客--使用Hugo快速成型</title>
-      <link>https://holdengong.com/hugo1/</link>
+      <link>--theme=hyde/hugo1/</link>
       <pubDate>Sat, 14 Mar 2020 14:42:38 +0800</pubDate>
       
-      <guid>https://holdengong.com/hugo1/</guid>
+      <guid>--theme=hyde/hugo1/</guid>
       <description>概述 人在武汉，病毒肆虐。
 隔离久了，有点闷，闲余时间找点事情做。
 建个博客吧， 内容不重要，写不写也不那么要紧，目前水平也写不出什么有深度的东西。
