@@ -6,10 +6,19 @@
     <description>Recent content on Holden Gong</description>
     <generator>Hugo -- gohugo.io</generator>
     <language>zh-Hans</language>
-    <lastBuildDate>Sat, 14 Mar 2020 21:15:28 +0800</lastBuildDate>
+    <lastBuildDate>Sat, 14 Mar 2020 21:21:04 +0800</lastBuildDate>
     
 	<atom:link href="https://holdengong.com/index.xml" rel="self" type="application/rss+xml" />
     
+    
+    <item>
+      <title>Test</title>
+      <link>https://holdengong.com/test/</link>
+      <pubDate>Sat, 14 Mar 2020 21:21:04 +0800</pubDate>
+      
+      <guid>https://holdengong.com/test/</guid>
+      <description></description>
+    </item>
     
     <item>
       <title>2构建个人博客--使用Webhook自动发布</title>
@@ -18,7 +27,7 @@
       
       <guid>https://holdengong.com/hugo2/</guid>
       <description>概述 上篇介绍了怎么利用hugo搭建个人博客。 有一个地方还是有点不方便，就是git push之后需要等半个小时才能发布。
-所以我想利用github的webhook实现每次推送自动发布。</description>
+所以我想利用github的webhook实现每次推送自动发布。 </description>
     </item>
     
     <item>
