@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="zh-Hans" lang="zh-Hans">
+<head>
+  <link href="https://gmpg.org/xfn/11" rel="profile">
+  <meta http-equiv="content-type" content="text/html; charset=utf-8">
+  <meta name="generator" content="Hugo 0.67.0" />
+
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <title>使用Hugo搭建个人博客 &middot; Holden Gong</title>
+  <meta name="description" content="" />
+
+  
+  <link type="text/css" rel="stylesheet" href="https://holdengong.com/css/print.css" media="print">
+  <link type="text/css" rel="stylesheet" href="https://holdengong.com/css/poole.css">
+  <link type="text/css" rel="stylesheet" href="https://holdengong.com/css/syntax.css">
+  <link type="text/css" rel="stylesheet" href="https://holdengong.com/css/hyde.css">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Abril+Fatface|PT+Sans:400,400i,700">
+
+
+  
+  <link rel="apple-touch-icon-precomposed" sizes="144x144" href="/apple-touch-icon-144-precomposed.png">
+  <link rel="shortcut icon" href="/favicon.png">
+
+  
+  
+</head>
+
+  <body class=" ">
+  <aside class="sidebar">
+  <div class="container sidebar-sticky">
+    <div class="sidebar-about">
+      <a href="https://holdengong.com/"><h1>Holden Gong</h1></a>
+      <p class="lead">
+        
+      </p>
+    </div>
+
+    <nav>
+      <ul class="sidebar-nav">
+      </ul>
+    </nav>
+  
+    <p>&copy; 2020. All rights reserved. </p>
+    <p>鄂ICP备20003133号</p>
+  </div>
+</aside>
+
+    <main class="content container">
+    <div class="post">
+  <h1>使用Hugo搭建个人博客</h1>
+  <time datetime=2020-03-14T14:42:38&#43;0800 class="post-date">Sat, Mar 14, 2020</time>
+  <h1 id="使用hugo搭建个人博客">使用Hugo搭建个人博客</h1>
+<h2 id="下载hugo">下载Hugo</h2>
+<blockquote>
+<p><a href="https://github.com/gohugoio/hugo/releases">https://github.com/gohugoio/hugo/releases</a></p>
+</blockquote>
+<p>笔者是Windows系统，下载hugo_0.67.0_Windows-64bit.zip，解压到本地后，将路径加入到环境变量。</p>
+<h2 id="创建站点">创建站点</h2>
+<p>首先创建一个git仓库<br>
+拉取到本地<br>
+如文件夹名为blog</p>
+<pre><code>cd blog
+hugo new site .
+</code></pre><h2 id="编写正文">编写正文</h2>
+<p>hugo new hello-world.md</p>
+<h2 id="下载主题">下载主题</h2>
+<pre><code>cd theme 
+git clone https://github.com/spf13/hyde.git
+</code></pre><h2 id="调试">调试</h2>
+<pre><code>hugo server --theme=hyde --buildDrafts
+</code></pre><p>然后浏览器打开 http://localhost1313 可以查看效果</p>
+<h2 id="发布">发布</h2>
+<p>发布前将hello-world.md的draft字段修改为true, <a href="https://holdengong.com/">https://holdengong.com/</a>
+为你网站的域名</p>
+<pre><code>hugo --theme=hyde -b https://holdengong.com/
+</code></pre><p>执行完后会发现生成了public文件夹及内容</p>
+<h2 id="部署">部署</h2>
+<h3 id="云服务器可以使用腾讯云的学生版">云服务器可以使用腾讯云的学生版</h3>
+<blockquote>
+<p><a href="https://cloud.tencent.com/act/campus?fromSource=gwzcw.2432501.2432501.2432501&amp;utm_medium=cpc&amp;utm_id=gwzcw.2432501.2432501.2432501">https://cloud.tencent.com/act/campus?fromSource=gwzcw.2432501.2432501.2432501&amp;utm_medium=cpc&amp;utm_id=gwzcw.2432501.2432501.2432501</a></p>
+</blockquote>
+<h3 id="安装宝塔面板linux管理工具">安装宝塔面板linux管理工具</h3>
+<blockquote>
+<p><a href="https://www.bt.cn/">https://www.bt.cn/</a></p>
+</blockquote>
+<h3 id="安装git">安装git</h3>
+<pre><code>yum -y install git
+</code></pre><p>拉取git仓库, e.g.仓库目录为/git/blog</p>
+<h3 id="宝塔新建站点">宝塔新建站点</h3>
+<p>e.g.站点根路由为/www/wwwroot/www.holdengong.com</p>
+<h3 id="定时发布">定时发布</h3>
+<p>利用linux的定时任务做一个简单的定时发布<br>
+在宝塔面板新建定时任务,每1小时执行linux脚本</p>
+<pre><code>cd /git/blog
+git pull
+cp -rf /git/blog/public/. /www/wwwroot/www.holdengong.com/
+</code></pre><h2 id="成功">成功</h2>
+<p>部署成功。<br>
+接下来只需要在本地content文件夹撰写日志, 然后编译</p>
+<pre><code>hugo --theme=hyde -b https://holdengong.com/
+</code></pre><p>完成后推送到git仓库, 每小时会自动发布。</p>
+
+</div>
+
+
+    </main>
+
+    
+      
+    
+  </body>
+</html>

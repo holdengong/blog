@@ -67,9 +67,10 @@ cp -rf /git/blog/public/. /www/wwwroot/www.holdengong.com/
 
 ## 成功
 部署成功。  
-接下来只需要在本地content文件夹撰写日志, 完成后推送到git仓库, 每小时会自动发布。
-
-
-
+接下来只需要在本地content文件夹撰写日志, 然后编译
+```
+hugo --theme=hyde -b https://holdengong.com/
+```
+完成后推送到git仓库, 每小时会自动发布。
 
 
