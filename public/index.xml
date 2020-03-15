@@ -6,17 +6,37 @@
     <description>Recent content on Holden Gong</description>
     <generator>Hugo -- gohugo.io</generator>
     <language>zh-Hans</language>
-    <lastBuildDate>Sat, 14 Mar 2020 21:15:28 +0800</lastBuildDate>
+    <lastBuildDate>Sun, 15 Mar 2020 17:26:10 +0800</lastBuildDate>
     
 	<atom:link href="https://holdengong.com/index.xml" rel="self" type="application/rss+xml" />
     
     
     <item>
+      <title>AspNetCore源码解析_1_CORS中间件</title>
+      <link>https://holdengong.com/aspnetcore%E6%BA%90%E7%A0%81%E8%A7%A3%E6%9E%90_1_cors%E4%B8%AD%E9%97%B4%E4%BB%B6/</link>
+      <pubDate>Sun, 15 Mar 2020 17:26:10 +0800</pubDate>
+      
+      <guid>https://holdengong.com/aspnetcore%E6%BA%90%E7%A0%81%E8%A7%A3%E6%9E%90_1_cors%E4%B8%AD%E9%97%B4%E4%BB%B6/</guid>
+      <description>概述 什么是跨域 在前后端分离开发方式中，跨域是我们经常会遇到的问题。所谓的跨域，就是A域名向B域名发出Ajax请求，浏览器会拒绝，抛出类似下图的错误。
+JSONP JSONP不是标准跨域协议，更像是聪明的程序员钻空子来解决问题的技巧。这种方式的原理就是js是没有跨域限制的，你想想你引用bootstrap.js是不是网络地址放进来就可以用了。这个过程大体分下面四步。
+ 首先约定数据格式和回调函数名 A网站引用B网站的js B网站用约定好的回调函数将数据包裹起来，在A引用的js里返回 A网站在回调函数中获取数据  这个方案的优点是兼容性比较好，很古老的ie都可以支持，毕竟只是基于js的一个技巧，并没有新的技术或协议。
+缺点比较明显，只支持GET，理解起来比较困难，调用失败不会返回http状态码，安全性存在一定问题。
+CORS CORS的全称是Cross Origin Resource Sharing，简单翻译就是跨域资源共享。
+跨域问题出现的根源就是浏览器为了安全阻止了跨域请求，但说到底，安不安全还不是服务端说了算的，服务端都说我们家大米你们随便池，浏览器还阻止这不是碍事吗。
+但是浏览器也不能随便放行，浏览器说，服务端，这个客户端要吃你家大米，你得告诉我你同不同意啊，服务端说我咋告诉你啊，我又不知道你家电话号码，浏览器说那我们搞个协议吧，你就按这个格式告诉我。
+这个协议就是CORS了。
+CORS一句话来说就是客户端申请跨域访问，头里带个Origin，浏览器一看你来自xxx，要去吃别人家大米，我问问服务端，然后服务端返回头里带个Access-Control-Allow-Origin，就是允许吃我家大米的名单，浏览器对比之后阻止或者放行。这是简单请求的一个处理流程，协议还规定了请求方式、是否允许带cookie、请求头等约束。
+关于CORS协议详细的内容看这篇文章
+ http://www.ruanyifeng.com/blog/2016/04/cors.html
+ </description>
+    </item>
+    
+    <item>
       <title>2构建个人博客--使用Webhook自动发布</title>
-      <link>https://holdengong.com/hugo2/</link>
+      <link>https://holdengong.com/%E6%9E%84%E5%BB%BA%E4%B8%AA%E4%BA%BA%E5%8D%9A%E5%AE%A2_2_%E4%BD%BF%E7%94%A8webhook%E8%87%AA%E5%8A%A8%E5%8F%91%E5%B8%83/</link>
       <pubDate>Sat, 14 Mar 2020 21:15:28 +0800</pubDate>
       
-      <guid>https://holdengong.com/hugo2/</guid>
+      <guid>https://holdengong.com/%E6%9E%84%E5%BB%BA%E4%B8%AA%E4%BA%BA%E5%8D%9A%E5%AE%A2_2_%E4%BD%BF%E7%94%A8webhook%E8%87%AA%E5%8A%A8%E5%8F%91%E5%B8%83/</guid>
       <description>概述 上篇介绍了怎么利用hugo搭建个人博客。 有一个地方还是有点不方便，就是git push之后需要等半个小时才能发布。
 所以我想利用github的webhook实现每次推送自动发布。
 github设置钩子 所谓的webhook,就是钩子,就是github搞事情的时候就会通知你。所以你需要准备一个接口接收github的post请求。 这里我设置为接收json格式数据，仅push时通知。 编写接口 生产环境一般是使用Travis Ci或者Jenkins来实现类似功能，但这对于我来说有点重型了。所以自己写个接口简单实现下。 需求很简单，每当有代码推送的时候，拉取git并发布到blog部署目录。
@@ -30,10 +50,10 @@ github设置钩子 所谓的webhook,就是钩子,就是github搞事情的时候�
     
     <item>
       <title>1构建个人博客--使用Hugo快速成型</title>
-      <link>https://holdengong.com/hugo1/</link>
+      <link>https://holdengong.com/%E6%9E%84%E5%BB%BA%E4%B8%AA%E4%BA%BA%E5%8D%9A%E5%AE%A2_1_%E4%BD%BF%E7%94%A8hugo%E5%BF%AB%E9%80%9F%E6%88%90%E5%9E%8B/</link>
       <pubDate>Sat, 14 Mar 2020 14:42:38 +0800</pubDate>
       
-      <guid>https://holdengong.com/hugo1/</guid>
+      <guid>https://holdengong.com/%E6%9E%84%E5%BB%BA%E4%B8%AA%E4%BA%BA%E5%8D%9A%E5%AE%A2_1_%E4%BD%BF%E7%94%A8hugo%E5%BF%AB%E9%80%9F%E6%88%90%E5%9E%8B/</guid>
       <description>概述 人在武汉，病毒肆虐。
 隔离久了，有点闷，闲余时间找点事情做。
 建个博客吧， 内容不重要，写不写也不那么要紧，目前水平也写不出什么有深度的东西。

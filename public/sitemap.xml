@@ -3,17 +3,22 @@
   xmlns:xhtml="http://www.w3.org/1999/xhtml">
   
   <url>
-    <loc>https://holdengong.com/hugo2/</loc>
-    <lastmod>2020-03-14T21:15:28+08:00</lastmod>
+    <loc>https://holdengong.com/aspnetcore%E6%BA%90%E7%A0%81%E8%A7%A3%E6%9E%90_1_cors%E4%B8%AD%E9%97%B4%E4%BB%B6/</loc>
+    <lastmod>2020-03-15T17:26:10+08:00</lastmod>
   </url>
   
   <url>
     <loc>https://holdengong.com/</loc>
+    <lastmod>2020-03-15T17:26:10+08:00</lastmod>
+  </url>
+  
+  <url>
+    <loc>https://holdengong.com/%E6%9E%84%E5%BB%BA%E4%B8%AA%E4%BA%BA%E5%8D%9A%E5%AE%A2_2_%E4%BD%BF%E7%94%A8webhook%E8%87%AA%E5%8A%A8%E5%8F%91%E5%B8%83/</loc>
     <lastmod>2020-03-14T21:15:28+08:00</lastmod>
   </url>
   
   <url>
-    <loc>https://holdengong.com/hugo1/</loc>
+    <loc>https://holdengong.com/%E6%9E%84%E5%BB%BA%E4%B8%AA%E4%BA%BA%E5%8D%9A%E5%AE%A2_1_%E4%BD%BF%E7%94%A8hugo%E5%BF%AB%E9%80%9F%E6%88%90%E5%9E%8B/</loc>
     <lastmod>2020-03-14T14:42:38+08:00</lastmod>
   </url>
   
