@@ -1,5 +1,5 @@
 ---
-title: "2构建个人博客--使用Webhook自动发布"
+title: "构建个人博客-2-使用Webhook自动发布"
 date: 2020-03-14T21:15:28+08:00
 draft: false
 ---
@@ -16,19 +16,6 @@ draft: false
 需求很简单，每当有代码推送的时候，拉取git并发布到blog部署目录。  
 
 我这里使用.net core实现，代码十分简单，其实就一行，执行blog.sh脚本。  
-```csharp
- [ApiController]
-    public class GitSubscriberController : ControllerBase
-    {
-        [Route("api/blog/gitsubscriber")]
-        [HttpPost]
-        public IActionResult GitSubscriber([FromBody]object request)
-        {
-            Process.Start("/scripts/blog.sh");
-            return Ok();
-        }
-    }
-```
 
 再看下这个blog.sh脚本的内容，也很简单，首先拉取git内容，再拷贝到部署目录就行了。
 ```sh

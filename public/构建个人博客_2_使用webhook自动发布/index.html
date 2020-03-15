@@ -8,7 +8,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-  <title>2构建个人博客--使用Webhook自动发布 &middot; Holden Gong</title>
+  <title>构建个人博客-2-使用Webhook自动发布 &middot; Holden Gong</title>
   <meta name="description" content="" />
 
   
@@ -55,7 +55,7 @@
 
     <main class="content container">
     <div class="post">
-  <h1>2构建个人博客--使用Webhook自动发布</h1>
+  <h1>构建个人博客-2-使用Webhook自动发布</h1>
   <time datetime=2020-03-14T21:15:28&#43;0800 class="post-date">Sat, Mar 14, 2020</time>
   <h2 id="概述">概述</h2>
 <p>上篇介绍了怎么利用hugo搭建个人博客。  有一个地方还是有点不方便，就是git push之后需要等半个小时才能发布。<br>
@@ -67,18 +67,7 @@
 <p>生产环境一般是使用Travis Ci或者Jenkins来实现类似功能，但这对于我来说有点重型了。所以自己写个接口简单实现下。
 需求很简单，每当有代码推送的时候，拉取git并发布到blog部署目录。</p>
 <p>我这里使用.net core实现，代码十分简单，其实就一行，执行blog.sh脚本。</p>
-<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-csharp" data-lang="csharp"><span style="color:#a6e22e"> [ApiController]</span>
-    <span style="color:#66d9ef">public</span> <span style="color:#66d9ef">class</span> <span style="color:#a6e22e">GitSubscriberController</span> : ControllerBase
-    {
-<span style="color:#a6e22e">        [Route(&#34;api/blog/gitsubscriber&#34;)]</span>
-<span style="color:#a6e22e">        [HttpPost]</span>
-        <span style="color:#66d9ef">public</span> IActionResult GitSubscriber([FromBody]<span style="color:#66d9ef">object</span> request)
-        {
-            Process.Start(<span style="color:#e6db74">&#34;/scripts/blog.sh&#34;</span>);
-            <span style="color:#66d9ef">return</span> Ok();
-        }
-    }
-</code></pre></div><p>再看下这个blog.sh脚本的内容，也很简单，首先拉取git内容，再拷贝到部署目录就行了。</p>
+<p>再看下这个blog.sh脚本的内容，也很简单，首先拉取git内容，再拷贝到部署目录就行了。</p>
 <div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-sh" data-lang="sh"><span style="color:#75715e">#!/bin/bash
 </span><span style="color:#75715e"></span>cd /git/blog
 git pull
