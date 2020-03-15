@@ -1,3 +1,6 @@
 baseURL = "https://holdengong.com/"
 languageCode = "zh-Hans"
 title = "Holden Gong"
+
+[markup.goldmark.renderer]
+unsafe= true

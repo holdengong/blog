@@ -27,14 +27,12 @@ CORS CORS的全称是Cross Origin Resource Sharing，翻译过来就是跨域资
 跨域问题本质就是浏览器处于安全考虑，阻止了客户端跨域请求。但说到底，客户端请求安不安全还不是服务端说了算的，服务端都说我们家大米你们随便吃，浏览器还阻止，这不是碍事吗，你个物业还当自己业主啦？
 但是浏览器也不能随便放行，毕竟网上冲浪的不仅有正经客人，还有小偷，真出问题了还得吐槽物业稀烂。浏览器说，服务端，这个客户端要去你家吃大米，你得告诉我你同不同意啊，服务端说我咋告诉你啊，我总不能来个人就冲着岗亭喊 I&amp;rsquo;M OK吧。浏览器说那我们搞个协议吧，整个互联网小区都按这个规范来，你们就按这个格式回复我。
 这个协议就是CORS了。
-CORS的缺点就是IE10以下不支持，如果你的项目需要兼容这些浏览器的话需要注意。
+graph LR; A(客户端)--B(不带Orgin跨域请求); B--C(浏览器拒绝); A--D(带Origin跨域请求); D--E(服务端返回白名单); E--F(白名单内); E--G(白名单外); F--H(浏览器放行); G--C   CORS的缺点就是IE10以下不支持，如果你的项目需要兼容这些浏览器的话需要注意。
 关于CORS协议详细的内容看这篇文章
  http://www.ruanyifeng.com/blog/2016/04/cors.html
  怎么实现CORS CORS说白了其实就是在响应头里加东西，你可以在运维环节比如nginx加，可以在代码里加，常见的做法是中间件统一处理。AspNetCore为我们提供了CORS中间件。
 AspNetCore_CORS中间件的使用 使用CORS中间件两句代码就够了,在Startup文件中
-//注入CORS相关的服务，配置跨域策略 [CorsPolicy] public void ConfigureServices(IServiceCollection services) { services.AddCors(config=&amp;gt; { config.AddPolicy(&amp;#34;CorsPolicy&amp;#34;, policy =&amp;gt; { policy.AllowAnyOrigin(). AllowAnyMethod(). AllowAnyOrigin(). AllowAnyMethod(); /*注意：AllowAnyOrigin和AllowCredential不能同时出现.否则会报错AllowCredential即是否允许客户端发送cookie，基于安全原因，CORS协议规定不允许AllowOrigin为通配符的情况下设置允许发送cookie .AllowCredentials();*/ }); }); } //使用CORS中间件, 指定使用CorsPolicy public void Configure(IApplicationBuilder app) { app.UseCors(&amp;#34;CorsPolicy&amp;#34;); } 注意：AllowAnyOrigin和AllowCredential不能同时配置，否则会报错。如果要允许客户端发送cookie的话，只能使用WithOrgin来执行允许跨域白名单
-微软使用的策略设计模式，方便我们灵活使用跨域策略。比如，开发环境允许localhost跨域访问，方便开发调试，正式环境只允许指定域名访问。
-源码解析 </description>
+//注入CORS相关的服务，配置跨域策略 [CorsPolicy] public void ConfigureServices(IServiceCollection services) { //策略1，允许所有域名跨域访问  config.AddPolicy(&amp;#34;policy1&amp;#34;, policy =&amp;gt; { policy.AllowAnyOrigin(). AllowAnyMethod(). AllowAnyOrigin(). AllowAnyMethod(); //注意：AllowAnyOrigin和AllowCredential不能同时出现，否则会报错  //AllowCredential即是否允许客户端发送cookie，基于安全原因，CORS协议规定不允许AllowOrigin为通配符的情况下设置允许发送cookie  //.AllowCredentials();  }); //策略2，仅允许特定域名、方法、请求头访问  config.</description>
     </item>
     
     <item>

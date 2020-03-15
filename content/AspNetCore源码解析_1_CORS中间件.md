@@ -42,7 +42,7 @@ graph LR;
     F-->H(浏览器放行);
     G-->C
 </div>
-<script async src="https://unpkg.com/mermaid@8.2.3/dist/mermaid.min.js"></script>
+<script src="https://unpkg.com/mermaid/dist/mermaid.min.js"></script>
 
 CORS的缺点就是IE10以下不支持，如果你的项目需要兼容这些浏览器的话需要注意。
 
@@ -59,16 +59,29 @@ CORS说白了其实就是在响应头里加东西，你可以在运维环节比�
 //注入CORS相关的服务，配置跨域策略 [CorsPolicy]
 public void ConfigureServices(IServiceCollection services)
 {
-    services.AddCors(config=> {
-                config.AddPolicy("CorsPolicy", policy => {
+    //策略1，允许所有域名跨域访问
+    config.AddPolicy("policy1", policy => {
                     policy.AllowAnyOrigin().
                         AllowAnyMethod().
                         AllowAnyOrigin().
                         AllowAnyMethod();
-                        /*注意：AllowAnyOrigin和AllowCredential不能同时出现.否则会报错AllowCredential即是否允许客户端发送cookie，基于安全原因，CORS协议规定不允许AllowOrigin为通配符的情况下设置允许发送cookie
-                        .AllowCredentials();*/
+                        //注意：AllowAnyOrigin和AllowCredential不能同时出现，否则会报错
+                        //AllowCredential即是否允许客户端发送cookie，基于安全原因，CORS协议规定不允许AllowOrigin为通配符的情况下设置允许发送cookie
+                        //.AllowCredentials();
                 });
-            });
+
+    //策略2，仅允许特定域名、方法、请求头访问
+    config.AddPolicy("policy2",policy=> {
+        //只允许https://www.holdengong.com跨域访问
+        policy.WithOrigins("https://www.holdengong.com")
+        //只允许get,post方法
+        .WithMethods("get", "post")
+        //请求头中只允许有Authorization
+        .WithHeaders("Authorization")
+        //对于复杂请求，浏览器会首先发送预检请求(OPTIONS),服务端返回204，并在响应头中返回跨域设置
+        //此处可以设置预检请求的有效时长，即30分钟内不会再检查是否允许跨域
+        .SetPreflightMaxAge(TimeSpan.FromMinutes(30));
+    });
 }
 
 //使用CORS中间件, 指定使用CorsPolicy
@@ -83,6 +96,47 @@ public void Configure(IApplicationBuilder app)
 微软使用的策略设计模式，方便我们灵活使用跨域策略。比如，开发环境允许localhost跨域访问，方便开发调试，正式环境只允许指定域名访问。
 
 ## 源码解析
+### 核心对象
+```csharp
+services.TryAdd(ServiceDescriptor.Transient<ICorsService, CorsService>());
 
+services.TryAdd(ServiceDescriptor.Transient<ICorsPolicyProvider, DefaultCorsPolicyProvider>());
 
+services.Configure(setupAction);
+```
 
+- CorsOptions：主要定义了字典PolicyMap，键是策略名称，值是跨域策略。用户可以在注入的时候往这个对象里面加跨域策略。然后提供了一些新增策略的操作方法。
+
+```csharp
+// DefaultCorsPolicyProvider returns a Task<CorsPolicy>. We'll cache the value to be returned alongside
+// the actual policy instance to have a separate lookup.
+internal IDictionary<string, (CorsPolicy policy, Task<CorsPolicy> policyTask)> PolicyMap { get; }
+    = new Dictionary<string, (CorsPolicy, Task<CorsPolicy>)>(StringComparer.Ordinal);
+```
+
+- ICorsService：有两个方法，EvaluatePolicy--评估策略，主要做一些校验、记录日志和分流预检请求和真实请求的工作； PopulateResult--执行策略，将结果填充到CorsResult对象中。
+
+- ICorsPolicyProvider: 有一个方法，GetPolicyAsync--根据policyName取出跨域策略。
+
+### 中间件
+```
+CorsMiddleware
+```
+
+首先，中间件会判断方法节点是否有实现以下两个接口，如果有的话优先执行节点设置。
+```
+IDisableCorsAttribute: 禁用跨域
+ICorsPolicyMetadata：使用指定跨域策略
+```
+
+然后，然后判断请求头是否有Origin，没有的话直接略过CORS中间件去下游管道。
+```csharp
+if (!context.Request.Headers.ContainsKey(CorsConstants.Origin))
+{
+return _next(context);
+}
+```
+
+然后，中间件执行ICorsService的ApplyResult方法，将跨域策略写到响应头中。
+
+原文地址：[holdengong.com](https://holdengong.com)
