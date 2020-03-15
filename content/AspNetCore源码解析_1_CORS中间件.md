@@ -31,8 +31,7 @@ CORS的全称是Cross Origin Resource Sharing，翻译过来就是跨域资源�
 
 这个协议就是CORS了。
 
-
-```mermaid
+<div class="mermaid">
 graph LR;
     A(客户端)-->B(不带Orgin跨域请求);
     B-->C(浏览器拒绝);
@@ -42,7 +41,8 @@ graph LR;
     E-->G(白名单外);
     F-->H(浏览器放行);
     G-->C
-```
+</div>
+<script async src="https://unpkg.com/mermaid@8.2.3/dist/mermaid.min.js"></script>
 
 CORS的缺点就是IE10以下不支持，如果你的项目需要兼容这些浏览器的话需要注意。
 

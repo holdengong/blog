@@ -1,12 +1,6 @@
 <!DOCTYPE html>
 <html xmlns="http://www.w3.org/1999/xhtml" xml:lang="zh-Hans" lang="zh-Hans">
 <head>
-  
-  <script src="https://mermaidjs.github.io/scripts/mermaid.min.js"></script>
-  <script>
-        mermaid.initialize({ startOnLoad: true });
-  </script>
-  
   <link href="https://gmpg.org/xfn/11" rel="profile">
   <meta http-equiv="content-type" content="text/html; charset=utf-8">
   <meta name="generator" content="Hugo 0.67.0" />
@@ -84,16 +78,8 @@
 <p>跨域问题本质就是浏览器处于安全考虑，阻止了客户端跨域请求。但说到底，客户端请求安不安全还不是服务端说了算的，服务端都说我们家大米你们随便吃，浏览器还阻止，这不是碍事吗，你个物业还当自己业主啦？</p>
 <p>但是浏览器也不能随便放行，毕竟网上冲浪的不仅有正经客人，还有小偷，真出问题了还得吐槽物业稀烂。浏览器说，服务端，这个客户端要去你家吃大米，你得告诉我你同不同意啊，服务端说我咋告诉你啊，我总不能来个人就冲着岗亭喊 I&rsquo;M OK吧。浏览器说那我们搞个协议吧，整个互联网小区都按这个规范来，你们就按这个格式回复我。</p>
 <p>这个协议就是CORS了。</p>
-<pre><code class="language-mermaid" data-lang="mermaid">graph LR;
-    A(客户端)--&gt;B(不带Orgin跨域请求);
-    B--&gt;C(浏览器拒绝);
-    A--&gt;D(带Origin跨域请求);
-    D--&gt;E(服务端返回白名单);
-    E--&gt;F(白名单内);
-    E--&gt;G(白名单外);
-    F--&gt;H(浏览器放行);
-    G--&gt;C
-</code></pre><p>CORS的缺点就是IE10以下不支持，如果你的项目需要兼容这些浏览器的话需要注意。</p>
+<!-- raw HTML omitted -->
+<p>CORS的缺点就是IE10以下不支持，如果你的项目需要兼容这些浏览器的话需要注意。</p>
 <p>关于CORS协议详细的内容看这篇文章</p>
 <blockquote>
 <p><a href="http://www.ruanyifeng.com/blog/2016/04/cors.html">http://www.ruanyifeng.com/blog/2016/04/cors.html</a></p>
