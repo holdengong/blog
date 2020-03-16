@@ -6,10 +6,32 @@
     <description>Recent content on Holden Gong</description>
     <generator>Hugo -- gohugo.io</generator>
     <language>zh-Hans</language>
-    <lastBuildDate>Sun, 15 Mar 2020 17:26:10 +0800</lastBuildDate>
+    <lastBuildDate>Mon, 16 Mar 2020 12:40:46 +0800</lastBuildDate>
     
 	<atom:link href="https://holdengong.com/index.xml" rel="self" type="application/rss+xml" />
     
+    
+    <item>
+      <title>AspNetCore3.1源码解析_2_Hsts中间件</title>
+      <link>https://holdengong.com/aspnetcore3.1%E6%BA%90%E7%A0%81%E8%A7%A3%E6%9E%90_2_hsts%E4%B8%AD%E9%97%B4%E4%BB%B6/</link>
+      <pubDate>Mon, 16 Mar 2020 12:40:46 +0800</pubDate>
+      
+      <guid>https://holdengong.com/aspnetcore3.1%E6%BA%90%E7%A0%81%E8%A7%A3%E6%9E%90_2_hsts%E4%B8%AD%E9%97%B4%E4%BB%B6/</guid>
+      <description>概述 在DotNetCore2.2版本中，当你新增一个WebAPI项目，生成项目模板，Startup.cs文件中，会有这么一行代码（3.1版本默认没有使用该中间件）。
+if (env.IsDevelopment()) { app.UseDeveloperExceptionPage(); } else { // The default HSTS value is 30 days. You may want to change this for production scenarios, see https://aka.ms/aspnetcore-hsts.  app.UseHsts(); } 这段代码，翻译一下就是开发环境使用开发异常页面，其他环境使用Hsts中间件。这个Hsts中间件是个什么东西呢，今天来看一看。
+HSTS是什么 HTTP严格传输安全协议（英语：HTTP Strict Transport Security，简称：HSTS）。
+ https://baike.baidu.com/item/HTTP%E4%B8%A5%E6%A0%BC%E4%BC%A0%E8%BE%93%E5%AE%89%E5%85%A8%E5%8D%8F%E8%AE%AE/16018283?fromtitle=HSTS&amp;amp;fromid=8665782&amp;amp;fr=aladdin
+  https://developer.mozilla.org/zh-CN/docs/Security/HTTP_Strict_Transport_Security
+  https://tools.ietf.org/html/rfc6797
+ 简单描述一下协议内容，就是出于安全考虑，强制客户端使用https与服务端链接。
+为什么要这么做呢，比较学术的论述自行查看上面的链接？我这里举个通俗的栗子。
+首先我们知道http不安全，而https是安全的，他能保障你访问的A网站就是A，而不是什么其他的野鸡。
+某一天，你去逛淘宝，你往chrome地址栏敲 taobao.com，正常情况下岁月静好，什么问题都没有。假如，这时候你接入的是公共免费wifi，而这背后有人搞鬼，他可以将你跳转到一个跟taobao一模一样的网站 (怎么做到的？比如修改你的host文件，将taobao域名指向他的私人ip)，浏览器并不知道taobao需要使用https访问，所以无法保护你，你的钱就在你的鼠标点击下，跟随着一个个http请求流入到了黑客的账户。
+那要怎么办呢，不上公共wifi行不行，行，但是防不胜防，不是根本的办法。 那我们告诉浏览器taobao需要用https访问行不行，听起来不错，那怎么告诉呢，我们来搞个协议，这个协议就是HSTS。
+一句话描述HTST：当你首次使用https访问了taobao后，taobao会返回Strict-Transport-Security头，表名我这个网站需要使用https访问，浏览器记录下这个信息，以后taobao的请求都会使用https，因此堵住了上面案例的安全漏洞。
+HSTS中间件的使用 通常，我们不需要写Hsts的注入代码，因为它没有任何需要注入的服务。除非你需要修改它的默认配置。
+services.AddHsts(config =&amp;gt; { //是否包含子域名，默认false  config.IncludeSubDomains = true; //有效时长，默认30天  config.MaxAge = TimeSpan.FromDays(365); }); 然后，使用中间件即可。</description>
+    </item>
     
     <item>
       <title>AspNetCore3.1源码解析_1_CORS中间件</title>
@@ -53,7 +75,7 @@ github设置钩子 所谓的webhook,就是钩子,就是github搞事情的时候�
     </item>
     
     <item>
-      <title>1构建个人博客--使用Hugo快速成型</title>
+      <title>构建个人博客_1_使用Hugo快速成型</title>
       <link>https://holdengong.com/%E6%9E%84%E5%BB%BA%E4%B8%AA%E4%BA%BA%E5%8D%9A%E5%AE%A2_1_%E4%BD%BF%E7%94%A8hugo%E5%BF%AB%E9%80%9F%E6%88%90%E5%9E%8B/</link>
       <pubDate>Sat, 14 Mar 2020 14:42:38 +0800</pubDate>
       

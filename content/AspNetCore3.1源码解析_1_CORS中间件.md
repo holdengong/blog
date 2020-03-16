@@ -78,7 +78,7 @@ public void ConfigureServices(IServiceCollection services)
         policy.WithOrigins("https://www.holdengong.com")
         //只允许get,post方法
         .WithMethods("GET", "POST")
-        //请求头中只允许有Authorization
+        //请求头中只允许有额外的头Authorization
         .WithHeaders("Authorization")
         //对于复杂请求，浏览器会首先发送预检请求(OPTIONS),服务端返回204，并在响应头中返回跨域设置
         //此处可以设置预检请求的有效时长，即30分钟内不会再检查是否允许跨域

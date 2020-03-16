@@ -120,7 +120,7 @@ graph LR;
 </span><span style="color:#75715e"></span>        policy.WithOrigins(<span style="color:#e6db74">&#34;https://www.holdengong.com&#34;</span>)
         <span style="color:#75715e">//只允许get,post方法
 </span><span style="color:#75715e"></span>        .WithMethods(<span style="color:#e6db74">&#34;GET&#34;</span>, <span style="color:#e6db74">&#34;POST&#34;</span>)
-        <span style="color:#75715e">//请求头中只允许有Authorization
+        <span style="color:#75715e">//请求头中只允许有额外的头Authorization
 </span><span style="color:#75715e"></span>        .WithHeaders(<span style="color:#e6db74">&#34;Authorization&#34;</span>)
         <span style="color:#75715e">//对于复杂请求，浏览器会首先发送预检请求(OPTIONS),服务端返回204，并在响应头中返回跨域设置
 </span><span style="color:#75715e"></span>        <span style="color:#75715e">//此处可以设置预检请求的有效时长，即30分钟内不会再检查是否允许跨域
