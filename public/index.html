@@ -67,7 +67,7 @@ HSTS是什么 HTTP严格传输安全协议（英语：HTTP Strict Transport Secu
 简单描述一下协议内容，就是出于安全考虑，强制客户端使用https与服务端连接。
 为什么要这么做呢，比较学术和系统的论述自行查看下面的链接。我这里举个通俗的栗子。
 首先我们知道http是不安全的，而https是安全的，它能保障你访问的A网站就是A，而不是什么其他的野鸡。
-某一天，你去逛淘宝，你往chrome地址栏敲 taobao.com，正常情况下岁月安好，什么问题都没有。假如，这时候你接入的是公共免费wifi，而这背后有人搞鬼，他可以将你跳转到一个跟taobao一模一样的网站 (怎么做到的？比如修改你的host文件，将taobao域名指向他自己搭建的假taobao网站ip)，浏览器并不知道taobao需要使用https访问，所以无法保护你，你的钱就在你的鼠标点击下，跟随着一个个http请求流入到了黑客的账户。
+某一天，你去逛淘宝，你往chrome地址栏敲 taobao.com，正常情况下岁月安好，什么问题都没有。假如，这时候你接入的是公共免费wifi，而这背后有人搞鬼，或者说你的电脑已经中了病毒，它可以将你跳转到一个跟taobao一模一样的网站 (怎么做到的？比如修改你的host文件，将taobao域名指向他自己搭建的假taobao网站ip)，浏览器并不知道taobao需要使用https访问，所以无法保护你，你的钱就在你的鼠标点击下，跟随着一个个http请求流入到了黑客的账户。
 那要怎么办呢，不上公共wifi行不行，行，但是防不胜防，不是根本的办法。 那我们告诉浏览器taobao需要用https访问行不行，听起来不错，那怎么告诉呢，我们来搞个协议，这个协议就是HSTS。
 一句话描述HTST：当你首次使用https访问了taobao成功后，taobao会返回Strict-Transport-Security头，表明我这个网站需要使用https访问，浏览器记录下这个信息，以后taobao的请求都会使用https，因此堵住了上面案例的安全漏洞。
  https://baike.baidu.com/item/HTTP%E4%B8%A5%E6%A0%BC%E4%BC%A0%E8%BE%93%E5%AE%89%E5%85%A8%E5%8D%8F%E8%AE%AE/16018283?fromtitle=HSTS&amp;fromid=8665782&amp;fr=aladdin
