@@ -640,4 +640,6 @@ return _next(context);
 
 然后，中间件执行ICorsService的ApplyResult方法，将跨域策略写到响应头中。
 
-原文地址：[holdengong.com](https://holdengong.com)
+---
+
+OK，跨域问题几行代码轻松解决，SO EASY，✿✿ヽ(°▽°)ノ✿
