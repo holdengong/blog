@@ -61,9 +61,9 @@
     <a href="https://holdengong.com/aspnetcore3.1_middleware%E6%BA%90%E7%A0%81%E8%A7%A3%E6%9E%90_3_httpsredirection/">AspNetCore3.1_Middleware源码解析_3_HttpsRedirection</a>
   </h1>
   <time datetime="2020-03-16T18:20:41&#43;0800" class="post-date">Mon, Mar 16, 2020</time>
-  概述 上文提到3.1版本默认没有使用Hsts，但是使用了这个中间件。看名字就很好理解，https跳转，顾名思义，就是跳转到 https地址。
-使用场景，当用户使用http访问网站时，自动跳转到https地址。这样更加安全，不需要用户特意输入https://协议。
-具体做了些我们一起来看看。
+  概述 上文提到3.1版本默认没有使用Hsts，但是使用了HttpsRedirection这个中间件。看名字就很好理解，https跳转，顾名思义，就是跳转到https地址。
+使用场景：当用户使用http访问网站时，自动跳转到https地址。这样更加安全，也更加方便，因为不需要用户特意输入https://。
+具体怎么实现的我们来看看。
 app.UseHttpsRedirection(); 使用方法 跟Hsts一样，HttpsRedirection默认是不需要注入的，除非你需要修改默认配置。
 services.AddHttpsRedirection(config =&gt; { //https地址的端口号，默认null  config.HttpsPort = 12345; //跳转响应的状态码，默认307  config.RedirectStatusCode = 302; }); 直接使用中间件即可
 app.UseHttpsRedirection(); 源码解析 源代码很简单，只有两个类：HttpsRedirectionOptions配置类，HttpsRedirectionMiddleware中间件
