@@ -1,0 +1,285 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="zh-Hans" lang="zh-Hans">
+<head>
+  <link href="https://gmpg.org/xfn/11" rel="profile">
+  <meta http-equiv="content-type" content="text/html; charset=utf-8">
+  <meta name="generator" content="Hugo 0.67.0" />
+
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <title>AspNetCore3 &middot; Holden Gong</title>
+  <meta name="description" content="" />
+
+  
+  <link type="text/css" rel="stylesheet" href="https://holdengong.com/css/print.css" media="print">
+  <link type="text/css" rel="stylesheet" href="https://holdengong.com/css/poole.css">
+  <link type="text/css" rel="stylesheet" href="https://holdengong.com/css/syntax.css">
+  <link type="text/css" rel="stylesheet" href="https://holdengong.com/css/hyde.css">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Abril+Fatface|PT+Sans:400,400i,700">
+
+
+  
+  <link rel="apple-touch-icon-precomposed" sizes="144x144" href="/apple-touch-icon-144-precomposed.png">
+  <link rel="shortcut icon" href="/favicon.png">
+
+  
+  
+</head>
+
+  <body class=" ">
+  <aside class="sidebar">
+  <div class="container sidebar-sticky">
+    <div class="sidebar-about">
+      <a href="https://holdengong.com/">
+        <h1>Holden Gong</h1>
+      </a>
+      <p class="lead">
+        code & life
+      </p>
+    </div>
+
+    <nav>
+      <ul class="sidebar-nav">
+  
+      </ul>
+    </nav>
+    
+    <div>
+      
+      <p>&copy; 2020. All rights reserved. </p>
+      <p>鄂ICP备20003133号</p>
+    </div>
+  </div>
+</aside>
+
+    <main class="content container">
+    <div class="post">
+  <h1>AspNetCore3</h1>
+  <time datetime=2020-03-16T18:20:41&#43;0800 class="post-date">Mon, Mar 16, 2020</time>
+  <h1 id="概述">概述</h1>
+<p>上文提到3.1版本默认没有使用Hsts，但是使用了这个中间件。看名字就很好理解，https跳转，顾名思义，就是跳转到
+https地址。</p>
+<p>使用场景，当用户使用http访问网站时，自动跳转到https地址。这样更加安全，不需要用户特意输入https://协议。</p>
+<p>具体做了些我们一起来看看。</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-csharp" data-lang="csharp">  app.UseHttpsRedirection();
+</code></pre></div><h1 id="使用方法">使用方法</h1>
+<p>跟Hsts一样，HttpsRedirection默认是不需要注入的，除非你需要修改默认配置。</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-csharp" data-lang="csharp">services.AddHttpsRedirection(config =&gt;
+  {
+      <span style="color:#75715e">//https地址的端口号，默认null
+</span><span style="color:#75715e"></span>      config.HttpsPort = <span style="color:#ae81ff">12345</span>;
+
+      <span style="color:#75715e">//跳转响应的状态码，默认307
+</span><span style="color:#75715e"></span>      config.RedirectStatusCode = <span style="color:#ae81ff">302</span>;
+  });
+</code></pre></div><p>直接使用中间件即可</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-csharp" data-lang="csharp"> app.UseHttpsRedirection();
+</code></pre></div><h1 id="源码解析">源码解析</h1>
+<p>源代码很简单，只有两个类：HttpsRedirectionOptions配置类，HttpsRedirectionMiddleware中间件</p>
+<p>HttpsRedirectionOptions就只有两个配置项</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-csharp" data-lang="csharp">  <span style="color:#75715e">/// &lt;summary&gt;
+</span><span style="color:#75715e"></span>  <span style="color:#75715e">/// Options for the HttpsRedirection middleware
+</span><span style="color:#75715e"></span>  <span style="color:#75715e">/// &lt;/summary&gt;
+</span><span style="color:#75715e"></span>  <span style="color:#66d9ef">public</span> <span style="color:#66d9ef">class</span> <span style="color:#a6e22e">HttpsRedirectionOptions</span>
+  {
+      <span style="color:#75715e">/// &lt;summary&gt;
+</span><span style="color:#75715e"></span>      <span style="color:#75715e">/// The status code used for the redirect response. The default is 307.
+</span><span style="color:#75715e"></span>      <span style="color:#75715e">/// &lt;/summary&gt;
+</span><span style="color:#75715e"></span>      <span style="color:#66d9ef">public</span> <span style="color:#66d9ef">int</span> RedirectStatusCode { <span style="color:#66d9ef">get</span>; <span style="color:#66d9ef">set</span>; } = StatusCodes.Status307TemporaryRedirect;
+
+      <span style="color:#75715e">/// &lt;summary&gt;
+</span><span style="color:#75715e"></span>      <span style="color:#75715e">/// The HTTPS port to be added to the redirected URL.
+</span><span style="color:#75715e"></span>      <span style="color:#75715e">/// &lt;/summary&gt;
+</span><span style="color:#75715e"></span>      <span style="color:#75715e">/// &lt;remarks&gt;
+</span><span style="color:#75715e"></span>      <span style="color:#75715e">/// If the HttpsPort is not set, we will try to get the HttpsPort from the following:
+</span><span style="color:#75715e"></span>      <span style="color:#75715e">/// 1. HTTPS_PORT environment variable
+</span><span style="color:#75715e"></span>      <span style="color:#75715e">/// 2. IServerAddressesFeature
+</span><span style="color:#75715e"></span>      <span style="color:#75715e">/// If that fails then the middleware will log a warning and turn off.
+</span><span style="color:#75715e"></span>      <span style="color:#75715e">/// &lt;/remarks&gt;
+</span><span style="color:#75715e"></span>      <span style="color:#66d9ef">public</span> <span style="color:#66d9ef">int?</span> HttpsPort { <span style="color:#66d9ef">get</span>; <span style="color:#66d9ef">set</span>; }
+  }
+</code></pre></div><p>重点看下中间件做了些什么。代码量很少，大体是这些逻辑。</p>
+<ul>
+<li>如果请求是Https，跳过本中间件</li>
+<li>中间件会依次尝试从这三个地方取端口号：HttpsRedirectionOptions的配置，HttpsRedirectionOptions，HTTPS_PORT环境变量或配置，IServerAddressesFeature(<em>如果Webhost上绑定了https地址，本中间件能够解析出来端口号</em>)。</li>
+<li>如果没有解析出来https的端口号，则跳过本中间件。</li>
+<li>如果能够解析出来https端口号，则拼接出来https地址，返回307跳转响应报文（或者配置的其他状态码）。</li>
+</ul>
+<p><em><strong>注：3.1同时支持HTTPS_PORT和ANCM_HTTPS_PORT这两个环境变量。</strong></em>
+<img src="https://fs.31huiyi.com/782a3141-0f34-4631-bf5b-196b09d1e9a6.png" alt="image"></p>
+<blockquote>
+<p><a href="https://docs.microsoft.com/en-us/dotnet/core/compatibility/2.2-3.0">https://docs.microsoft.com/en-us/dotnet/core/compatibility/2.2-3.0</a></p>
+</blockquote>
+<details>
+<summary>
+点击查看HttpsRedirectionMiddleware源代码
+</summary>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-csharp" data-lang="csharp"><span style="color:#66d9ef">public</span> <span style="color:#66d9ef">class</span> <span style="color:#a6e22e">HttpsRedirectionMiddleware</span>
+    {
+        <span style="color:#66d9ef">private</span> <span style="color:#66d9ef">const</span> <span style="color:#66d9ef">int</span> PortNotFound = -<span style="color:#ae81ff">1</span>;
+
+        <span style="color:#66d9ef">private</span> <span style="color:#66d9ef">readonly</span> RequestDelegate _next;
+        <span style="color:#66d9ef">private</span> <span style="color:#66d9ef">readonly</span> Lazy&lt;<span style="color:#66d9ef">int</span>&gt; _httpsPort;
+        <span style="color:#66d9ef">private</span> <span style="color:#66d9ef">readonly</span> <span style="color:#66d9ef">int</span> _statusCode;
+
+        <span style="color:#66d9ef">private</span> <span style="color:#66d9ef">readonly</span> IServerAddressesFeature _serverAddressesFeature;
+        <span style="color:#66d9ef">private</span> <span style="color:#66d9ef">readonly</span> IConfiguration _config;
+        <span style="color:#66d9ef">private</span> <span style="color:#66d9ef">readonly</span> ILogger _logger;
+
+        <span style="color:#75715e">/// &lt;summary&gt;
+</span><span style="color:#75715e"></span>        <span style="color:#75715e">/// Initializes the HttpsRedirectionMiddleware
+</span><span style="color:#75715e"></span>        <span style="color:#75715e">/// &lt;/summary&gt;
+</span><span style="color:#75715e"></span>        <span style="color:#75715e">/// &lt;param name=&#34;next&#34;&gt;&lt;/param&gt;
+</span><span style="color:#75715e"></span>        <span style="color:#75715e">/// &lt;param name=&#34;options&#34;&gt;&lt;/param&gt;
+</span><span style="color:#75715e"></span>        <span style="color:#75715e">/// &lt;param name=&#34;config&#34;&gt;&lt;/param&gt;
+</span><span style="color:#75715e"></span>        <span style="color:#75715e">/// &lt;param name=&#34;loggerFactory&#34;&gt;&lt;/param&gt;
+</span><span style="color:#75715e"></span>        <span style="color:#66d9ef">public</span> HttpsRedirectionMiddleware(RequestDelegate next, IOptions&lt;HttpsRedirectionOptions&gt; options, IConfiguration config, ILoggerFactory loggerFactory)
+
+        {
+            _next = next ?? <span style="color:#66d9ef">throw</span> <span style="color:#66d9ef">new</span> ArgumentNullException(nameof(next));
+            _config = config ?? <span style="color:#66d9ef">throw</span> <span style="color:#66d9ef">new</span> ArgumentNullException(nameof(config));
+
+            <span style="color:#66d9ef">if</span> (options == <span style="color:#66d9ef">null</span>)
+            {
+                <span style="color:#66d9ef">throw</span> <span style="color:#66d9ef">new</span> ArgumentNullException(nameof(options));
+            }
+            <span style="color:#66d9ef">var</span> httpsRedirectionOptions = options.Value;
+            <span style="color:#66d9ef">if</span> (httpsRedirectionOptions.HttpsPort.HasValue)
+            {
+                _httpsPort = <span style="color:#66d9ef">new</span> Lazy&lt;<span style="color:#66d9ef">int</span>&gt;(() =&gt; httpsRedirectionOptions.HttpsPort.Value);
+            }
+            <span style="color:#66d9ef">else</span>
+            {
+                _httpsPort = <span style="color:#66d9ef">new</span> Lazy&lt;<span style="color:#66d9ef">int</span>&gt;(TryGetHttpsPort);
+            }
+            _statusCode = httpsRedirectionOptions.RedirectStatusCode;
+            _logger = loggerFactory.CreateLogger&lt;HttpsRedirectionMiddleware&gt;();
+        }
+
+        <span style="color:#75715e">/// &lt;summary&gt;
+</span><span style="color:#75715e"></span>        <span style="color:#75715e">/// Initializes the HttpsRedirectionMiddleware
+</span><span style="color:#75715e"></span>        <span style="color:#75715e">/// &lt;/summary&gt;
+</span><span style="color:#75715e"></span>        <span style="color:#75715e">/// &lt;param name=&#34;next&#34;&gt;&lt;/param&gt;
+</span><span style="color:#75715e"></span>        <span style="color:#75715e">/// &lt;param name=&#34;options&#34;&gt;&lt;/param&gt;
+</span><span style="color:#75715e"></span>        <span style="color:#75715e">/// &lt;param name=&#34;config&#34;&gt;&lt;/param&gt;
+</span><span style="color:#75715e"></span>        <span style="color:#75715e">/// &lt;param name=&#34;loggerFactory&#34;&gt;&lt;/param&gt;
+</span><span style="color:#75715e"></span>        <span style="color:#75715e">/// &lt;param name=&#34;serverAddressesFeature&#34;&gt;The&lt;/param&gt;
+</span><span style="color:#75715e"></span>        <span style="color:#66d9ef">public</span> HttpsRedirectionMiddleware(RequestDelegate next, IOptions&lt;HttpsRedirectionOptions&gt; options, IConfiguration config, ILoggerFactory loggerFactory,
+            IServerAddressesFeature serverAddressesFeature)
+            : <span style="color:#66d9ef">this</span>(next, options, config, loggerFactory)
+        {
+            _serverAddressesFeature = serverAddressesFeature ?? <span style="color:#66d9ef">throw</span> <span style="color:#66d9ef">new</span> ArgumentNullException(nameof(serverAddressesFeature));
+        }
+
+        <span style="color:#75715e">/// &lt;summary&gt;
+</span><span style="color:#75715e"></span>        <span style="color:#75715e">/// Invokes the HttpsRedirectionMiddleware
+</span><span style="color:#75715e"></span>        <span style="color:#75715e">/// &lt;/summary&gt;
+</span><span style="color:#75715e"></span>        <span style="color:#75715e">/// &lt;param name=&#34;context&#34;&gt;&lt;/param&gt;
+</span><span style="color:#75715e"></span>        <span style="color:#75715e">/// &lt;returns&gt;&lt;/returns&gt;
+</span><span style="color:#75715e"></span>        <span style="color:#66d9ef">public</span> Task Invoke(HttpContext context)
+        {
+            <span style="color:#66d9ef">if</span> (context.Request.IsHttps)
+            {
+                <span style="color:#66d9ef">return</span> _next(context);
+            }
+
+            <span style="color:#66d9ef">var</span> port = _httpsPort.Value;
+            <span style="color:#66d9ef">if</span> (port == PortNotFound)
+            {
+                <span style="color:#66d9ef">return</span> _next(context);
+            }
+
+            <span style="color:#66d9ef">var</span> host = context.Request.Host;
+            <span style="color:#66d9ef">if</span> (port != <span style="color:#ae81ff">443</span>)
+            {
+                host = <span style="color:#66d9ef">new</span> HostString(host.Host, port);
+            }
+            <span style="color:#66d9ef">else</span>
+            {
+                host = <span style="color:#66d9ef">new</span> HostString(host.Host);
+            }
+
+            <span style="color:#66d9ef">var</span> request = context.Request;
+            <span style="color:#66d9ef">var</span> redirectUrl = UriHelper.BuildAbsolute(
+                <span style="color:#e6db74">&#34;https&#34;</span>, 
+                host,
+                request.PathBase,
+                request.Path,
+                request.QueryString);
+
+            context.Response.StatusCode = _statusCode;
+            context.Response.Headers[HeaderNames.Location] = redirectUrl;
+
+            _logger.RedirectingToHttps(redirectUrl);
+
+            <span style="color:#66d9ef">return</span> Task.CompletedTask;
+        }
+
+        <span style="color:#75715e">//  Returns PortNotFound (-1) if we were unable to determine the port.
+</span><span style="color:#75715e"></span>        <span style="color:#66d9ef">private</span> <span style="color:#66d9ef">int</span> TryGetHttpsPort()
+        {
+            <span style="color:#75715e">// The IServerAddressesFeature will not be ready until the middleware is Invoked,
+</span><span style="color:#75715e"></span>            <span style="color:#75715e">// Order for finding the HTTPS port:
+</span><span style="color:#75715e"></span>            <span style="color:#75715e">// 1. Set in the HttpsRedirectionOptions
+</span><span style="color:#75715e"></span>            <span style="color:#75715e">// 2. HTTPS_PORT environment variable
+</span><span style="color:#75715e"></span>            <span style="color:#75715e">// 3. IServerAddressesFeature
+</span><span style="color:#75715e"></span>            <span style="color:#75715e">// 4. Fail if not sets
+</span><span style="color:#75715e"></span>
+            <span style="color:#66d9ef">var</span> nullablePort = _config.GetValue&lt;<span style="color:#66d9ef">int?</span>&gt;(<span style="color:#e6db74">&#34;HTTPS_PORT&#34;</span>) ?? _config.GetValue&lt;<span style="color:#66d9ef">int?</span>&gt;(<span style="color:#e6db74">&#34;ANCM_HTTPS_PORT&#34;</span>);
+            <span style="color:#66d9ef">if</span> (nullablePort.HasValue)
+            {
+                <span style="color:#66d9ef">var</span> port = nullablePort.Value;
+                _logger.PortLoadedFromConfig(port);
+                <span style="color:#66d9ef">return</span> port;
+            }
+
+            <span style="color:#66d9ef">if</span> (_serverAddressesFeature == <span style="color:#66d9ef">null</span>)
+            {
+                _logger.FailedToDeterminePort();
+                <span style="color:#66d9ef">return</span> PortNotFound;
+            }
+
+            <span style="color:#66d9ef">foreach</span> (<span style="color:#66d9ef">var</span> address <span style="color:#66d9ef">in</span> _serverAddressesFeature.Addresses)
+            {
+                <span style="color:#66d9ef">var</span> bindingAddress = BindingAddress.Parse(address);
+                <span style="color:#66d9ef">if</span> (bindingAddress.Scheme.Equals(<span style="color:#e6db74">&#34;https&#34;</span>, StringComparison.OrdinalIgnoreCase))
+                {
+                    <span style="color:#75715e">// If we find multiple different https ports specified, throw
+</span><span style="color:#75715e"></span>                    <span style="color:#66d9ef">if</span> (nullablePort.HasValue &amp;&amp; nullablePort != bindingAddress.Port)
+                    {
+                        _logger.FailedMultiplePorts();
+                        <span style="color:#66d9ef">return</span> PortNotFound;
+                    }
+                    <span style="color:#66d9ef">else</span>
+                    {
+                        nullablePort = bindingAddress.Port;
+                    }
+                }
+            }
+
+            <span style="color:#66d9ef">if</span> (nullablePort.HasValue)
+            {
+                <span style="color:#66d9ef">var</span> port = nullablePort.Value;
+                _logger.PortFromServer(port);
+                <span style="color:#66d9ef">return</span> port;
+            }
+
+            _logger.FailedToDeterminePort();
+            <span style="color:#66d9ef">return</span> PortNotFound;
+        }
+    }
+</code></pre></div></details>
+<hr>
+<p>OK，完成了。</p>
+
+</div>
+
+
+    </main>
+
+    
+      
+    
+  </body>
+</html>

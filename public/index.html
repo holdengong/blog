@@ -58,7 +58,26 @@
     <div class="posts">
 <article class="post">
   <h1 class="post-title">
-    <a href="https://holdengong.com/aspnetcore3.1%E6%BA%90%E7%A0%81%E8%A7%A3%E6%9E%90_2_hsts%E4%B8%AD%E9%97%B4%E4%BB%B6/">AspNetCore3.1源码解析_2_Hsts中间件</a>
+    <a href="https://holdengong.com/aspnetcore3.1_middleware%E6%BA%90%E7%A0%81%E8%A7%A3%E6%9E%90_3_httpsredirection/">AspNetCore3</a>
+  </h1>
+  <time datetime="2020-03-16T18:20:41&#43;0800" class="post-date">Mon, Mar 16, 2020</time>
+  概述 上文提到3.1版本默认没有使用Hsts，但是使用了这个中间件。看名字就很好理解，https跳转，顾名思义，就是跳转到 https地址。
+使用场景，当用户使用http访问网站时，自动跳转到https地址。这样更加安全，不需要用户特意输入https://协议。
+具体做了些我们一起来看看。
+app.UseHttpsRedirection(); 使用方法 跟Hsts一样，HttpsRedirection默认是不需要注入的，除非你需要修改默认配置。
+services.AddHttpsRedirection(config =&gt; { //https地址的端口号，默认null  config.HttpsPort = 12345; //跳转响应的状态码，默认307  config.RedirectStatusCode = 302; }); 直接使用中间件即可
+app.UseHttpsRedirection(); 源码解析 源代码很简单，只有两个类：HttpsRedirectionOptions配置类，HttpsRedirectionMiddleware中间件
+HttpsRedirectionOptions就只有两个配置项
+/// &lt;summary&gt;  /// Options for the HttpsRedirection middleware  /// &lt;/summary&gt;  public class HttpsRedirectionOptions { /// &lt;summary&gt;  /// The status code used for the redirect response. The default is 307.  /// &lt;/summary&gt;  public int RedirectStatusCode { get; set; } = StatusCodes.
+  
+  
+  <div class="read-more-link">
+    <a href="/aspnetcore3.1_middleware%E6%BA%90%E7%A0%81%E8%A7%A3%E6%9E%90_3_httpsredirection/">Read More…</a>
+  </div>
+  
+</article><article class="post">
+  <h1 class="post-title">
+    <a href="https://holdengong.com/aspnetcore3.1_middleware%E6%BA%90%E7%A0%81%E8%A7%A3%E6%9E%90_2_hsts/">AspNetCore3.1_Middleware源码解析_2_Hsts</a>
   </h1>
   <time datetime="2020-03-16T12:40:46&#43;0800" class="post-date">Mon, Mar 16, 2020</time>
   概述 在DotNetCore2.2版本中，当你新增一个WebAPI项目，Startup.cs文件中，会有这么一行代码（3.1版本默认没有使用该中间件）。
@@ -78,12 +97,12 @@ services.AddHsts(config =&gt; { //是否包含子域名，默认false  config.In
   
   
   <div class="read-more-link">
-    <a href="/aspnetcore3.1%E6%BA%90%E7%A0%81%E8%A7%A3%E6%9E%90_2_hsts%E4%B8%AD%E9%97%B4%E4%BB%B6/">Read More…</a>
+    <a href="/aspnetcore3.1_middleware%E6%BA%90%E7%A0%81%E8%A7%A3%E6%9E%90_2_hsts/">Read More…</a>
   </div>
   
 </article><article class="post">
   <h1 class="post-title">
-    <a href="https://holdengong.com/aspnetcore3.1%E6%BA%90%E7%A0%81%E8%A7%A3%E6%9E%90_1_cors%E4%B8%AD%E9%97%B4%E4%BB%B6/">AspNetCore3.1源码解析_1_CORS中间件</a>
+    <a href="https://holdengong.com/aspnetcore3.1_middleware%E6%BA%90%E7%A0%81%E8%A7%A3%E6%9E%90_1_cors/">AspNetCore3.1_Middleware源码解析_1_CORS</a>
   </h1>
   <time datetime="2020-03-15T17:26:10&#43;0800" class="post-date">Sun, Mar 15, 2020</time>
   概述 什么是跨域 在前后端分离开发方式中，跨域是我们经常会遇到的问题。所谓的跨域，就是出于安全考虑，A域名向B域名发出Ajax请求，浏览器会拒绝，抛出类似下图的错误。
@@ -105,7 +124,7 @@ AspNetCore_CORS中间件的使用 使用CORS中间件两句代码就够了,在St
   
   
   <div class="read-more-link">
-    <a href="/aspnetcore3.1%E6%BA%90%E7%A0%81%E8%A7%A3%E6%9E%90_1_cors%E4%B8%AD%E9%97%B4%E4%BB%B6/">Read More…</a>
+    <a href="/aspnetcore3.1_middleware%E6%BA%90%E7%A0%81%E8%A7%A3%E6%9E%90_1_cors/">Read More…</a>
   </div>
   
 </article><article class="post">

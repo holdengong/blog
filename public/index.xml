@@ -6,17 +6,33 @@
     <description>Recent content on Holden Gong</description>
     <generator>Hugo -- gohugo.io</generator>
     <language>zh-Hans</language>
-    <lastBuildDate>Mon, 16 Mar 2020 12:40:46 +0800</lastBuildDate>
+    <lastBuildDate>Mon, 16 Mar 2020 18:20:41 +0800</lastBuildDate>
     
 	<atom:link href="https://holdengong.com/index.xml" rel="self" type="application/rss+xml" />
     
     
     <item>
-      <title>AspNetCore3.1源码解析_2_Hsts中间件</title>
-      <link>https://holdengong.com/aspnetcore3.1%E6%BA%90%E7%A0%81%E8%A7%A3%E6%9E%90_2_hsts%E4%B8%AD%E9%97%B4%E4%BB%B6/</link>
+      <title>AspNetCore3</title>
+      <link>https://holdengong.com/aspnetcore3.1_middleware%E6%BA%90%E7%A0%81%E8%A7%A3%E6%9E%90_3_httpsredirection/</link>
+      <pubDate>Mon, 16 Mar 2020 18:20:41 +0800</pubDate>
+      
+      <guid>https://holdengong.com/aspnetcore3.1_middleware%E6%BA%90%E7%A0%81%E8%A7%A3%E6%9E%90_3_httpsredirection/</guid>
+      <description>概述 上文提到3.1版本默认没有使用Hsts，但是使用了这个中间件。看名字就很好理解，https跳转，顾名思义，就是跳转到 https地址。
+使用场景，当用户使用http访问网站时，自动跳转到https地址。这样更加安全，不需要用户特意输入https://协议。
+具体做了些我们一起来看看。
+app.UseHttpsRedirection(); 使用方法 跟Hsts一样，HttpsRedirection默认是不需要注入的，除非你需要修改默认配置。
+services.AddHttpsRedirection(config =&amp;gt; { //https地址的端口号，默认null  config.HttpsPort = 12345; //跳转响应的状态码，默认307  config.RedirectStatusCode = 302; }); 直接使用中间件即可
+app.UseHttpsRedirection(); 源码解析 源代码很简单，只有两个类：HttpsRedirectionOptions配置类，HttpsRedirectionMiddleware中间件
+HttpsRedirectionOptions就只有两个配置项
+/// &amp;lt;summary&amp;gt;  /// Options for the HttpsRedirection middleware  /// &amp;lt;/summary&amp;gt;  public class HttpsRedirectionOptions { /// &amp;lt;summary&amp;gt;  /// The status code used for the redirect response. The default is 307.  /// &amp;lt;/summary&amp;gt;  public int RedirectStatusCode { get; set; } = StatusCodes.</description>
+    </item>
+    
+    <item>
+      <title>AspNetCore3.1_Middleware源码解析_2_Hsts</title>
+      <link>https://holdengong.com/aspnetcore3.1_middleware%E6%BA%90%E7%A0%81%E8%A7%A3%E6%9E%90_2_hsts/</link>
       <pubDate>Mon, 16 Mar 2020 12:40:46 +0800</pubDate>
       
-      <guid>https://holdengong.com/aspnetcore3.1%E6%BA%90%E7%A0%81%E8%A7%A3%E6%9E%90_2_hsts%E4%B8%AD%E9%97%B4%E4%BB%B6/</guid>
+      <guid>https://holdengong.com/aspnetcore3.1_middleware%E6%BA%90%E7%A0%81%E8%A7%A3%E6%9E%90_2_hsts/</guid>
       <description>概述 在DotNetCore2.2版本中，当你新增一个WebAPI项目，Startup.cs文件中，会有这么一行代码（3.1版本默认没有使用该中间件）。
 if (env.IsDevelopment()) { app.UseDeveloperExceptionPage(); } else { // The default HSTS value is 30 days. You may want to change this for production scenarios, see https://aka.ms/aspnetcore-hsts.  app.UseHsts(); } 这段代码，翻译一下就是开发环境使用开发异常页面，其他环境使用Hsts中间件。这个Hsts中间件是个什么东西呢，今天来看一看。
 HSTS是什么 HTTP严格传输安全协议（英语：HTTP Strict Transport Security，简称：HSTS）。
@@ -34,11 +50,11 @@ services.AddHsts(config =&amp;gt; { //是否包含子域名，默认false  confi
     </item>
     
     <item>
-      <title>AspNetCore3.1源码解析_1_CORS中间件</title>
-      <link>https://holdengong.com/aspnetcore3.1%E6%BA%90%E7%A0%81%E8%A7%A3%E6%9E%90_1_cors%E4%B8%AD%E9%97%B4%E4%BB%B6/</link>
+      <title>AspNetCore3.1_Middleware源码解析_1_CORS</title>
+      <link>https://holdengong.com/aspnetcore3.1_middleware%E6%BA%90%E7%A0%81%E8%A7%A3%E6%9E%90_1_cors/</link>
       <pubDate>Sun, 15 Mar 2020 17:26:10 +0800</pubDate>
       
-      <guid>https://holdengong.com/aspnetcore3.1%E6%BA%90%E7%A0%81%E8%A7%A3%E6%9E%90_1_cors%E4%B8%AD%E9%97%B4%E4%BB%B6/</guid>
+      <guid>https://holdengong.com/aspnetcore3.1_middleware%E6%BA%90%E7%A0%81%E8%A7%A3%E6%9E%90_1_cors/</guid>
       <description>概述 什么是跨域 在前后端分离开发方式中，跨域是我们经常会遇到的问题。所谓的跨域，就是出于安全考虑，A域名向B域名发出Ajax请求，浏览器会拒绝，抛出类似下图的错误。
 JSONP JSONP不是标准跨域协议，更像是聪明程序员投机取巧的办法。这种方式的原理就是js是没有跨域限制的，你想想你引用bootstrap.js是不是网络地址放进来就可以用了。
 实际上，所有src属性都不限制跨域的，比如img标签使用跨域图片是不会有问题的。
