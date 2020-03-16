@@ -1,0 +1,671 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="zh-Hans" lang="zh-Hans">
+<head>
+  <link href="https://gmpg.org/xfn/11" rel="profile">
+  <meta http-equiv="content-type" content="text/html; charset=utf-8">
+  <meta name="generator" content="Hugo 0.67.0" />
+
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <title>AspNetCore3.1源码解析_1_CORS中间件 &middot; Holden Gong</title>
+  <meta name="description" content="" />
+
+  
+  <link type="text/css" rel="stylesheet" href="https://holdengong.com/css/print.css" media="print">
+  <link type="text/css" rel="stylesheet" href="https://holdengong.com/css/poole.css">
+  <link type="text/css" rel="stylesheet" href="https://holdengong.com/css/syntax.css">
+  <link type="text/css" rel="stylesheet" href="https://holdengong.com/css/hyde.css">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Abril+Fatface|PT+Sans:400,400i,700">
+
+
+  
+  <link rel="apple-touch-icon-precomposed" sizes="144x144" href="/apple-touch-icon-144-precomposed.png">
+  <link rel="shortcut icon" href="/favicon.png">
+
+  
+  
+</head>
+
+  <body class=" ">
+  <aside class="sidebar">
+  <div class="container sidebar-sticky">
+    <div class="sidebar-about">
+      <a href="https://holdengong.com/">
+        <h1>Holden Gong</h1>
+      </a>
+      <p class="lead">
+        code & life
+      </p>
+    </div>
+
+    <nav>
+      <ul class="sidebar-nav">
+  
+      </ul>
+    </nav>
+    
+    <div>
+      
+      <p>&copy; 2020. All rights reserved. </p>
+      <p>鄂ICP备20003133号</p>
+    </div>
+  </div>
+</aside>
+
+    <main class="content container">
+    <div class="post">
+  <h1>AspNetCore3.1源码解析_1_CORS中间件</h1>
+  <time datetime=2020-03-15T17:26:10&#43;0800 class="post-date">Sun, Mar 15, 2020</time>
+  <h1 id="概述">概述</h1>
+<h2 id="什么是跨域">什么是跨域</h2>
+<p>在前后端分离开发方式中，跨域是我们经常会遇到的问题。所谓的跨域，就是出于安全考虑，A域名向B域名发出Ajax请求，浏览器会拒绝，抛出类似下图的错误。</p>
+<p><img src="https://fs.31huiyi.com/2c239b54-ad37-4680-bd95-7f76b656be0d.png" alt="image"></p>
+<h2 id="jsonp">JSONP</h2>
+<p>JSONP不是标准跨域协议，更像是聪明程序员投机取巧的办法。这种方式的原理就是js是没有跨域限制的，你想想你引用bootstrap.js是不是网络地址放进来就可以用了。<br>
+<strong>实际上，所有src属性都不限制跨域的，比如img标签使用跨域图片是不会有问题的。</strong></p>
+<p>过程大体分下面四步。</p>
+<ul>
+<li>首先约定数据格式和回调函数名</li>
+<li>A网站引用B网站的js</li>
+<li>B网站用约定好的回调函数将数据包裹起来，在A引用的js里返回</li>
+<li>A网站在回调函数中获取数据</li>
+</ul>
+<p>这个方案的优点是兼容性比较好，古老版本的IE都可以支持，毕竟只是基于js的一个技巧，并没有新的技术或协议。<br>
+缺点比较明显，只支持GET，理解起来比较别扭，调用失败不会返回http状态码，安全性存在一定问题。</p>
+<h2 id="cors">CORS</h2>
+<p>CORS的全称是Cross Origin Resource Sharing，翻译过来就是跨域资源共享。</p>
+<p>跨域问题本质就是浏览器处于安全考虑，阻止了客户端跨域请求。但说到底，客户端请求安不安全还不是服务端说了算的，服务端都说我们家大米你们随便吃，浏览器还阻止，这不是碍事吗，你个物业还当自己业主啦？</p>
+<p>但是浏览器也不能随便放行，毕竟网上冲浪的不仅有正经客人，还有小偷，真出问题了还得吐槽物业稀烂。浏览器说，服务端，这个客户端要去你家吃大米，你得告诉我你同不同意啊，服务端说我咋告诉你啊，我总不能来个人就冲着岗亭喊 I&rsquo;M OK吧。浏览器说那我们搞个协议吧，整个互联网小区都按这个规范来，你们就按这个格式回复我。</p>
+<p>这个协议就是CORS了。</p>
+<p>下图描述了简单请求的流程。</p>
+<div class="mermaid">
+graph LR;
+    A(客户端)-->B(不带Orgin跨域请求);
+    B-->C(浏览器拒绝);
+    A-->D(带Origin跨域请求);
+    D-->E(服务端返回白名单);
+    E-->F(白名单内);
+    E-->G(白名单外);
+    F-->H(浏览器放行);
+    G-->C
+</div>
+<script src="https://unpkg.com/mermaid/dist/mermaid.min.js"></script>
+<blockquote>
+<p>关于CORS简单请求，复杂请求，以及详细内容参考下面文章，不再赘述。
+<a href="http://www.ruanyifeng.com/blog/2016/04/cors.html">http://www.ruanyifeng.com/blog/2016/04/cors.html</a></p>
+</blockquote>
+<p>CORS的缺点就是IE10以下不支持，如果你的项目需要兼容这些浏览器的话需要注意。</p>
+<h2 id="怎么实现cors">怎么实现CORS</h2>
+<p>CORS说白了其实就是在响应头里加东西，你可以在运维环节比如nginx加，可以在代码里加，常见的做法是中间件统一处理。AspNetCore为我们提供了CORS中间件。</p>
+<h2 id="aspnetcore_cors中间件的使用">AspNetCore_CORS中间件的使用</h2>
+<p>使用CORS中间件两句代码就够了,在Startup文件中</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-csharp" data-lang="csharp"><span style="color:#75715e">//注入CORS相关的服务，配置跨域策略
+</span><span style="color:#75715e"></span><span style="color:#66d9ef">public</span> <span style="color:#66d9ef">void</span> ConfigureServices(IServiceCollection services)
+{
+    <span style="color:#75715e">//策略1，允许所有域名跨域访问
+</span><span style="color:#75715e"></span>    config.AddPolicy(<span style="color:#e6db74">&#34;policy1&#34;</span>, policy =&gt; {
+                    policy.AllowAnyOrigin().
+                        AllowAnyMethod().
+                        AllowAnyOrigin().
+                        AllowAnyMethod();
+                        <span style="color:#75715e">//注意：AllowAnyOrigin和AllowCredential不能同时出现，否则会报错
+</span><span style="color:#75715e"></span>                        <span style="color:#75715e">//AllowCredential即是否允许客户端发送cookie，基于安全原因，CORS协议规定不允许AllowOrigin为通配符的情况下设置允许发送cookie
+</span><span style="color:#75715e"></span>                        <span style="color:#75715e">//.AllowCredentials();
+</span><span style="color:#75715e"></span>                });
+
+    <span style="color:#75715e">//策略2，仅允许特定域名、方法、请求头访问
+</span><span style="color:#75715e"></span>    config.AddPolicy(<span style="color:#e6db74">&#34;policy2&#34;</span>,policy=&gt; {
+        <span style="color:#75715e">//只允许https://www.holdengong.com跨域访问
+</span><span style="color:#75715e"></span>        policy.WithOrigins(<span style="color:#e6db74">&#34;https://www.holdengong.com&#34;</span>)
+        <span style="color:#75715e">//只允许get,post方法
+</span><span style="color:#75715e"></span>        .WithMethods(<span style="color:#e6db74">&#34;GET&#34;</span>, <span style="color:#e6db74">&#34;POST&#34;</span>)
+        <span style="color:#75715e">//请求头中只允许有Authorization
+</span><span style="color:#75715e"></span>        .WithHeaders(<span style="color:#e6db74">&#34;Authorization&#34;</span>)
+        <span style="color:#75715e">//对于复杂请求，浏览器会首先发送预检请求(OPTIONS),服务端返回204，并在响应头中返回跨域设置
+</span><span style="color:#75715e"></span>        <span style="color:#75715e">//此处可以设置预检请求的有效时长，即30分钟内不会再检查是否允许跨域
+</span><span style="color:#75715e"></span>        .SetPreflightMaxAge(TimeSpan.FromMinutes(<span style="color:#ae81ff">30</span>));
+    });
+}
+
+<span style="color:#75715e">//使用CORS中间件, 指定使用CorsPolicy
+</span><span style="color:#75715e"></span><span style="color:#66d9ef">public</span> <span style="color:#66d9ef">void</span> Configure(IApplicationBuilder app)
+{
+    <span style="color:#75715e">//使用policy1
+</span><span style="color:#75715e"></span>    app.UseCors(<span style="color:#e6db74">&#34;policy1&#34;</span>);
+}
+</code></pre></div><p><strong>注意：AllowAnyOrigin和AllowCredential不能同时配置，否则会报错。如果要允许客户端发送cookie的话，只能使用WithOrgin来执行允许跨域白名单</strong></p>
+<p>微软使用的策略设计模式，方便我们灵活使用跨域策略。比如，开发环境允许localhost跨域访问，方便开发调试，正式环境只允许指定域名访问。</p>
+<h2 id="源码解析">源码解析</h2>
+<h3 id="核心对象">核心对象</h3>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-csharp" data-lang="csharp">services.TryAdd(ServiceDescriptor.Transient&lt;ICorsService, CorsService&gt;());
+
+services.TryAdd(ServiceDescriptor.Transient&lt;ICorsPolicyProvider, DefaultCorsPolicyProvider&gt;());
+
+services.Configure(setupAction);
+</code></pre></div><ul>
+<li>CorsOptions：主要定义了字典PolicyMap，键是策略名称，值是跨域策略。用户可以在注入的时候往这个对象里面加跨域策略。然后提供了一些新增策略的操作方法。</li>
+</ul>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-csharp" data-lang="csharp"><span style="color:#75715e">// DefaultCorsPolicyProvider returns a Task&lt;CorsPolicy&gt;. We&#39;ll cache the value to be returned alongside
+</span><span style="color:#75715e">// the actual policy instance to have a separate lookup.
+</span><span style="color:#75715e"></span><span style="color:#66d9ef">internal</span> IDictionary&lt;<span style="color:#66d9ef">string</span>, (CorsPolicy policy, Task&lt;CorsPolicy&gt; policyTask)&gt; PolicyMap { <span style="color:#66d9ef">get</span>; }
+    = <span style="color:#66d9ef">new</span> Dictionary&lt;<span style="color:#66d9ef">string</span>, (CorsPolicy, Task&lt;CorsPolicy&gt;)&gt;(StringComparer.Ordinal);
+</code></pre></div><ul>
+<li>ICorsService：有两个方法，EvaluatePolicy&ndash;评估策略，主要做一些校验、记录日志和分流预检请求和真实请求的工作； PopulateResult&ndash;执行策略，将结果填充到CorsResult对象中。</li>
+</ul>
+<details>
+<summary>
+点击查看CorsService源码
+</summary>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-cs" data-lang="cs">    <span style="color:#66d9ef">public</span> <span style="color:#66d9ef">class</span> <span style="color:#a6e22e">CorsService</span> : ICorsService
+    {
+        <span style="color:#66d9ef">private</span> <span style="color:#66d9ef">readonly</span> CorsOptions _options;
+        <span style="color:#66d9ef">private</span> <span style="color:#66d9ef">readonly</span> ILogger _logger;
+
+        <span style="color:#75715e">/// &lt;summary&gt;
+</span><span style="color:#75715e"></span>        <span style="color:#75715e">/// Creates a new instance of the &lt;see cref=&#34;CorsService&#34;/&gt;.
+</span><span style="color:#75715e"></span>        <span style="color:#75715e">/// &lt;/summary&gt;
+</span><span style="color:#75715e"></span>        <span style="color:#75715e">/// &lt;param name=&#34;options&#34;&gt;The option model representing &lt;see cref=&#34;CorsOptions&#34;/&gt;.&lt;/param&gt;
+</span><span style="color:#75715e"></span>        <span style="color:#75715e">/// &lt;param name=&#34;loggerFactory&#34;&gt;The &lt;see cref=&#34;ILoggerFactory&#34;/&gt;.&lt;/param&gt;
+</span><span style="color:#75715e"></span>        <span style="color:#66d9ef">public</span> CorsService(IOptions&lt;CorsOptions&gt; options, ILoggerFactory loggerFactory)
+        {
+            <span style="color:#66d9ef">if</span> (options == <span style="color:#66d9ef">null</span>)
+            {
+                <span style="color:#66d9ef">throw</span> <span style="color:#66d9ef">new</span> ArgumentNullException(nameof(options));
+            }
+
+            <span style="color:#66d9ef">if</span> (loggerFactory == <span style="color:#66d9ef">null</span>)
+            {
+                <span style="color:#66d9ef">throw</span> <span style="color:#66d9ef">new</span> ArgumentNullException(nameof(loggerFactory));
+            }
+
+            _options = options.Value;
+            _logger = loggerFactory.CreateLogger&lt;CorsService&gt;();
+        }
+
+        <span style="color:#75715e">/// &lt;summary&gt;
+</span><span style="color:#75715e"></span>        <span style="color:#75715e">/// Looks up a policy using the &lt;paramref name=&#34;policyName&#34;/&gt; and then evaluates the policy using the passed in
+</span><span style="color:#75715e"></span>        <span style="color:#75715e">/// &lt;paramref name=&#34;context&#34;/&gt;.
+</span><span style="color:#75715e"></span>        <span style="color:#75715e">/// &lt;/summary&gt;
+</span><span style="color:#75715e"></span>        <span style="color:#75715e">/// &lt;param name=&#34;context&#34;&gt;&lt;/param&gt;
+</span><span style="color:#75715e"></span>        <span style="color:#75715e">/// &lt;param name=&#34;policyName&#34;&gt;&lt;/param&gt;
+</span><span style="color:#75715e"></span>        <span style="color:#75715e">/// &lt;returns&gt;A &lt;see cref=&#34;CorsResult&#34;/&gt; which contains the result of policy evaluation and can be
+</span><span style="color:#75715e"></span>        <span style="color:#75715e">/// used by the caller to set appropriate response headers.&lt;/returns&gt;
+</span><span style="color:#75715e"></span>        <span style="color:#66d9ef">public</span> CorsResult EvaluatePolicy(HttpContext context, <span style="color:#66d9ef">string</span> policyName)
+        {
+            <span style="color:#66d9ef">if</span> (context == <span style="color:#66d9ef">null</span>)
+            {
+                <span style="color:#66d9ef">throw</span> <span style="color:#66d9ef">new</span> ArgumentNullException(nameof(context));
+            }
+
+            <span style="color:#66d9ef">var</span> policy = _options.GetPolicy(policyName);
+            <span style="color:#66d9ef">return</span> EvaluatePolicy(context, policy);
+        }
+
+        <span style="color:#75715e">/// &lt;inheritdoc /&gt;
+</span><span style="color:#75715e"></span>        <span style="color:#66d9ef">public</span> CorsResult EvaluatePolicy(HttpContext context, CorsPolicy policy)
+        {
+            <span style="color:#66d9ef">if</span> (context == <span style="color:#66d9ef">null</span>)
+            {
+                <span style="color:#66d9ef">throw</span> <span style="color:#66d9ef">new</span> ArgumentNullException(nameof(context));
+            }
+
+            <span style="color:#66d9ef">if</span> (policy == <span style="color:#66d9ef">null</span>)
+            {
+                <span style="color:#66d9ef">throw</span> <span style="color:#66d9ef">new</span> ArgumentNullException(nameof(policy));
+            }
+
+            <span style="color:#66d9ef">if</span> (policy.AllowAnyOrigin &amp;&amp; policy.SupportsCredentials)
+            {
+                <span style="color:#66d9ef">throw</span> <span style="color:#66d9ef">new</span> ArgumentException(Resources.InsecureConfiguration, nameof(policy));
+            }
+
+            <span style="color:#66d9ef">var</span> requestHeaders = context.Request.Headers;
+            <span style="color:#66d9ef">var</span> origin = requestHeaders[CorsConstants.Origin];
+
+            <span style="color:#66d9ef">var</span> isOptionsRequest = <span style="color:#66d9ef">string</span>.Equals(context.Request.Method, CorsConstants.PreflightHttpMethod, StringComparison.OrdinalIgnoreCase);
+            <span style="color:#66d9ef">var</span> isPreflightRequest = isOptionsRequest &amp;&amp; requestHeaders.ContainsKey(CorsConstants.AccessControlRequestMethod);
+
+            <span style="color:#66d9ef">if</span> (isOptionsRequest &amp;&amp; !isPreflightRequest)
+            {
+                _logger.IsNotPreflightRequest();
+            }
+
+            <span style="color:#66d9ef">var</span> corsResult = <span style="color:#66d9ef">new</span> CorsResult
+            {
+                IsPreflightRequest = isPreflightRequest,
+                IsOriginAllowed = IsOriginAllowed(policy, origin),
+            };
+
+            <span style="color:#66d9ef">if</span> (isPreflightRequest)
+            {
+                EvaluatePreflightRequest(context, policy, corsResult);
+            }
+            <span style="color:#66d9ef">else</span>
+            {
+                EvaluateRequest(context, policy, corsResult);
+            }
+
+            <span style="color:#66d9ef">return</span> corsResult;
+        }
+
+        <span style="color:#66d9ef">private</span> <span style="color:#66d9ef">static</span> <span style="color:#66d9ef">void</span> PopulateResult(HttpContext context, CorsPolicy policy, CorsResult result)
+        {
+            <span style="color:#66d9ef">var</span> headers = context.Request.Headers;
+            <span style="color:#66d9ef">if</span> (policy.AllowAnyOrigin)
+            {
+                result.AllowedOrigin = CorsConstants.AnyOrigin;
+                result.VaryByOrigin = policy.SupportsCredentials;
+            }
+            <span style="color:#66d9ef">else</span>
+            {
+                <span style="color:#66d9ef">var</span> origin = headers[CorsConstants.Origin];
+                result.AllowedOrigin = origin;
+                result.VaryByOrigin = policy.Origins.Count &gt; <span style="color:#ae81ff">1</span>;
+            }
+
+            result.SupportsCredentials = policy.SupportsCredentials;
+            result.PreflightMaxAge = policy.PreflightMaxAge;
+
+            <span style="color:#75715e">// https://fetch.spec.whatwg.org/#http-new-header-syntax
+</span><span style="color:#75715e"></span>            AddHeaderValues(result.AllowedExposedHeaders, policy.ExposedHeaders);
+
+            <span style="color:#66d9ef">var</span> allowedMethods = policy.AllowAnyMethod ?
+                <span style="color:#66d9ef">new</span>[] { result.IsPreflightRequest ? (<span style="color:#66d9ef">string</span>)headers[CorsConstants.AccessControlRequestMethod] : context.Request.Method } :
+                policy.Methods;
+            AddHeaderValues(result.AllowedMethods, allowedMethods);
+
+            <span style="color:#66d9ef">var</span> allowedHeaders = policy.AllowAnyHeader ?
+                headers.GetCommaSeparatedValues(CorsConstants.AccessControlRequestHeaders) :
+                policy.Headers;
+            AddHeaderValues(result.AllowedHeaders, allowedHeaders);
+        }
+
+        <span style="color:#66d9ef">public</span> <span style="color:#66d9ef">virtual</span> <span style="color:#66d9ef">void</span> EvaluateRequest(HttpContext context, CorsPolicy policy, CorsResult result)
+        {
+            PopulateResult(context, policy, result);
+        }
+
+        <span style="color:#66d9ef">public</span> <span style="color:#66d9ef">virtual</span> <span style="color:#66d9ef">void</span> EvaluatePreflightRequest(HttpContext context, CorsPolicy policy, CorsResult result)
+        {
+            PopulateResult(context, policy, result);
+        }
+
+        <span style="color:#75715e">/// &lt;inheritdoc /&gt;
+</span><span style="color:#75715e"></span>        <span style="color:#66d9ef">public</span> <span style="color:#66d9ef">virtual</span> <span style="color:#66d9ef">void</span> ApplyResult(CorsResult result, HttpResponse response)
+        {
+            <span style="color:#66d9ef">if</span> (result == <span style="color:#66d9ef">null</span>)
+            {
+                <span style="color:#66d9ef">throw</span> <span style="color:#66d9ef">new</span> ArgumentNullException(nameof(result));
+            }
+
+            <span style="color:#66d9ef">if</span> (response == <span style="color:#66d9ef">null</span>)
+            {
+                <span style="color:#66d9ef">throw</span> <span style="color:#66d9ef">new</span> ArgumentNullException(nameof(response));
+            }
+
+            <span style="color:#66d9ef">if</span> (!result.IsOriginAllowed)
+            {
+                <span style="color:#75715e">// In case a server does not wish to participate in the CORS protocol, its HTTP response to the
+</span><span style="color:#75715e"></span>                <span style="color:#75715e">// CORS or CORS-preflight request must not include any of the above headers.
+</span><span style="color:#75715e"></span>                <span style="color:#66d9ef">return</span>;
+            }
+
+            <span style="color:#66d9ef">var</span> headers = response.Headers;
+            headers[CorsConstants.AccessControlAllowOrigin] = result.AllowedOrigin;
+
+            <span style="color:#66d9ef">if</span> (result.SupportsCredentials)
+            {
+                headers[CorsConstants.AccessControlAllowCredentials] = <span style="color:#e6db74">&#34;true&#34;</span>;
+            }
+
+            <span style="color:#66d9ef">if</span> (result.IsPreflightRequest)
+            {
+                _logger.IsPreflightRequest();
+
+                <span style="color:#75715e">// An HTTP response to a CORS-preflight request can include the following headers:
+</span><span style="color:#75715e"></span>                <span style="color:#75715e">// `Access-Control-Allow-Methods`, `Access-Control-Allow-Headers`, `Access-Control-Max-Age`
+</span><span style="color:#75715e"></span>                <span style="color:#66d9ef">if</span> (result.AllowedHeaders.Count &gt; <span style="color:#ae81ff">0</span>)
+                {
+                    headers.SetCommaSeparatedValues(CorsConstants.AccessControlAllowHeaders, result.AllowedHeaders.ToArray());
+                }
+
+                <span style="color:#66d9ef">if</span> (result.AllowedMethods.Count &gt; <span style="color:#ae81ff">0</span>)
+                {
+                    headers.SetCommaSeparatedValues(CorsConstants.AccessControlAllowMethods, result.AllowedMethods.ToArray());
+                }
+
+                <span style="color:#66d9ef">if</span> (result.PreflightMaxAge.HasValue)
+                {
+                    headers[CorsConstants.AccessControlMaxAge] = result.PreflightMaxAge.Value.TotalSeconds.ToString(CultureInfo.InvariantCulture);
+                }
+            }
+            <span style="color:#66d9ef">else</span>
+            {
+                <span style="color:#75715e">// An HTTP response to a CORS request that is not a CORS-preflight request can also include the following header:
+</span><span style="color:#75715e"></span>                <span style="color:#75715e">// `Access-Control-Expose-Headers`
+</span><span style="color:#75715e"></span>                <span style="color:#66d9ef">if</span> (result.AllowedExposedHeaders.Count &gt; <span style="color:#ae81ff">0</span>)
+                {
+                    headers.SetCommaSeparatedValues(CorsConstants.AccessControlExposeHeaders, result.AllowedExposedHeaders.ToArray());
+                }
+            }
+
+            <span style="color:#66d9ef">if</span> (result.VaryByOrigin)
+            {
+                headers.Append(<span style="color:#e6db74">&#34;Vary&#34;</span>, <span style="color:#e6db74">&#34;Origin&#34;</span>);
+            }
+        }
+
+        <span style="color:#66d9ef">private</span> <span style="color:#66d9ef">static</span> <span style="color:#66d9ef">void</span> AddHeaderValues(IList&lt;<span style="color:#66d9ef">string</span>&gt; target, IList&lt;<span style="color:#66d9ef">string</span>&gt; headerValues)
+        {
+            <span style="color:#66d9ef">if</span> (headerValues == <span style="color:#66d9ef">null</span>)
+            {
+                <span style="color:#66d9ef">return</span>;
+            }
+
+            <span style="color:#66d9ef">for</span> (<span style="color:#66d9ef">var</span> i = <span style="color:#ae81ff">0</span>; i &lt; headerValues.Count; i++)
+            {
+                target.Add(headerValues[i]);
+            }
+        }
+
+        <span style="color:#66d9ef">private</span> <span style="color:#66d9ef">bool</span> IsOriginAllowed(CorsPolicy policy, StringValues origin)
+        {
+            <span style="color:#66d9ef">if</span> (StringValues.IsNullOrEmpty(origin))
+            {
+                _logger.RequestDoesNotHaveOriginHeader();
+                <span style="color:#66d9ef">return</span> <span style="color:#66d9ef">false</span>;
+            }
+
+            _logger.RequestHasOriginHeader(origin);
+            <span style="color:#66d9ef">if</span> (policy.AllowAnyOrigin || policy.IsOriginAllowed(origin))
+            {
+                _logger.PolicySuccess();
+                <span style="color:#66d9ef">return</span> <span style="color:#66d9ef">true</span>;
+            }
+            _logger.PolicyFailure();
+            _logger.OriginNotAllowed(origin);
+            <span style="color:#66d9ef">return</span> <span style="color:#66d9ef">false</span>;
+        }
+</code></pre></div></details>
+<ul>
+<li>ICorsPolicyProvider: 很简单，只有一个方法，GetPolicyAsync&ndash;根据policyName取出跨域策略。</li>
+</ul>
+<h3 id="中间件">中间件</h3>
+<pre><code>CorsMiddleware
+</code></pre><details>
+<summary>
+    点击查看CorsMiddleware源代码
+</summary>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-cs" data-lang="cs"><span style="color:#75715e">// Copyright (c) .NET Foundation. All rights reserved.
+</span><span style="color:#75715e">// Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
+</span><span style="color:#75715e"></span>
+<span style="color:#66d9ef">using</span> System;
+<span style="color:#66d9ef">using</span> System.Collections.Generic;
+<span style="color:#66d9ef">using</span> System.Globalization;
+<span style="color:#66d9ef">using</span> System.Linq;
+<span style="color:#66d9ef">using</span> Microsoft.AspNetCore.Http;
+<span style="color:#66d9ef">using</span> Microsoft.Extensions.Logging;
+<span style="color:#66d9ef">using</span> Microsoft.Extensions.Options;
+<span style="color:#66d9ef">using</span> Microsoft.Extensions.Primitives;
+
+<span style="color:#66d9ef">namespace</span> Microsoft.AspNetCore.Cors.Infrastructure
+{
+    <span style="color:#75715e">/// &lt;summary&gt;
+</span><span style="color:#75715e"></span>    <span style="color:#75715e">/// Default implementation of &lt;see cref=&#34;ICorsService&#34;/&gt;.
+</span><span style="color:#75715e"></span>    <span style="color:#75715e">/// &lt;/summary&gt;
+</span><span style="color:#75715e"></span>    <span style="color:#66d9ef">public</span> <span style="color:#66d9ef">class</span> <span style="color:#a6e22e">CorsService</span> : ICorsService
+    {
+        <span style="color:#66d9ef">private</span> <span style="color:#66d9ef">readonly</span> CorsOptions _options;
+        <span style="color:#66d9ef">private</span> <span style="color:#66d9ef">readonly</span> ILogger _logger;
+
+        <span style="color:#75715e">/// &lt;summary&gt;
+</span><span style="color:#75715e"></span>        <span style="color:#75715e">/// Creates a new instance of the &lt;see cref=&#34;CorsService&#34;/&gt;.
+</span><span style="color:#75715e"></span>        <span style="color:#75715e">/// &lt;/summary&gt;
+</span><span style="color:#75715e"></span>        <span style="color:#75715e">/// &lt;param name=&#34;options&#34;&gt;The option model representing &lt;see cref=&#34;CorsOptions&#34;/&gt;.&lt;/param&gt;
+</span><span style="color:#75715e"></span>        <span style="color:#75715e">/// &lt;param name=&#34;loggerFactory&#34;&gt;The &lt;see cref=&#34;ILoggerFactory&#34;/&gt;.&lt;/param&gt;
+</span><span style="color:#75715e"></span>        <span style="color:#66d9ef">public</span> CorsService(IOptions&lt;CorsOptions&gt; options, ILoggerFactory loggerFactory)
+        {
+            <span style="color:#66d9ef">if</span> (options == <span style="color:#66d9ef">null</span>)
+            {
+                <span style="color:#66d9ef">throw</span> <span style="color:#66d9ef">new</span> ArgumentNullException(nameof(options));
+            }
+
+            <span style="color:#66d9ef">if</span> (loggerFactory == <span style="color:#66d9ef">null</span>)
+            {
+                <span style="color:#66d9ef">throw</span> <span style="color:#66d9ef">new</span> ArgumentNullException(nameof(loggerFactory));
+            }
+
+            _options = options.Value;
+            _logger = loggerFactory.CreateLogger&lt;CorsService&gt;();
+        }
+
+        <span style="color:#75715e">/// &lt;summary&gt;
+</span><span style="color:#75715e"></span>        <span style="color:#75715e">/// Looks up a policy using the &lt;paramref name=&#34;policyName&#34;/&gt; and then evaluates the policy using the passed in
+</span><span style="color:#75715e"></span>        <span style="color:#75715e">/// &lt;paramref name=&#34;context&#34;/&gt;.
+</span><span style="color:#75715e"></span>        <span style="color:#75715e">/// &lt;/summary&gt;
+</span><span style="color:#75715e"></span>        <span style="color:#75715e">/// &lt;param name=&#34;context&#34;&gt;&lt;/param&gt;
+</span><span style="color:#75715e"></span>        <span style="color:#75715e">/// &lt;param name=&#34;policyName&#34;&gt;&lt;/param&gt;
+</span><span style="color:#75715e"></span>        <span style="color:#75715e">/// &lt;returns&gt;A &lt;see cref=&#34;CorsResult&#34;/&gt; which contains the result of policy evaluation and can be
+</span><span style="color:#75715e"></span>        <span style="color:#75715e">/// used by the caller to set appropriate response headers.&lt;/returns&gt;
+</span><span style="color:#75715e"></span>        <span style="color:#66d9ef">public</span> CorsResult EvaluatePolicy(HttpContext context, <span style="color:#66d9ef">string</span> policyName)
+        {
+            <span style="color:#66d9ef">if</span> (context == <span style="color:#66d9ef">null</span>)
+            {
+                <span style="color:#66d9ef">throw</span> <span style="color:#66d9ef">new</span> ArgumentNullException(nameof(context));
+            }
+
+            <span style="color:#66d9ef">var</span> policy = _options.GetPolicy(policyName);
+            <span style="color:#66d9ef">return</span> EvaluatePolicy(context, policy);
+        }
+
+        <span style="color:#75715e">/// &lt;inheritdoc /&gt;
+</span><span style="color:#75715e"></span>        <span style="color:#66d9ef">public</span> CorsResult EvaluatePolicy(HttpContext context, CorsPolicy policy)
+        {
+            <span style="color:#66d9ef">if</span> (context == <span style="color:#66d9ef">null</span>)
+            {
+                <span style="color:#66d9ef">throw</span> <span style="color:#66d9ef">new</span> ArgumentNullException(nameof(context));
+            }
+
+            <span style="color:#66d9ef">if</span> (policy == <span style="color:#66d9ef">null</span>)
+            {
+                <span style="color:#66d9ef">throw</span> <span style="color:#66d9ef">new</span> ArgumentNullException(nameof(policy));
+            }
+
+            <span style="color:#66d9ef">if</span> (policy.AllowAnyOrigin &amp;&amp; policy.SupportsCredentials)
+            {
+                <span style="color:#66d9ef">throw</span> <span style="color:#66d9ef">new</span> ArgumentException(Resources.InsecureConfiguration, nameof(policy));
+            }
+
+            <span style="color:#66d9ef">var</span> requestHeaders = context.Request.Headers;
+            <span style="color:#66d9ef">var</span> origin = requestHeaders[CorsConstants.Origin];
+
+            <span style="color:#66d9ef">var</span> isOptionsRequest = <span style="color:#66d9ef">string</span>.Equals(context.Request.Method, CorsConstants.PreflightHttpMethod, StringComparison.OrdinalIgnoreCase);
+            <span style="color:#66d9ef">var</span> isPreflightRequest = isOptionsRequest &amp;&amp; requestHeaders.ContainsKey(CorsConstants.AccessControlRequestMethod);
+
+            <span style="color:#66d9ef">if</span> (isOptionsRequest &amp;&amp; !isPreflightRequest)
+            {
+                _logger.IsNotPreflightRequest();
+            }
+
+            <span style="color:#66d9ef">var</span> corsResult = <span style="color:#66d9ef">new</span> CorsResult
+            {
+                IsPreflightRequest = isPreflightRequest,
+                IsOriginAllowed = IsOriginAllowed(policy, origin),
+            };
+
+            <span style="color:#66d9ef">if</span> (isPreflightRequest)
+            {
+                EvaluatePreflightRequest(context, policy, corsResult);
+            }
+            <span style="color:#66d9ef">else</span>
+            {
+                EvaluateRequest(context, policy, corsResult);
+            }
+
+            <span style="color:#66d9ef">return</span> corsResult;
+        }
+
+        <span style="color:#66d9ef">private</span> <span style="color:#66d9ef">static</span> <span style="color:#66d9ef">void</span> PopulateResult(HttpContext context, CorsPolicy policy, CorsResult result)
+        {
+            <span style="color:#66d9ef">var</span> headers = context.Request.Headers;
+            <span style="color:#66d9ef">if</span> (policy.AllowAnyOrigin)
+            {
+                result.AllowedOrigin = CorsConstants.AnyOrigin;
+                result.VaryByOrigin = policy.SupportsCredentials;
+            }
+            <span style="color:#66d9ef">else</span>
+            {
+                <span style="color:#66d9ef">var</span> origin = headers[CorsConstants.Origin];
+                result.AllowedOrigin = origin;
+                result.VaryByOrigin = policy.Origins.Count &gt; <span style="color:#ae81ff">1</span>;
+            }
+
+            result.SupportsCredentials = policy.SupportsCredentials;
+            result.PreflightMaxAge = policy.PreflightMaxAge;
+
+            <span style="color:#75715e">// https://fetch.spec.whatwg.org/#http-new-header-syntax
+</span><span style="color:#75715e"></span>            AddHeaderValues(result.AllowedExposedHeaders, policy.ExposedHeaders);
+
+            <span style="color:#66d9ef">var</span> allowedMethods = policy.AllowAnyMethod ?
+                <span style="color:#66d9ef">new</span>[] { result.IsPreflightRequest ? (<span style="color:#66d9ef">string</span>)headers[CorsConstants.AccessControlRequestMethod] : context.Request.Method } :
+                policy.Methods;
+            AddHeaderValues(result.AllowedMethods, allowedMethods);
+
+            <span style="color:#66d9ef">var</span> allowedHeaders = policy.AllowAnyHeader ?
+                headers.GetCommaSeparatedValues(CorsConstants.AccessControlRequestHeaders) :
+                policy.Headers;
+            AddHeaderValues(result.AllowedHeaders, allowedHeaders);
+        }
+
+        <span style="color:#66d9ef">public</span> <span style="color:#66d9ef">virtual</span> <span style="color:#66d9ef">void</span> EvaluateRequest(HttpContext context, CorsPolicy policy, CorsResult result)
+        {
+            PopulateResult(context, policy, result);
+        }
+
+        <span style="color:#66d9ef">public</span> <span style="color:#66d9ef">virtual</span> <span style="color:#66d9ef">void</span> EvaluatePreflightRequest(HttpContext context, CorsPolicy policy, CorsResult result)
+        {
+            PopulateResult(context, policy, result);
+        }
+
+        <span style="color:#75715e">/// &lt;inheritdoc /&gt;
+</span><span style="color:#75715e"></span>        <span style="color:#66d9ef">public</span> <span style="color:#66d9ef">virtual</span> <span style="color:#66d9ef">void</span> ApplyResult(CorsResult result, HttpResponse response)
+        {
+            <span style="color:#66d9ef">if</span> (result == <span style="color:#66d9ef">null</span>)
+            {
+                <span style="color:#66d9ef">throw</span> <span style="color:#66d9ef">new</span> ArgumentNullException(nameof(result));
+            }
+
+            <span style="color:#66d9ef">if</span> (response == <span style="color:#66d9ef">null</span>)
+            {
+                <span style="color:#66d9ef">throw</span> <span style="color:#66d9ef">new</span> ArgumentNullException(nameof(response));
+            }
+
+            <span style="color:#66d9ef">if</span> (!result.IsOriginAllowed)
+            {
+                <span style="color:#75715e">// In case a server does not wish to participate in the CORS protocol, its HTTP response to the
+</span><span style="color:#75715e"></span>                <span style="color:#75715e">// CORS or CORS-preflight request must not include any of the above headers.
+</span><span style="color:#75715e"></span>                <span style="color:#66d9ef">return</span>;
+            }
+
+            <span style="color:#66d9ef">var</span> headers = response.Headers;
+            headers[CorsConstants.AccessControlAllowOrigin] = result.AllowedOrigin;
+
+            <span style="color:#66d9ef">if</span> (result.SupportsCredentials)
+            {
+                headers[CorsConstants.AccessControlAllowCredentials] = <span style="color:#e6db74">&#34;true&#34;</span>;
+            }
+
+            <span style="color:#66d9ef">if</span> (result.IsPreflightRequest)
+            {
+                _logger.IsPreflightRequest();
+
+                <span style="color:#75715e">// An HTTP response to a CORS-preflight request can include the following headers:
+</span><span style="color:#75715e"></span>                <span style="color:#75715e">// `Access-Control-Allow-Methods`, `Access-Control-Allow-Headers`, `Access-Control-Max-Age`
+</span><span style="color:#75715e"></span>                <span style="color:#66d9ef">if</span> (result.AllowedHeaders.Count &gt; <span style="color:#ae81ff">0</span>)
+                {
+                    headers.SetCommaSeparatedValues(CorsConstants.AccessControlAllowHeaders, result.AllowedHeaders.ToArray());
+                }
+
+                <span style="color:#66d9ef">if</span> (result.AllowedMethods.Count &gt; <span style="color:#ae81ff">0</span>)
+                {
+                    headers.SetCommaSeparatedValues(CorsConstants.AccessControlAllowMethods, result.AllowedMethods.ToArray());
+                }
+
+                <span style="color:#66d9ef">if</span> (result.PreflightMaxAge.HasValue)
+                {
+                    headers[CorsConstants.AccessControlMaxAge] = result.PreflightMaxAge.Value.TotalSeconds.ToString(CultureInfo.InvariantCulture);
+                }
+            }
+            <span style="color:#66d9ef">else</span>
+            {
+                <span style="color:#75715e">// An HTTP response to a CORS request that is not a CORS-preflight request can also include the following header:
+</span><span style="color:#75715e"></span>                <span style="color:#75715e">// `Access-Control-Expose-Headers`
+</span><span style="color:#75715e"></span>                <span style="color:#66d9ef">if</span> (result.AllowedExposedHeaders.Count &gt; <span style="color:#ae81ff">0</span>)
+                {
+                    headers.SetCommaSeparatedValues(CorsConstants.AccessControlExposeHeaders, result.AllowedExposedHeaders.ToArray());
+                }
+            }
+
+            <span style="color:#66d9ef">if</span> (result.VaryByOrigin)
+            {
+                headers.Append(<span style="color:#e6db74">&#34;Vary&#34;</span>, <span style="color:#e6db74">&#34;Origin&#34;</span>);
+            }
+        }
+
+        <span style="color:#66d9ef">private</span> <span style="color:#66d9ef">static</span> <span style="color:#66d9ef">void</span> AddHeaderValues(IList&lt;<span style="color:#66d9ef">string</span>&gt; target, IList&lt;<span style="color:#66d9ef">string</span>&gt; headerValues)
+        {
+            <span style="color:#66d9ef">if</span> (headerValues == <span style="color:#66d9ef">null</span>)
+            {
+                <span style="color:#66d9ef">return</span>;
+            }
+
+            <span style="color:#66d9ef">for</span> (<span style="color:#66d9ef">var</span> i = <span style="color:#ae81ff">0</span>; i &lt; headerValues.Count; i++)
+            {
+                target.Add(headerValues[i]);
+            }
+        }
+
+        <span style="color:#66d9ef">private</span> <span style="color:#66d9ef">bool</span> IsOriginAllowed(CorsPolicy policy, StringValues origin)
+        {
+            <span style="color:#66d9ef">if</span> (StringValues.IsNullOrEmpty(origin))
+            {
+                _logger.RequestDoesNotHaveOriginHeader();
+                <span style="color:#66d9ef">return</span> <span style="color:#66d9ef">false</span>;
+            }
+
+            _logger.RequestHasOriginHeader(origin);
+            <span style="color:#66d9ef">if</span> (policy.AllowAnyOrigin || policy.IsOriginAllowed(origin))
+            {
+                _logger.PolicySuccess();
+                <span style="color:#66d9ef">return</span> <span style="color:#66d9ef">true</span>;
+            }
+            _logger.PolicyFailure();
+            _logger.OriginNotAllowed(origin);
+            <span style="color:#66d9ef">return</span> <span style="color:#66d9ef">false</span>;
+        }
+    }
+}
+
+</code></pre></div></details>
+<p>首先，中间件会判断方法节点是否有实现以下两个接口，如果有的话优先执行节点设置。</p>
+<pre><code>IDisableCorsAttribute: 禁用跨域
+ICorsPolicyMetadata：使用指定跨域策略
+</code></pre><p>然后，然后判断请求头是否有Origin，没有的话直接略过CORS中间件去下游管道。</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-csharp" data-lang="csharp"><span style="color:#66d9ef">if</span> (!context.Request.Headers.ContainsKey(CorsConstants.Origin))
+{
+<span style="color:#66d9ef">return</span> _next(context);
+}
+</code></pre></div><p>然后，中间件执行ICorsService的ApplyResult方法，将跨域策略写到响应头中。</p>
+<p>原文地址：<a href="https://holdengong.com">holdengong.com</a></p>
+
+</div>
+
+
+    </main>
+
+    
+      
+    
+  </body>
+</html>
