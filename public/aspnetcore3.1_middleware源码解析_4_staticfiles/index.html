@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="zh-Hans" lang="zh-Hans">
+<head>
+  <link href="https://gmpg.org/xfn/11" rel="profile">
+  <meta http-equiv="content-type" content="text/html; charset=utf-8">
+  <meta name="generator" content="Hugo 0.67.0" />
+
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <title>AspNetCore3.1_Middleware源码解析_4_StaticFiles &middot; Holden Gong</title>
+  <meta name="description" content="" />
+
+  
+  <link type="text/css" rel="stylesheet" href="https://holdengong.com/css/print.css" media="print">
+  <link type="text/css" rel="stylesheet" href="https://holdengong.com/css/poole.css">
+  <link type="text/css" rel="stylesheet" href="https://holdengong.com/css/syntax.css">
+  <link type="text/css" rel="stylesheet" href="https://holdengong.com/css/hyde.css">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Abril+Fatface|PT+Sans:400,400i,700">
+
+
+  
+  <link rel="apple-touch-icon-precomposed" sizes="144x144" href="/apple-touch-icon-144-precomposed.png">
+  <link rel="shortcut icon" href="/favicon.png">
+
+  
+  
+</head>
+
+  <body class=" ">
+  <aside class="sidebar">
+  <div class="container sidebar-sticky">
+    <div class="sidebar-about">
+      <a href="https://holdengong.com/">
+        <h1>Holden Gong</h1>
+      </a>
+      <p class="lead">
+        code & life
+      </p>
+    </div>
+
+    <nav>
+      <ul class="sidebar-nav">
+  
+      </ul>
+    </nav>
+    
+    <div>
+      <p>&copy; 2020. All rights reserved. </p>
+      <p>鄂ICP备20003133号</p>
+      <script type="text/javascript">document.write(unescape("%3Cspan id='cnzz_stat_icon_1278689390'%3E%3C/span%3E%3Cscript src='https://v1.cnzz.com/z_stat.php%3Fid%3D1278689390%26show%3Dpic' type='text/javascript'%3E%3C/script%3E"));</script>
+    </div>
+  </div>
+</aside>
+
+    <main class="content container">
+    <div class="post">
+  <h1>AspNetCore3.1_Middleware源码解析_4_StaticFiles</h1>
+  <time datetime=2020-03-16T21:59:17&#43;0800 class="post-date">Mon, Mar 16, 2020</time>
+  <h1 id="概述">概述</h1>
+<p>AspNetCore提供了StaticFiles中间件，使我们可以轻松访问静态文件。</p>
+<h1 id="使用方法">使用方法</h1>
+<p>AspNetCore提供了三个重载方法，没有特殊需求的情况下，我们使用无参的就可以了。</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-csharp" data-lang="csharp"><span style="color:#75715e">//使用默认配置
+</span><span style="color:#75715e"></span>app.UseStaticFiles();
+
+<span style="color:#75715e">//自定义静态资源相对路径
+</span><span style="color:#75715e"></span>app.UseStaticFiles(<span style="color:#e6db74">&#34;/MyCustomStaticFilePath&#34;</span>);
+
+<span style="color:#75715e">//所有可以配置的选项
+</span><span style="color:#75715e"></span>app.UseStaticFiles(<span style="color:#66d9ef">new</span> StaticFileOptions
+{
+    <span style="color:#75715e">//用于映射file的content-type
+</span><span style="color:#75715e"></span>    ContentTypeProvider = <span style="color:#66d9ef">null</span>,
+    <span style="color:#75715e">//ContentTypeProvider无法决定content-type时的默认content-type
+</span><span style="color:#75715e"></span>    DefaultContentType = <span style="color:#66d9ef">null</span>,
+    <span style="color:#75715e">//文件提供程序
+</span><span style="color:#75715e"></span>    FileProvider = <span style="color:#66d9ef">new</span> PhysicalFileProvider(<span style="color:#e6db74">&#34;/&#34;</span>),
+    <span style="color:#75715e">//Https请求，ResponseCompression中间件启用的情况下，是否对返回值压缩
+</span><span style="color:#75715e"></span>    HttpsCompression = Microsoft.AspNetCore.Http.Features.HttpsCompressionMode.Compress,
+    <span style="color:#75715e">//委托，状态码和Headers设置完，Body写入前触发，可用于修改响应头
+</span><span style="color:#75715e"></span>    OnPrepareResponse = <span style="color:#66d9ef">null</span>,
+    <span style="color:#75715e">//映射静态资源的相对路径
+</span><span style="color:#75715e"></span>    RequestPath = <span style="color:#e6db74">&#34;/MyStaticFiles&#34;</span>,
+    <span style="color:#75715e">//是否伺服未知文件类型
+</span><span style="color:#75715e"></span>    ServeUnknownFileTypes = <span style="color:#66d9ef">false</span>
+});
+</code></pre></div><p>TO BE CONTINUE&hellip;</p>
+
+</div>
+
+
+    </main>
+
+    
+      
+    
+  </body>
+</html>

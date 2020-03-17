@@ -3,12 +3,22 @@
   xmlns:xhtml="http://www.w3.org/1999/xhtml">
   
   <url>
-    <loc>https://holdengong.com/aspnetcore3.1_middleware%E6%BA%90%E7%A0%81%E8%A7%A3%E6%9E%90_3_httpsredirection/</loc>
-    <lastmod>2020-03-16T18:20:41+08:00</lastmod>
+    <loc>https://holdengong.com/aspnetcore3.1_secutiry%E6%BA%90%E7%A0%81%E8%A7%A3%E6%9E%90_1_%E7%9B%AE%E5%BD%95/</loc>
+    <lastmod>2020-03-17T23:01:38+08:00</lastmod>
   </url>
   
   <url>
     <loc>https://holdengong.com/</loc>
+    <lastmod>2020-03-17T23:01:38+08:00</lastmod>
+  </url>
+  
+  <url>
+    <loc>https://holdengong.com/aspnetcore3.1_middleware%E6%BA%90%E7%A0%81%E8%A7%A3%E6%9E%90_4_staticfiles/</loc>
+    <lastmod>2020-03-16T21:59:17+08:00</lastmod>
+  </url>
+  
+  <url>
+    <loc>https://holdengong.com/aspnetcore3.1_middleware%E6%BA%90%E7%A0%81%E8%A7%A3%E6%9E%90_3_httpsredirection/</loc>
     <lastmod>2020-03-16T18:20:41+08:00</lastmod>
   </url>
   
