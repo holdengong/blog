@@ -3,6 +3,16 @@ title: "AspNetCore3.1_Secutiry源码解析_2_Authentication_核心项目"
 date: 2020-03-18T21:19:15+08:00
 draft: false
 ---
+# 系列文章目录
+- [AspNetCore3.1_Secutiry源码解析_1_目录](https://holdengong.com/aspnetcore3.1_secutiry源码解析_1_目录)
+- [AspNetCore3.1_Secutiry源码解析_2_Authentication_核心项目](aspnetcore3.1_secutiry源码解析_2_authentication_核心项目)
+- AspNetCore3.1_Secutiry源码解析_3_Authentication_Cookies
+- AspNetCore3.1_Secutiry源码解析_4_Authentication_JwtBear
+- AspNetCore3.1_Secutiry源码解析_5_Authentication_OAuth
+- AspNetCore3.1_Secutiry源码解析_6_Authentication_OpenIdConnect
+- AspNetCore3.1_Secutiry源码解析_7_Authentication_其他
+- AspNetCore3.1_Secutiry源码解析_8_Authorization_核心项目
+- AspNetCore3.1_Secutiry源码解析_9_Authorization_Policy
 
 # 依赖注入
 框架提供了三个依赖注入重载方法。

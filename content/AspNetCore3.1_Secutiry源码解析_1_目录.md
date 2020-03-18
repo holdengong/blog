@@ -3,9 +3,10 @@ title: "AspNetCore3.1_Secutiry源码解析_1_目录"
 date: 2020-03-17T23:01:38+08:00
 draft: false
 ---
-# 文章目录
-- [AspNetCore3.1_Secutiry源码解析_1_目录](https://holdengong.com/AspNetCore3.1_Secutiry源码解析_1_目录)
-- AspNetCore3.1_Secutiry源码解析_2_Authentication_核心项目
+# 系列文章目录
+# 系列文章目录
+- [AspNetCore3.1_Secutiry源码解析_1_目录](https://holdengong.com/aspnetcore3.1_secutiry源码解析_1_目录)
+- [AspNetCore3.1_Secutiry源码解析_2_Authentication_核心项目](aspnetcore3.1_secutiry源码解析_2_authentication_核心项目)
 - AspNetCore3.1_Secutiry源码解析_3_Authentication_Cookies
 - AspNetCore3.1_Secutiry源码解析_4_Authentication_JwtBear
 - AspNetCore3.1_Secutiry源码解析_5_Authentication_OAuth
