@@ -6,10 +6,23 @@
     <description>Recent content on Holden Gong</description>
     <generator>Hugo -- gohugo.io</generator>
     <language>zh-Hans</language>
-    <lastBuildDate>Tue, 17 Mar 2020 23:01:38 +0800</lastBuildDate>
+    <lastBuildDate>Wed, 18 Mar 2020 21:19:15 +0800</lastBuildDate>
     
 	<atom:link href="https://holdengong.com/index.xml" rel="self" type="application/rss+xml" />
     
+    
+    <item>
+      <title>AspNetCore3.1_Secutiry源码解析_2_Authentication_核心项目</title>
+      <link>https://holdengong.com/aspnetcore3.1_secutiry%E6%BA%90%E7%A0%81%E8%A7%A3%E6%9E%90_2_authentication_%E6%A0%B8%E5%BF%83%E9%A1%B9%E7%9B%AE/</link>
+      <pubDate>Wed, 18 Mar 2020 21:19:15 +0800</pubDate>
+      
+      <guid>https://holdengong.com/aspnetcore3.1_secutiry%E6%BA%90%E7%A0%81%E8%A7%A3%E6%9E%90_2_authentication_%E6%A0%B8%E5%BF%83%E9%A1%B9%E7%9B%AE/</guid>
+      <description>依赖注入 框架提供了三个依赖注入重载方法。
+//注入认证服务 services.AddAuthentication(); //注入认证服务并制定默认架构名 services.AddAuthentication(&amp;#34;Cookies&amp;#34;); //注入认证服务并设置配置项 services.AddAuthentication(config =&amp;gt; { }); 看看注入代码
+public static AuthenticationBuilder AddAuthentication(this IServiceCollection services) { if (services == null) { throw new ArgumentNullException(nameof(services)); } services.AddAuthenticationCore(); services.AddDataProtection(); services.AddWebEncoders(); services.TryAddSingleton&amp;lt;ISystemClock, SystemClock&amp;gt;(); return new AuthenticationBuilder(services); } AddAuthenticationCore注入了认证服务的核心对象。这个方法在Authentication.Core项目，这个项目定义了认证服务的核心对象，在Authentication.Abstractions项目中定义了核心接口。
+AddAuthenticationCore方法注入了IAuthenticationService，IClaimsTransformation，IAuthenticationHandlerProvider，IAuthenticationSchemeProvider
+public static IServiceCollection AddAuthenticationCore(this IServiceCollection services) { if (services == null) { throw new ArgumentNullException(nameof(services)); } services.TryAddScoped&amp;lt;IAuthenticationService, AuthenticationService&amp;gt;(); services.TryAddSingleton&amp;lt;IClaimsTransformation, NoopClaimsTransformation&amp;gt;(); // Can be replaced with scoped ones that use DbContext  services.</description>
+    </item>
     
     <item>
       <title>AspNetCore3.1_Secutiry源码解析_1_目录</title>
