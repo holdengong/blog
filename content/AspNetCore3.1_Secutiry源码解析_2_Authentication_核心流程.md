@@ -1,11 +1,11 @@
 ---
-title: "AspNetCore3.1_Secutiry源码解析_2_Authentication_核心项目"
+title: "AspNetCore3.1_Secutiry源码解析_2_Authentication_核心流程"
 date: 2020-03-18T21:19:15+08:00
 draft: false
 ---
 # 系列文章目录
 - [AspNetCore3.1_Secutiry源码解析_1_目录](https://holdengong.com/aspnetcore3.1_secutiry源码解析_1_目录)
-- [AspNetCore3.1_Secutiry源码解析_2_Authentication_核心项目](https://holdengong.com/aspnetcore3.1_secutiry源码解析_2_authentication_核心项目)
+- [AspNetCore3.1_Secutiry源码解析_2_Authentication_核心项目](https://holdengong.com/aspnetcore3.1_secutiry源码解析_2_authentication_核心流程)
 - AspNetCore3.1_Secutiry源码解析_3_Authentication_Cookies
 - AspNetCore3.1_Secutiry源码解析_4_Authentication_JwtBear
 - AspNetCore3.1_Secutiry源码解析_5_Authentication_OAuth
@@ -211,5 +211,44 @@ services.AddDataProtection();
 services.AddWebEncoders();
 ```
 
----
+# Authentication中间件
 
+中间件会优先在容器中找IAuthenticationRequestHandler的实现，如果handler不为空的话，则执行handler的HandleRequestAsync方法。IAuthenticationRequestHandler通常在远程认证（如：OAuth, OIDC等）中使用。
+
+如果没有IAuthenticationRequestHandler的实现，则会找默认schema，执行默认schema对应handler的AuthenticationAsync方法，认证成功后，给HttpContext的User对象赋值。
+
+```csharp
+public async Task Invoke(HttpContext context)
+    {
+        context.Features.Set<IAuthenticationFeature>(new AuthenticationFeature
+        {
+            OriginalPath = context.Request.Path,
+            OriginalPathBase = context.Request.PathBase
+        });
+
+        // Give any IAuthenticationRequestHandler schemes a chance to handle the request
+        var handlers = context.RequestServices.GetRequiredService<IAuthenticationHandlerProvider>();
+        foreach (var scheme in await Schemes.GetRequestHandlerSchemesAsync())
+        {
+            var handler = await handlers.GetHandlerAsync(context, scheme.Name) as IAuthenticationRequestHandler;
+            if (handler != null && await handler.HandleRequestAsync())
+            {
+                return;
+            }
+        }
+
+        var defaultAuthenticate = await Schemes.GetDefaultAuthenticateSchemeAsync();
+        if (defaultAuthenticate != null)
+        {
+            var result = await context.AuthenticateAsync(defaultAuthenticate.Name);
+            if (result?.Principal != null)
+            {
+                context.User = result.Principal;
+            }
+        }
+
+        await _next(context);
+    }
+```
+
+------
