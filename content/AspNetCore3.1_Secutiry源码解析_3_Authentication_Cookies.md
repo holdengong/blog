@@ -25,7 +25,6 @@ AuthenticationBuilder AddCookie(this AuthenticationBuilder builder, Action<Cooki
 提供了几个重载方法，可以使用默认配置，或者通过委托修改配置类CookieAuthenticationOptions的值。
 
 可以定义登录、登出、拒绝登录页面地址、Cookie过期时间、生命周期各阶段事件等。
-<script src="https://unpkg.com/mermaid/dist/mermaid.min.js"></script>
 <div class="mermaid">
  classDiagram
       class CookieAuthenticationOptions{
@@ -54,6 +53,7 @@ AuthenticationBuilder AddCookie(this AuthenticationBuilder builder, Action<Cooki
       }
       CookieAuthenticationOptions-->AuthenticationSchemeOptions
 </div>
+<script src="https://unpkg.com/mermaid/dist/mermaid.min.js"></script>
 
 如果没有定义配置，则会使用CookieAuthenticationDefaults定义的默认配置
 ```csharp
