@@ -1,0 +1,485 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="zh-Hans" lang="zh-Hans">
+<head>
+  <link href="https://gmpg.org/xfn/11" rel="profile">
+  <meta http-equiv="content-type" content="text/html; charset=utf-8">
+  <meta name="generator" content="Hugo 0.67.0" />
+
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <title>AspNetCore3.1_Secutiry源码解析_3_Authentication_Cookies &middot; Holden Gong</title>
+  <meta name="description" content="" />
+
+  
+  <link type="text/css" rel="stylesheet" href="https://holdengong.com/css/print.css" media="print">
+  <link type="text/css" rel="stylesheet" href="https://holdengong.com/css/poole.css">
+  <link type="text/css" rel="stylesheet" href="https://holdengong.com/css/syntax.css">
+  <link type="text/css" rel="stylesheet" href="https://holdengong.com/css/hyde.css">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Abril+Fatface|PT+Sans:400,400i,700">
+
+
+  
+  <link rel="apple-touch-icon-precomposed" sizes="144x144" href="/apple-touch-icon-144-precomposed.png">
+  <link rel="shortcut icon" href="/favicon.png">
+
+  
+  
+</head>
+
+  <body class=" ">
+  <aside class="sidebar">
+  <div class="container sidebar-sticky">
+    <div class="sidebar-about">
+      <a href="https://holdengong.com/">
+        <h1>Holden Gong</h1>
+      </a>
+      <p class="lead">
+        code & life
+      </p>
+    </div>
+
+    <nav>
+      <ul class="sidebar-nav">
+  
+      </ul>
+    </nav>
+    
+    <div>
+      <p>&copy; 2020. All rights reserved. </p>
+      <p>鄂ICP备20003133号</p>
+      <script type="text/javascript">document.write(unescape("%3Cspan id='cnzz_stat_icon_1278689390'%3E%3C/span%3E%3Cscript src='https://v1.cnzz.com/z_stat.php%3Fid%3D1278689390%26show%3Dpic' type='text/javascript'%3E%3C/script%3E"));</script>
+    </div>
+  </div>
+</aside>
+
+    <main class="content container">
+    <div class="post">
+  <h1>AspNetCore3.1_Secutiry源码解析_3_Authentication_Cookies</h1>
+  <time datetime=2020-03-19T22:52:39&#43;0800 class="post-date">Thu, Mar 19, 2020</time>
+  <h1 id="系列文章目录">系列文章目录</h1>
+<ul>
+<li><a href="https://holdengong.com/aspnetcore3.1_secutiry%E6%BA%90%E7%A0%81%E8%A7%A3%E6%9E%90_1_%E7%9B%AE%E5%BD%95">AspNetCore3.1_Secutiry源码解析_1_目录</a></li>
+<li><a href="https://holdengong.com/aspnetcore3.1_secutiry%E6%BA%90%E7%A0%81%E8%A7%A3%E6%9E%90_2_authentication_%E6%A0%B8%E5%BF%83%E6%B5%81%E7%A8%8B">AspNetCore3.1_Secutiry源码解析_2_Authentication_核心流程</a></li>
+<li><a href="https://holdengong.com/aspnetcore3.1_secutiry%E6%BA%90%E7%A0%81%E8%A7%A3%E6%9E%90_3_authentication_cookies">AspNetCore3.1_Secutiry源码解析_3_Authentication_Cookies</a></li>
+<li>AspNetCore3.1_Secutiry源码解析_4_Authentication_JwtBear</li>
+<li>AspNetCore3.1_Secutiry源码解析_5_Authentication_OAuth</li>
+<li>AspNetCore3.1_Secutiry源码解析_6_Authentication_OpenIdConnect</li>
+<li>AspNetCore3.1_Secutiry源码解析_7_Authentication_其他</li>
+<li>AspNetCore3.1_Secutiry源码解析_8_Authorization_核心项目</li>
+<li>AspNetCore3.1_Secutiry源码解析_9_Authorization_Policy</li>
+</ul>
+<h1 id="依赖注入">依赖注入</h1>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-csharp" data-lang="csharp">AuthenticationBuilder AddCookie(<span style="color:#66d9ef">this</span> AuthenticationBuilder builder);
+
+AuthenticationBuilder AddCookie(<span style="color:#66d9ef">this</span> AuthenticationBuilder builder, <span style="color:#66d9ef">string</span> authenticationScheme);
+
+AuthenticationBuilder AddCookie(<span style="color:#66d9ef">this</span> AuthenticationBuilder builder, Action&lt;CookieAuthenticationOptions&gt; configureOptions);
+</code></pre></div><p>提供了几个重载方法，可以使用默认配置，或者通过委托修改配置类CookieAuthenticationOptions的值。</p>
+<p>可以定义登录、登出、拒绝登录页面地址、Cookie过期时间、生命周期各阶段事件等。</p>
+<div class="mermaid">
+ classDiagram
+      class CookieAuthenticationOptions{
+          CookieBuilder Cookie
+          IDataProtectionProvider DataProtectionProvider
+          bool SlidingExpiration
+          PathString LoginPath
+          PathString LogoutPath
+          PathString AccessDeniedPath
+          CookieAuthenticationEvents Events
+          ISecureDataFormat TicketDataFormat
+          ITicketStore SessionStore
+          TimeSpan ExpireTimeSpan
+      }
+      class AuthenticationSchemeOptions{
+          string ClaimsIssuer
+          object Events
+          Type EventsType
+          string ForwardDefault
+          string ForwardAuthenticate
+          string ForwardChallenge
+          string ForwardForbid
+          string ForwardSignIn
+          string ForwardSignOut
+          Func ForwardDefaultSelector
+      }
+      CookieAuthenticationOptions-->AuthenticationSchemeOptions
+</div>
+<p>如果没有定义配置，则会使用CookieAuthenticationDefaults定义的默认配置</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-csharp" data-lang="csharp"> <span style="color:#75715e">/// &lt;summary&gt;
+</span><span style="color:#75715e"></span>    <span style="color:#75715e">/// Default values related to cookie-based authentication handler
+</span><span style="color:#75715e"></span>    <span style="color:#75715e">/// &lt;/summary&gt;
+</span><span style="color:#75715e"></span>    <span style="color:#66d9ef">public</span> <span style="color:#66d9ef">static</span> <span style="color:#66d9ef">class</span> <span style="color:#a6e22e">CookieAuthenticationDefaults</span>
+    {
+        <span style="color:#75715e">/// &lt;summary&gt;
+</span><span style="color:#75715e"></span>        <span style="color:#75715e">/// The default value used for CookieAuthenticationOptions.AuthenticationScheme
+</span><span style="color:#75715e"></span>        <span style="color:#75715e">/// &lt;/summary&gt;
+</span><span style="color:#75715e"></span>        <span style="color:#66d9ef">public</span> <span style="color:#66d9ef">const</span> <span style="color:#66d9ef">string</span> AuthenticationScheme = <span style="color:#e6db74">&#34;Cookies&#34;</span>;
+
+        <span style="color:#75715e">/// &lt;summary&gt;
+</span><span style="color:#75715e"></span>        <span style="color:#75715e">/// The prefix used to provide a default CookieAuthenticationOptions.CookieName
+</span><span style="color:#75715e"></span>        <span style="color:#75715e">/// &lt;/summary&gt;
+</span><span style="color:#75715e"></span>        <span style="color:#66d9ef">public</span> <span style="color:#66d9ef">static</span> <span style="color:#66d9ef">readonly</span> <span style="color:#66d9ef">string</span> CookiePrefix = <span style="color:#e6db74">&#34;.AspNetCore.&#34;</span>;
+
+        <span style="color:#75715e">/// &lt;summary&gt;
+</span><span style="color:#75715e"></span>        <span style="color:#75715e">/// The default value used by CookieAuthenticationMiddleware for the
+</span><span style="color:#75715e"></span>        <span style="color:#75715e">/// CookieAuthenticationOptions.LoginPath
+</span><span style="color:#75715e"></span>        <span style="color:#75715e">/// &lt;/summary&gt;
+</span><span style="color:#75715e"></span>        <span style="color:#66d9ef">public</span> <span style="color:#66d9ef">static</span> <span style="color:#66d9ef">readonly</span> PathString LoginPath = <span style="color:#66d9ef">new</span> PathString(<span style="color:#e6db74">&#34;/Account/Login&#34;</span>);
+
+        <span style="color:#75715e">/// &lt;summary&gt;
+</span><span style="color:#75715e"></span>        <span style="color:#75715e">/// The default value used by CookieAuthenticationMiddleware for the
+</span><span style="color:#75715e"></span>        <span style="color:#75715e">/// CookieAuthenticationOptions.LogoutPath
+</span><span style="color:#75715e"></span>        <span style="color:#75715e">/// &lt;/summary&gt;
+</span><span style="color:#75715e"></span>        <span style="color:#66d9ef">public</span> <span style="color:#66d9ef">static</span> <span style="color:#66d9ef">readonly</span> PathString LogoutPath = <span style="color:#66d9ef">new</span> PathString(<span style="color:#e6db74">&#34;/Account/Logout&#34;</span>);
+
+        <span style="color:#75715e">/// &lt;summary&gt;
+</span><span style="color:#75715e"></span>        <span style="color:#75715e">/// The default value used by CookieAuthenticationMiddleware for the
+</span><span style="color:#75715e"></span>        <span style="color:#75715e">/// CookieAuthenticationOptions.AccessDeniedPath
+</span><span style="color:#75715e"></span>        <span style="color:#75715e">/// &lt;/summary&gt;
+</span><span style="color:#75715e"></span>        <span style="color:#66d9ef">public</span> <span style="color:#66d9ef">static</span> <span style="color:#66d9ef">readonly</span> PathString AccessDeniedPath = <span style="color:#66d9ef">new</span> PathString(<span style="color:#e6db74">&#34;/Account/AccessDenied&#34;</span>);
+
+        <span style="color:#75715e">/// &lt;summary&gt;
+</span><span style="color:#75715e"></span>        <span style="color:#75715e">/// The default value of the CookieAuthenticationOptions.ReturnUrlParameter
+</span><span style="color:#75715e"></span>        <span style="color:#75715e">/// &lt;/summary&gt;
+</span><span style="color:#75715e"></span>        <span style="color:#66d9ef">public</span> <span style="color:#66d9ef">static</span> <span style="color:#66d9ef">readonly</span> <span style="color:#66d9ef">string</span> ReturnUrlParameter = <span style="color:#e6db74">&#34;ReturnUrl&#34;</span>;
+    }
+</code></pre></div><p>注册当前schema的处理器类为CookieAuthenticationHandler</p>
+<h1 id="处理器类的结构">处理器类的结构</h1>
+<p>主干逻辑是层层继承来实现的，CookieAuthenticationHandler主要是重写了父类的五个认证动作的Handle方法来实现自己的处理逻辑。</p>
+<div class="mermaid">
+ classDiagram
+      class CookieAuthenticationHandler{
+        HandleAuthenticateAsync()
+        HandleSignInAsync()
+        HandleSignOutAsync()
+        HandleForbiddenAsync()
+        HandleChallengeAsync()
+        FinishResponseAsync()
+      }
+      class SignInAuthenticationHandler{
+          SignInAsync()
+          HandleSignInAsync()
+      }
+      class IAuthenticationSignInHandler{
+          SignIn()
+          HandleSignIn()
+      }
+      class SignOutAuthenticationHandler{
+          SignOutAsync()
+          HandleSignOutAsync()
+      }
+      class IAuthenticationSignOutHandler{
+          SighOut()
+          HandleSignOut()
+      }
+      class AuthenticationHandler{
+          AuthenticationScheme Scheme
+          TOptions Options
+          HttpContext Context
+          HttpRequest Request
+          HttpResponse Response
+          PathString OriginalPath
+          PathString OriginalPathBase
+          ILogger Logger
+          UrlEncoder UrlEncoder
+          ISystemClock Clock
+          object Events
+          string ClaimsIssuer
+          string CurrentUri
+          +Task InitializeAsync(AuthenticationScheme scheme, HttpContext context)
+          +Task AuthenticateAsync()
+          +Task ChallengeAsync(AuthenticationProperties properties)
+          +Task ForbidAsync(AuthenticationProperties properties)
+      }
+      class IAuthenticationHandler{
+          HandleAsync()
+      }
+      CookieAuthenticationHandler-->SignInAuthenticationHandler
+      SignInAuthenticationHandler-->IAuthenticationSignInHandler
+      SignInAuthenticationHandler-->SignOutAuthenticationHandler
+      SignOutAuthenticationHandler-->IAuthenticationSignOutHandler
+      SignOutAuthenticationHandler-->AuthenticationHandler
+      AuthenticationHandler-->IAuthenticationHandler
+</div>
+<h1 id="处理器类详解">处理器类详解</h1>
+<h2 id="handlesigninasync---处理登录">HandleSignInAsync - 处理登录</h2>
+<ol>
+<li>业务方校验完用户之后之后，构造ClaimsPrincipal对象传入SignIn方法，如果user为null则抛出异常</li>
+<li>IssuedUtc如果未指定的话则使用当前时间，ExpiresUtc过期时间如果没有指定的话则用IssuedUtc和ExpireTimeSpan计算出过期时间</li>
+<li>触发SigningIn事件</li>
+<li>构造AuthenticationTicket凭证</li>
+<li>如果SessionStore不为空，将凭证信息存入SessionStore</li>
+<li>TicketDataFormat对ticket进行加密</li>
+<li>CookieManager将t加密后的信息写入cookie</li>
+<li>触发SignedIn事件</li>
+<li>如果LoginPath有值并且等于OriginalPath，则需要跳转，跳转地址在Properties.RedirectUri</li>
+</ol>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-csharp" data-lang="csharp"><span style="color:#66d9ef">protected</span> <span style="color:#66d9ef">async</span> <span style="color:#66d9ef">override</span> Task HandleSignInAsync(ClaimsPrincipal user, AuthenticationProperties properties)
+    {
+        <span style="color:#66d9ef">if</span> (user == <span style="color:#66d9ef">null</span>)
+        {
+            <span style="color:#66d9ef">throw</span> <span style="color:#66d9ef">new</span> ArgumentNullException(nameof(user));
+        }
+
+        properties = properties ?? <span style="color:#66d9ef">new</span> AuthenticationProperties();
+
+        _signInCalled = <span style="color:#66d9ef">true</span>;
+
+        <span style="color:#75715e">// Process the request cookie to initialize members like _sessionKey.
+</span><span style="color:#75715e"></span>        <span style="color:#66d9ef">await</span> EnsureCookieTicket();
+        <span style="color:#66d9ef">var</span> cookieOptions = BuildCookieOptions();
+
+        <span style="color:#66d9ef">var</span> signInContext = <span style="color:#66d9ef">new</span> CookieSigningInContext(
+            Context,
+            Scheme,
+            Options,
+            user,
+            properties,
+            cookieOptions);
+
+        DateTimeOffset issuedUtc;
+        <span style="color:#66d9ef">if</span> (signInContext.Properties.IssuedUtc.HasValue)
+        {
+            issuedUtc = signInContext.Properties.IssuedUtc.Value;
+        }
+        <span style="color:#66d9ef">else</span>
+        {
+            issuedUtc = Clock.UtcNow;
+            signInContext.Properties.IssuedUtc = issuedUtc;
+        }
+
+        <span style="color:#66d9ef">if</span> (!signInContext.Properties.ExpiresUtc.HasValue)
+        {
+            signInContext.Properties.ExpiresUtc = issuedUtc.Add(Options.ExpireTimeSpan);
+        }
+
+        <span style="color:#66d9ef">await</span> Events.SigningIn(signInContext);
+
+        <span style="color:#66d9ef">if</span> (signInContext.Properties.IsPersistent)
+        {
+            <span style="color:#66d9ef">var</span> expiresUtc = signInContext.Properties.ExpiresUtc ?? issuedUtc.Add(Options.ExpireTimeSpan);
+            signInContext.CookieOptions.Expires = expiresUtc.ToUniversalTime();
+        }
+
+        <span style="color:#66d9ef">var</span> ticket = <span style="color:#66d9ef">new</span> AuthenticationTicket(signInContext.Principal, signInContext.Properties, signInContext.Scheme.Name);
+
+        <span style="color:#66d9ef">if</span> (Options.SessionStore != <span style="color:#66d9ef">null</span>)
+        {
+            <span style="color:#66d9ef">if</span> (_sessionKey != <span style="color:#66d9ef">null</span>)
+            {
+                <span style="color:#66d9ef">await</span> Options.SessionStore.RemoveAsync(_sessionKey);
+            }
+            _sessionKey = <span style="color:#66d9ef">await</span> Options.SessionStore.StoreAsync(ticket);
+            <span style="color:#66d9ef">var</span> principal = <span style="color:#66d9ef">new</span> ClaimsPrincipal(
+                <span style="color:#66d9ef">new</span> ClaimsIdentity(
+                    <span style="color:#66d9ef">new</span>[] { <span style="color:#66d9ef">new</span> Claim(SessionIdClaim, _sessionKey, ClaimValueTypes.String, Options.ClaimsIssuer) },
+                    Options.ClaimsIssuer));
+            ticket = <span style="color:#66d9ef">new</span> AuthenticationTicket(principal, <span style="color:#66d9ef">null</span>, Scheme.Name);
+        }
+
+        <span style="color:#66d9ef">var</span> cookieValue = Options.TicketDataFormat.Protect(ticket, GetTlsTokenBinding());
+
+        Options.CookieManager.AppendResponseCookie(
+            Context,
+            Options.Cookie.Name,
+            cookieValue,
+            signInContext.CookieOptions);
+
+        <span style="color:#66d9ef">var</span> signedInContext = <span style="color:#66d9ef">new</span> CookieSignedInContext(
+            Context,
+            Scheme,
+            signInContext.Principal,
+            signInContext.Properties,
+            Options);
+
+        <span style="color:#66d9ef">await</span> Events.SignedIn(signedInContext);
+
+        <span style="color:#75715e">// Only redirect on the login path
+</span><span style="color:#75715e"></span>        <span style="color:#66d9ef">var</span> shouldRedirect = Options.LoginPath.HasValue &amp;&amp; OriginalPath == Options.LoginPath;
+        <span style="color:#66d9ef">await</span> ApplyHeaders(shouldRedirect, signedInContext.Properties);
+
+        Logger.AuthenticationSchemeSignedIn(Scheme.Name);
+    }
+</code></pre></div><h2 id="handleauthentication---处理认证">HandleAuthentication - 处理认证</h2>
+<ol>
+<li>从Cookie中读取凭证：首先TicketDataFormat类将Cookie解码，如果SessionStore不为null，说明解码值是只是session的key，从SessionStore中取出值。</li>
+<li>构建CookieValidatePrincipalContext，触发ValidatePrincipal事件</li>
+<li>如果ShouldRenew位true，则会刷新cookie（ShoudRenew默认为false，可以通过订阅ValidatePrincipal事件来修改）</li>
+<li>认证成功，发放凭证AuthenticationTicket，包括context.Principal, context.Properties, Scheme.Name这些信息</li>
+</ol>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-csharp" data-lang="csharp"> <span style="color:#66d9ef">protected</span> <span style="color:#66d9ef">override</span> <span style="color:#66d9ef">async</span> Task&lt;AuthenticateResult&gt; HandleAuthenticateAsync()
+{
+    <span style="color:#66d9ef">var</span> result = <span style="color:#66d9ef">await</span> EnsureCookieTicket();
+    <span style="color:#66d9ef">if</span> (!result.Succeeded)
+    {
+        <span style="color:#66d9ef">return</span> result;
+    }
+
+    <span style="color:#66d9ef">var</span> context = <span style="color:#66d9ef">new</span> CookieValidatePrincipalContext(Context, Scheme, Options, result.Ticket);
+    <span style="color:#66d9ef">await</span> Events.ValidatePrincipal(context);
+
+    <span style="color:#66d9ef">if</span> (context.Principal == <span style="color:#66d9ef">null</span>)
+    {
+        <span style="color:#66d9ef">return</span> AuthenticateResult.Fail(<span style="color:#e6db74">&#34;No principal.&#34;</span>);
+    }
+
+    <span style="color:#66d9ef">if</span> (context.ShouldRenew)
+    {
+        RequestRefresh(result.Ticket, context.Principal);
+    }
+
+    <span style="color:#66d9ef">return</span> AuthenticateResult.Success(<span style="color:#66d9ef">new</span> AuthenticationTicket(context.Principal, context.Properties, Scheme.Name));
+}
+</code></pre></div><h2 id="handlesignoutasync---处理登出">HandleSignOutAsync - 处理登出</h2>
+<ol>
+<li>获取凭证</li>
+<li>SessionStore不为null的话则从SessionStore移除会话</li>
+<li>触发SigningOut事件</li>
+<li>CookieManager删除cookie</li>
+<li>如果源地址是LogoutPath，则跳转到登出后地址</li>
+</ol>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-csharp" data-lang="csharp"><span style="color:#66d9ef">protected</span> <span style="color:#66d9ef">async</span> <span style="color:#66d9ef">override</span> Task HandleSignOutAsync(AuthenticationProperties properties)
+    {
+        properties = properties ?? <span style="color:#66d9ef">new</span> AuthenticationProperties();
+
+        _signOutCalled = <span style="color:#66d9ef">true</span>;
+
+        <span style="color:#75715e">// Process the request cookie to initialize members like _sessionKey.
+</span><span style="color:#75715e"></span>        <span style="color:#66d9ef">await</span> EnsureCookieTicket();
+        <span style="color:#66d9ef">var</span> cookieOptions = BuildCookieOptions();
+        <span style="color:#66d9ef">if</span> (Options.SessionStore != <span style="color:#66d9ef">null</span> &amp;&amp; _sessionKey != <span style="color:#66d9ef">null</span>)
+        {
+            <span style="color:#66d9ef">await</span> Options.SessionStore.RemoveAsync(_sessionKey);
+        }
+
+        <span style="color:#66d9ef">var</span> context = <span style="color:#66d9ef">new</span> CookieSigningOutContext(
+            Context,
+            Scheme,
+            Options,
+            properties,
+            cookieOptions);
+
+        <span style="color:#66d9ef">await</span> Events.SigningOut(context);
+
+        Options.CookieManager.DeleteCookie(
+            Context,
+            Options.Cookie.Name,
+            context.CookieOptions);
+
+        <span style="color:#75715e">// Only redirect on the logout path
+</span><span style="color:#75715e"></span>        <span style="color:#66d9ef">var</span> shouldRedirect = Options.LogoutPath.HasValue &amp;&amp; OriginalPath == Options.LogoutPath;
+        <span style="color:#66d9ef">await</span> ApplyHeaders(shouldRedirect, context.Properties);
+
+        Logger.AuthenticationSchemeSignedOut(Scheme.Name);
+    }
+</code></pre></div><h2 id="handleforbidasync----处理禁止访问">HandleForbidAsync &ndash; 处理禁止访问</h2>
+<p>如果是ajax请求会返回403状态码，否则跳转到配置的AccessDeniedPath</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-csharp" data-lang="csharp"> <span style="color:#66d9ef">protected</span> <span style="color:#66d9ef">override</span> <span style="color:#66d9ef">async</span> Task HandleForbiddenAsync(AuthenticationProperties properties)
+{
+    <span style="color:#66d9ef">var</span> returnUrl = properties.RedirectUri;
+    <span style="color:#66d9ef">if</span> (<span style="color:#66d9ef">string</span>.IsNullOrEmpty(returnUrl))
+    {
+        returnUrl = OriginalPathBase + OriginalPath + Request.QueryString;
+    }
+    <span style="color:#66d9ef">var</span> accessDeniedUri = Options.AccessDeniedPath + QueryString.Create(Options.ReturnUrlParameter, returnUrl);
+    <span style="color:#66d9ef">var</span> redirectContext = <span style="color:#66d9ef">new</span> RedirectContext&lt;CookieAuthenticationOptions&gt;(Context, Scheme, Options, properties, BuildRedirectUri(accessDeniedUri));
+    <span style="color:#66d9ef">await</span> Events.RedirectToAccessDenied(redirectContext);
+}
+
+<span style="color:#66d9ef">public</span> Func&lt;RedirectContext&lt;CookieAuthenticationOptions&gt;, Task&gt; OnRedirectToAccessDenied { <span style="color:#66d9ef">get</span>; <span style="color:#66d9ef">set</span>; } = context =&gt;
+    {
+        <span style="color:#66d9ef">if</span> (IsAjaxRequest(context.Request))
+        {
+            context.Response.Headers[HeaderNames.Location] = context.RedirectUri;
+            context.Response.StatusCode = <span style="color:#ae81ff">403</span>;
+        }
+        <span style="color:#66d9ef">else</span>
+        {
+            context.Response.Redirect(context.RedirectUri);
+        }
+        <span style="color:#66d9ef">return</span> Task.CompletedTask;
+    };
+</code></pre></div><h1 id="其他">其他</h1>
+<h2 id="icookiemanager---cookie管理类">ICookieManager - Cookie管理类</h2>
+<p>默认实现是ChunkingCookieManager，如果cookie过长，该类会将cookie拆分位多个chunk。</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-csharp" data-lang="csharp"> <span style="color:#75715e">/// &lt;summary&gt;
+</span><span style="color:#75715e">/// This is used by the CookieAuthenticationMiddleware to process request and response cookies.
+</span><span style="color:#75715e">/// It is abstracted from the normal cookie APIs to allow for complex operations like chunking.
+</span><span style="color:#75715e">/// &lt;/summary&gt;
+</span><span style="color:#75715e"></span><span style="color:#66d9ef">public</span> <span style="color:#66d9ef">interface</span> ICookieManager
+{
+    <span style="color:#75715e">/// &lt;summary&gt;
+</span><span style="color:#75715e"></span>    <span style="color:#75715e">/// Retrieve a cookie of the given name from the request.
+</span><span style="color:#75715e"></span>    <span style="color:#75715e">/// &lt;/summary&gt;
+</span><span style="color:#75715e"></span>    <span style="color:#75715e">/// &lt;param name=&#34;context&#34;&gt;&lt;/param&gt;
+</span><span style="color:#75715e"></span>    <span style="color:#75715e">/// &lt;param name=&#34;key&#34;&gt;&lt;/param&gt;
+</span><span style="color:#75715e"></span>    <span style="color:#75715e">/// &lt;returns&gt;&lt;/returns&gt;
+</span><span style="color:#75715e"></span>    <span style="color:#66d9ef">string</span> GetRequestCookie(HttpContext context, <span style="color:#66d9ef">string</span> key);
+
+    <span style="color:#75715e">/// &lt;summary&gt;
+</span><span style="color:#75715e"></span>    <span style="color:#75715e">/// Append the given cookie to the response.
+</span><span style="color:#75715e"></span>    <span style="color:#75715e">/// &lt;/summary&gt;
+</span><span style="color:#75715e"></span>    <span style="color:#75715e">/// &lt;param name=&#34;context&#34;&gt;&lt;/param&gt;
+</span><span style="color:#75715e"></span>    <span style="color:#75715e">/// &lt;param name=&#34;key&#34;&gt;&lt;/param&gt;
+</span><span style="color:#75715e"></span>    <span style="color:#75715e">/// &lt;param name=&#34;value&#34;&gt;&lt;/param&gt;
+</span><span style="color:#75715e"></span>    <span style="color:#75715e">/// &lt;param name=&#34;options&#34;&gt;&lt;/param&gt;
+</span><span style="color:#75715e"></span>    <span style="color:#66d9ef">void</span> AppendResponseCookie(HttpContext context, <span style="color:#66d9ef">string</span> key, <span style="color:#66d9ef">string</span> <span style="color:#66d9ef">value</span>, CookieOptions options);
+
+    <span style="color:#75715e">/// &lt;summary&gt;
+</span><span style="color:#75715e"></span>    <span style="color:#75715e">/// Append a delete cookie to the response.
+</span><span style="color:#75715e"></span>    <span style="color:#75715e">/// &lt;/summary&gt;
+</span><span style="color:#75715e"></span>    <span style="color:#75715e">/// &lt;param name=&#34;context&#34;&gt;&lt;/param&gt;
+</span><span style="color:#75715e"></span>    <span style="color:#75715e">/// &lt;param name=&#34;key&#34;&gt;&lt;/param&gt;
+</span><span style="color:#75715e"></span>    <span style="color:#75715e">/// &lt;param name=&#34;options&#34;&gt;&lt;/param&gt;
+</span><span style="color:#75715e"></span>    <span style="color:#66d9ef">void</span> DeleteCookie(HttpContext context, <span style="color:#66d9ef">string</span> key, CookieOptions options);
+}
+</code></pre></div><h2 id="iticketstore---实现cookie持久化">ITicketStore - 实现Cookie持久化</h2>
+<p>ITicketStore默认是没有实现的，如果实现该接口并注入的话，可以将cookie持久化，这样暴露在浏览器的只是一个cookie的id。</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-csharp" data-lang="csharp"><span style="color:#75715e">/// &lt;summary&gt;
+</span><span style="color:#75715e">/// This provides an abstract storage mechanic to preserve identity information on the server
+</span><span style="color:#75715e">/// while only sending a simple identifier key to the client. This is most commonly used to mitigate
+</span><span style="color:#75715e">/// issues with serializing large identities into cookies.
+</span><span style="color:#75715e">/// &lt;/summary&gt;
+</span><span style="color:#75715e"></span><span style="color:#66d9ef">public</span> <span style="color:#66d9ef">interface</span> ITicketStore
+{
+    <span style="color:#75715e">/// &lt;summary&gt;
+</span><span style="color:#75715e"></span>    <span style="color:#75715e">/// Store the identity ticket and return the associated key.
+</span><span style="color:#75715e"></span>    <span style="color:#75715e">/// &lt;/summary&gt;
+</span><span style="color:#75715e"></span>    <span style="color:#75715e">/// &lt;param name=&#34;ticket&#34;&gt;The identity information to store.&lt;/param&gt;
+</span><span style="color:#75715e"></span>    <span style="color:#75715e">/// &lt;returns&gt;The key that can be used to retrieve the identity later.&lt;/returns&gt;
+</span><span style="color:#75715e"></span>    Task&lt;<span style="color:#66d9ef">string</span>&gt; StoreAsync(AuthenticationTicket ticket);
+
+    <span style="color:#75715e">/// &lt;summary&gt;
+</span><span style="color:#75715e"></span>    <span style="color:#75715e">/// Tells the store that the given identity should be updated.
+</span><span style="color:#75715e"></span>    <span style="color:#75715e">/// &lt;/summary&gt;
+</span><span style="color:#75715e"></span>    <span style="color:#75715e">/// &lt;param name=&#34;key&#34;&gt;&lt;/param&gt;
+</span><span style="color:#75715e"></span>    <span style="color:#75715e">/// &lt;param name=&#34;ticket&#34;&gt;&lt;/param&gt;
+</span><span style="color:#75715e"></span>    <span style="color:#75715e">/// &lt;returns&gt;&lt;/returns&gt;
+</span><span style="color:#75715e"></span>    Task RenewAsync(<span style="color:#66d9ef">string</span> key, AuthenticationTicket ticket);
+
+    <span style="color:#75715e">/// &lt;summary&gt;
+</span><span style="color:#75715e"></span>    <span style="color:#75715e">/// Retrieves an identity from the store for the given key.
+</span><span style="color:#75715e"></span>    <span style="color:#75715e">/// &lt;/summary&gt;
+</span><span style="color:#75715e"></span>    <span style="color:#75715e">/// &lt;param name=&#34;key&#34;&gt;The key associated with the identity.&lt;/param&gt;
+</span><span style="color:#75715e"></span>    <span style="color:#75715e">/// &lt;returns&gt;The identity associated with the given key, or if not found.&lt;/returns&gt;
+</span><span style="color:#75715e"></span>    Task&lt;AuthenticationTicket&gt; RetrieveAsync(<span style="color:#66d9ef">string</span> key);
+
+    <span style="color:#75715e">/// &lt;summary&gt;
+</span><span style="color:#75715e"></span>    <span style="color:#75715e">/// Remove the identity associated with the given key.
+</span><span style="color:#75715e"></span>    <span style="color:#75715e">/// &lt;/summary&gt;
+</span><span style="color:#75715e"></span>    <span style="color:#75715e">/// &lt;param name=&#34;key&#34;&gt;The key associated with the identity.&lt;/param&gt;
+</span><span style="color:#75715e"></span>    <span style="color:#75715e">/// &lt;returns&gt;&lt;/returns&gt;
+</span><span style="color:#75715e"></span>    Task RemoveAsync(<span style="color:#66d9ef">string</span> key);
+}
+</code></pre></div>
+</div>
+
+
+    </main>
+
+    
+      
+    
+  </body>
+</html>

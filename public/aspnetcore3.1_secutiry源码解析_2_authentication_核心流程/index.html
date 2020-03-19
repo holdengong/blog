@@ -61,7 +61,7 @@
 <ul>
 <li><a href="https://holdengong.com/aspnetcore3.1_secutiry%E6%BA%90%E7%A0%81%E8%A7%A3%E6%9E%90_1_%E7%9B%AE%E5%BD%95">AspNetCore3.1_Secutiry源码解析_1_目录</a></li>
 <li><a href="https://holdengong.com/aspnetcore3.1_secutiry%E6%BA%90%E7%A0%81%E8%A7%A3%E6%9E%90_2_authentication_%E6%A0%B8%E5%BF%83%E6%B5%81%E7%A8%8B">AspNetCore3.1_Secutiry源码解析_2_Authentication_核心流程</a></li>
-<li>AspNetCore3.1_Secutiry源码解析_3_Authentication_Cookies</li>
+<li><a href="https://holdengong.com/aspnetcore3.1_secutiry%E6%BA%90%E7%A0%81%E8%A7%A3%E6%9E%90_3_authentication_cookies">AspNetCore3.1_Secutiry源码解析_3_Authentication_Cookies</a></li>
 <li>AspNetCore3.1_Secutiry源码解析_4_Authentication_JwtBear</li>
 <li>AspNetCore3.1_Secutiry源码解析_5_Authentication_OAuth</li>
 <li>AspNetCore3.1_Secutiry源码解析_6_Authentication_OpenIdConnect</li>
@@ -111,7 +111,8 @@
     services.TryAddSingleton&lt;IAuthenticationSchemeProvider, AuthenticationSchemeProvider&gt;();
     <span style="color:#66d9ef">return</span> services;
 }
-</code></pre></div><h2 id="iauthenticationservice">IAuthenticationService</h2>
+</code></pre></div><p>AddAuthentication注入方法返回的AuthenticationBuilder对象提供了一些操作schema的方法，方便链式编程添加schema。</p>
+<h2 id="iauthenticationservice">IAuthenticationService</h2>
 <p>认证服务，定义了五个方法</p>
 <ul>
 <li>AuthenticateAsync: 认证</li>
