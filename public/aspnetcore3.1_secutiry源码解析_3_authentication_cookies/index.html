@@ -77,6 +77,7 @@ AuthenticationBuilder AddCookie(<span style="color:#66d9ef">this</span> Authenti
 AuthenticationBuilder AddCookie(<span style="color:#66d9ef">this</span> AuthenticationBuilder builder, Action&lt;CookieAuthenticationOptions&gt; configureOptions);
 </code></pre></div><p>提供了几个重载方法，可以使用默认配置，或者通过委托修改配置类CookieAuthenticationOptions的值。</p>
 <p>可以定义登录、登出、拒绝登录页面地址、Cookie过期时间、生命周期各阶段事件等。</p>
+<script src="https://unpkg.com/mermaid/dist/mermaid.min.js"></script>
 <div class="mermaid">
  classDiagram
       class CookieAuthenticationOptions{
