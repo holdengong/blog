@@ -17,7 +17,7 @@
       <pubDate>Sat, 21 Mar 2020 20:49:19 +0800</pubDate>
       
       <guid>https://holdengong.com/%E7%AE%A1%E7%90%86%E7%B3%BB%E7%BB%9Fapi/</guid>
-      <description>管理系统API 1：登录 POST /api/user/login
+      <description>1：登录 POST /api/user/login
 { &amp;#34;userName&amp;#34;:&amp;#34;admin&amp;#34;, &amp;#34;password&amp;#34;:&amp;#34;123456&amp;#34; } 2：查询企业档案 GET /api/company/getCompanyInfo
 入参：无
 出参：

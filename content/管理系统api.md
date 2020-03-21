@@ -3,8 +3,6 @@ title: "管理系统api"
 date: 2020-03-21T20:49:19+08:00
 draft: false
 ---
-# 管理系统API
-
 #### 1：登录
 POST /api/user/login
 ```json
@@ -91,4 +89,3 @@ POST /api/company/addSubCompany
     "data": true
 }
 ```
-
