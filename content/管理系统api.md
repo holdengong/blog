@@ -4,11 +4,26 @@ date: 2020-03-21T20:49:19+08:00
 draft: false
 ---
 #### 1：登录
-POST /api/user/login
+POST /api/user/login  
+入参：  
 ```json
 {
     "userName":"admin",
     "password":"123456"
+}
+```
+
+出参：
+```json
+{
+    "code": 1,
+    "data": {
+        "userId": "test",
+        "userName": "测试",
+        "deptId": null,
+        "deptName": null,
+        "token": "token"
+    }
 }
 ```
 

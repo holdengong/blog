@@ -18,14 +18,14 @@
       
       <guid>https://holdengong.com/%E7%AE%A1%E7%90%86%E7%B3%BB%E7%BB%9Fapi/</guid>
       <description>1：登录 POST /api/user/login
-{ &amp;#34;userName&amp;#34;:&amp;#34;admin&amp;#34;, &amp;#34;password&amp;#34;:&amp;#34;123456&amp;#34; } 2：查询企业档案 GET /api/company/getCompanyInfo
+入参：
+{ &amp;#34;userName&amp;#34;:&amp;#34;admin&amp;#34;, &amp;#34;password&amp;#34;:&amp;#34;123456&amp;#34; } 出参：
+{ &amp;#34;code&amp;#34;: 1, &amp;#34;data&amp;#34;: { &amp;#34;userId&amp;#34;: &amp;#34;test&amp;#34;, &amp;#34;userName&amp;#34;: &amp;#34;测试&amp;#34;, &amp;#34;deptId&amp;#34;: null, &amp;#34;deptName&amp;#34;: null, &amp;#34;token&amp;#34;: &amp;#34;token&amp;#34; } } 2：查询企业档案 GET /api/company/getCompanyInfo
 入参：无
 出参：
 { &amp;#34;code&amp;#34;: 1, &amp;#34;data&amp;#34;: { &amp;#34;id&amp;#34;: &amp;#34;001&amp;#34;, &amp;#34;brand&amp;#34;:&amp;#34;企业品牌&amp;#34;, &amp;#34;name&amp;#34;:&amp;#34;企业全称&amp;#34;, &amp;#34;shortName&amp;#34;:&amp;#34;企业简称&amp;#34;, &amp;#34;companyType&amp;#34;:&amp;#34;企业类型&amp;#34;, &amp;#34;address&amp;#34;:&amp;#34;公司地址&amp;#34;, &amp;#34;zipCode&amp;#34;:&amp;#34;邮编&amp;#34;, &amp;#34;email&amp;#34;:&amp;#34;邮箱&amp;#34;, &amp;#34;phone&amp;#34;:&amp;#34;电话&amp;#34;, &amp;#34;fax&amp;#34;:&amp;#34;传真&amp;#34;, &amp;#34;bank&amp;#34;:&amp;#34;开户银行&amp;#34;, &amp;#34;bankAccount&amp;#34;:&amp;#34;银行账号&amp;#34;, &amp;#34;remarks&amp;#34;:&amp;#34;备注&amp;#34; } } 3：修改企业档案 POST /api/company/update
 入参：
-{ &amp;#34;brand&amp;#34;:&amp;#34;企业品牌&amp;#34;, &amp;#34;name&amp;#34;:&amp;#34;企业全称&amp;#34;, &amp;#34;shortName&amp;#34;:&amp;#34;企业简称&amp;#34;, &amp;#34;companyType&amp;#34;:&amp;#34;企业类型&amp;#34;, &amp;#34;address&amp;#34;:&amp;#34;公司地址&amp;#34;, &amp;#34;zipCode&amp;#34;:&amp;#34;邮编&amp;#34;, &amp;#34;email&amp;#34;:&amp;#34;邮箱&amp;#34;, &amp;#34;phone&amp;#34;:&amp;#34;电话&amp;#34;, &amp;#34;fax&amp;#34;:&amp;#34;传真&amp;#34;, &amp;#34;bank&amp;#34;:&amp;#34;开户银行&amp;#34;, &amp;#34;bankAccount&amp;#34;:&amp;#34;银行账号&amp;#34;, &amp;#34;remarks&amp;#34;:&amp;#34;备注&amp;#34; } 出参：
-{ &amp;#34;code&amp;#34;: 1, &amp;#34;data&amp;#34;: true } 4：新增下属公司 POST /api/company/addSubCompany 入参：
-{ &amp;#34;code&amp;#34;:&amp;#34;公司编码&amp;#34;, &amp;#34;name&amp;#34;:&amp;#34;公司全称&amp;#34;, &amp;#34;shortName&amp;#34;:&amp;#34;公司简称&amp;#34;, &amp;#34;address&amp;#34;:&amp;#34;地址&amp;#34;, &amp;#34;zipCode&amp;#34;:&amp;#34;邮编&amp;#34;, &amp;#34;email&amp;#34;:&amp;#34;邮箱&amp;#34;, &amp;#34;phone&amp;#34;:&amp;#34;电话&amp;#34;, &amp;#34;fax&amp;#34;:&amp;#34;传真&amp;#34;, &amp;#34;bank&amp;#34;:&amp;#34;开户银行&amp;#34;, &amp;#34;bankAccount&amp;#34;:&amp;#34;银行账号&amp;#34;, &amp;#34;remarks&amp;#34;:&amp;#34;备注&amp;#34; } 出参：</description>
+{ &amp;#34;brand&amp;#34;:&amp;#34;企业品牌&amp;#34;, &amp;#34;name&amp;#34;:&amp;#34;企业全称&amp;#34;, &amp;#34;shortName&amp;#34;:&amp;#34;企业简称&amp;#34;, &amp;#34;companyType&amp;#34;:&amp;#34;企业类型&amp;#34;, &amp;#34;address&amp;#34;:&amp;#34;公司地址&amp;#34;, &amp;#34;zipCode&amp;#34;:&amp;#34;邮编&amp;#34;, &amp;#34;email&amp;#34;:&amp;#34;邮箱&amp;#34;, &amp;#34;phone&amp;#34;:&amp;#34;电话&amp;#34;, &amp;#34;fax&amp;#34;:&amp;#34;传真&amp;#34;, &amp;#34;bank&amp;#34;:&amp;#34;开户银行&amp;#34;, &amp;#34;bankAccount&amp;#34;:&amp;#34;银行账号&amp;#34;, &amp;#34;remarks&amp;#34;:&amp;#34;备注&amp;#34; } 出参：</description>
     </item>
     
     <item>
