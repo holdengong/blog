@@ -57,7 +57,7 @@ POST /api/company/update
 }
 ```
 出参：
-```
+```json
 {
     "code": 1,
     "data": true
