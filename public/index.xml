@@ -6,26 +6,21 @@
     <description>Recent content on Holden Gong</description>
     <generator>Hugo -- gohugo.io</generator>
     <language>zh-Hans</language>
-    <lastBuildDate>Sat, 21 Mar 2020 20:49:19 +0800</lastBuildDate>
+    <lastBuildDate>Sun, 22 Mar 2020 16:29:29 +0800</lastBuildDate>
     
 	<atom:link href="https://holdengong.com/index.xml" rel="self" type="application/rss+xml" />
     
     
     <item>
-      <title>管理系统api</title>
-      <link>https://holdengong.com/%E7%AE%A1%E7%90%86%E7%B3%BB%E7%BB%9Fapi/</link>
-      <pubDate>Sat, 21 Mar 2020 20:49:19 +0800</pubDate>
+      <title>AspNetCore3.1_Secutiry源码解析_4_Authentication_JwtBear</title>
+      <link>https://holdengong.com/aspnetcore3.1_secutiry%E6%BA%90%E7%A0%81%E8%A7%A3%E6%9E%90_4_authentication_jwtbear/</link>
+      <pubDate>Sun, 22 Mar 2020 16:29:29 +0800</pubDate>
       
-      <guid>https://holdengong.com/%E7%AE%A1%E7%90%86%E7%B3%BB%E7%BB%9Fapi/</guid>
-      <description>1：登录 POST /api/user/login
-入参：
-{ &amp;#34;userName&amp;#34;:&amp;#34;admin&amp;#34;, &amp;#34;password&amp;#34;:&amp;#34;123456&amp;#34; } 出参：
-{ &amp;#34;code&amp;#34;: 1, &amp;#34;data&amp;#34;: { &amp;#34;userId&amp;#34;: &amp;#34;test&amp;#34;, &amp;#34;userName&amp;#34;: &amp;#34;测试&amp;#34;, &amp;#34;deptId&amp;#34;: null, &amp;#34;deptName&amp;#34;: null, &amp;#34;token&amp;#34;: &amp;#34;token&amp;#34; } } 2：查询企业档案 GET /api/company/getCompanyInfo
-入参：无
-出参：
-{ &amp;#34;code&amp;#34;: 1, &amp;#34;data&amp;#34;: { &amp;#34;id&amp;#34;: &amp;#34;001&amp;#34;, &amp;#34;brand&amp;#34;:&amp;#34;企业品牌&amp;#34;, &amp;#34;name&amp;#34;:&amp;#34;企业全称&amp;#34;, &amp;#34;shortName&amp;#34;:&amp;#34;企业简称&amp;#34;, &amp;#34;companyType&amp;#34;:&amp;#34;企业类型&amp;#34;, &amp;#34;address&amp;#34;:&amp;#34;公司地址&amp;#34;, &amp;#34;zipCode&amp;#34;:&amp;#34;邮编&amp;#34;, &amp;#34;email&amp;#34;:&amp;#34;邮箱&amp;#34;, &amp;#34;phone&amp;#34;:&amp;#34;电话&amp;#34;, &amp;#34;fax&amp;#34;:&amp;#34;传真&amp;#34;, &amp;#34;bank&amp;#34;:&amp;#34;开户银行&amp;#34;, &amp;#34;bankAccount&amp;#34;:&amp;#34;银行账号&amp;#34;, &amp;#34;remarks&amp;#34;:&amp;#34;备注&amp;#34; } } 3：修改企业档案 POST /api/company/update
-入参：
-{ &amp;#34;brand&amp;#34;:&amp;#34;企业品牌&amp;#34;, &amp;#34;name&amp;#34;:&amp;#34;企业全称&amp;#34;, &amp;#34;shortName&amp;#34;:&amp;#34;企业简称&amp;#34;, &amp;#34;companyType&amp;#34;:&amp;#34;企业类型&amp;#34;, &amp;#34;address&amp;#34;:&amp;#34;公司地址&amp;#34;, &amp;#34;zipCode&amp;#34;:&amp;#34;邮编&amp;#34;, &amp;#34;email&amp;#34;:&amp;#34;邮箱&amp;#34;, &amp;#34;phone&amp;#34;:&amp;#34;电话&amp;#34;, &amp;#34;fax&amp;#34;:&amp;#34;传真&amp;#34;, &amp;#34;bank&amp;#34;:&amp;#34;开户银行&amp;#34;, &amp;#34;bankAccount&amp;#34;:&amp;#34;银行账号&amp;#34;, &amp;#34;remarks&amp;#34;:&amp;#34;备注&amp;#34; } 出参：</description>
+      <guid>https://holdengong.com/aspnetcore3.1_secutiry%E6%BA%90%E7%A0%81%E8%A7%A3%E6%9E%90_4_authentication_jwtbear/</guid>
+      <description>系列文章目录  AspNetCore3.1_Secutiry源码解析_1_目录 AspNetCore3.1_Secutiry源码解析_2_Authentication_核心流程 AspNetCore3.1_Secutiry源码解析_3_Authentication_Cookies AspNetCore3.1_Secutiry源码解析_4_Authentication_JwtBear AspNetCore3.1_Secutiry源码解析_5_Authentication_OAuth AspNetCore3.1_Secutiry源码解析_6_Authentication_OpenIdConnect AspNetCore3.1_Secutiry源码解析_7_Authentication_其他 AspNetCore3.1_Secutiry源码解析_8_Authorization_核心项目 AspNetCore3.1_Secutiry源码解析_9_Authorization_Policy  JwtBear简介 首先回想一下Cookie认证，Cookie认证在用户登录成功之后将用户信息加密后写入浏览器Cookie中，服务端通过解析Cookie内容来验证用户登录状态。这样做有几个缺陷：
+ Cookie加密方式是微软自己定义的，并非国际标准，其他语言无法识别。 依赖Cookie，在跨域场景下，存在诸多限制。  CORS除非设置白名单否则是不允许带Cookie的； 大部分浏览器对跨域设置Cookie有严格的限制。比如：A网站使用iframe嵌套B网站来实现集成，B网站依赖Cookie来维持登录态，如果是Chrome浏览器，需要将Cookie的Secure设置为true，即必须使用https，同时将SameSite设置为None，这样可以解决问题但是存在跨站访问攻击（CSRF）的安全漏洞，而Safari则是完全禁止设置跨站Cookie的）    JwtBear可以解决上面的缺点
+ Jwt是国际标准 Jwt不依赖Cookie，不存在跨站访问攻击问题  依赖注入 提供了四个重载方法，主要设置配置类 JwtBearerOptions。 默认添加名称为Bearer的认证Schema，JwtBearerHandler为处理器类。
+public static class JwtBearerExtensions { public static AuthenticationBuilder AddJwtBearer(this AuthenticationBuilder builder) =&amp;gt; builder.AddJwtBearer(JwtBearerDefaults.AuthenticationScheme, _ =&amp;gt; { }); public static AuthenticationBuilder AddJwtBearer(this AuthenticationBuilder builder, Action&amp;lt;JwtBearerOptions&amp;gt; configureOptions) =&amp;gt; builder.AddJwtBearer(JwtBearerDefaults.AuthenticationScheme, configureOptions); public static AuthenticationBuilder AddJwtBearer(this AuthenticationBuilder builder, string authenticationScheme, Action&amp;lt;JwtBearerOptions&amp;gt; configureOptions) =&amp;gt; builder.</description>
     </item>
     
     <item>

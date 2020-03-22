@@ -1,0 +1,651 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="zh-Hans" lang="zh-Hans">
+<head>
+  <link href="https://gmpg.org/xfn/11" rel="profile">
+  <meta http-equiv="content-type" content="text/html; charset=utf-8">
+  <meta name="generator" content="Hugo 0.67.0" />
+
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <title>AspNetCore3.1_Secutiry源码解析_4_Authentication_JwtBear &middot; Holden Gong</title>
+  <meta name="description" content="" />
+
+  
+  <link type="text/css" rel="stylesheet" href="https://holdengong.com/css/print.css" media="print">
+  <link type="text/css" rel="stylesheet" href="https://holdengong.com/css/poole.css">
+  <link type="text/css" rel="stylesheet" href="https://holdengong.com/css/syntax.css">
+  <link type="text/css" rel="stylesheet" href="https://holdengong.com/css/hyde.css">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Abril+Fatface|PT+Sans:400,400i,700">
+
+
+  
+  <link rel="apple-touch-icon-precomposed" sizes="144x144" href="/apple-touch-icon-144-precomposed.png">
+  <link rel="shortcut icon" href="/favicon.png">
+
+  
+  
+</head>
+
+  <body class=" ">
+  <aside class="sidebar">
+  <div class="container sidebar-sticky">
+    <div class="sidebar-about">
+      <a href="https://holdengong.com/">
+        <h1>Holden Gong</h1>
+      </a>
+      <p class="lead">
+        code & life
+      </p>
+    </div>
+
+    <nav>
+      <ul class="sidebar-nav">
+  
+      </ul>
+    </nav>
+    
+    <div>
+      <p>&copy; 2020. All rights reserved. </p>
+      <p>鄂ICP备20003133号</p>
+      <script type="text/javascript">document.write(unescape("%3Cspan id='cnzz_stat_icon_1278689390'%3E%3C/span%3E%3Cscript src='https://v1.cnzz.com/z_stat.php%3Fid%3D1278689390%26show%3Dpic' type='text/javascript'%3E%3C/script%3E"));</script>
+    </div>
+  </div>
+</aside>
+
+    <main class="content container">
+    <div class="post">
+  <h1>AspNetCore3.1_Secutiry源码解析_4_Authentication_JwtBear</h1>
+  <time datetime=2020-03-22T16:29:29&#43;0800 class="post-date">Sun, Mar 22, 2020</time>
+  <h1 id="系列文章目录">系列文章目录</h1>
+<ul>
+<li><a href="https://holdengong.com/aspnetcore3.1_secutiry%E6%BA%90%E7%A0%81%E8%A7%A3%E6%9E%90_1_%E7%9B%AE%E5%BD%95">AspNetCore3.1_Secutiry源码解析_1_目录</a></li>
+<li><a href="https://holdengong.com/aspnetcore3.1_secutiry%E6%BA%90%E7%A0%81%E8%A7%A3%E6%9E%90_2_authentication_%E6%A0%B8%E5%BF%83%E6%B5%81%E7%A8%8B">AspNetCore3.1_Secutiry源码解析_2_Authentication_核心流程</a></li>
+<li><a href="https://holdengong.com/aspnetcore3.1_secutiry%E6%BA%90%E7%A0%81%E8%A7%A3%E6%9E%90_3_authentication_cookies">AspNetCore3.1_Secutiry源码解析_3_Authentication_Cookies</a></li>
+<li><a href="https://holdengong.com/aspnetcore3.1_secutiry%E6%BA%90%E7%A0%81%E8%A7%A3%E6%9E%90_4_authentication_jwtbear">AspNetCore3.1_Secutiry源码解析_4_Authentication_JwtBear</a></li>
+<li>AspNetCore3.1_Secutiry源码解析_5_Authentication_OAuth</li>
+<li>AspNetCore3.1_Secutiry源码解析_6_Authentication_OpenIdConnect</li>
+<li>AspNetCore3.1_Secutiry源码解析_7_Authentication_其他</li>
+<li>AspNetCore3.1_Secutiry源码解析_8_Authorization_核心项目</li>
+<li>AspNetCore3.1_Secutiry源码解析_9_Authorization_Policy</li>
+</ul>
+<h1 id="jwtbear简介">JwtBear简介</h1>
+<p>首先回想一下Cookie认证，Cookie认证在用户登录成功之后将用户信息加密后写入浏览器Cookie中，服务端通过解析Cookie内容来验证用户登录状态。这样做有几个缺陷：</p>
+<ul>
+<li>Cookie加密方式是微软自己定义的，并非国际标准，其他语言无法识别。</li>
+<li>依赖Cookie，在跨域场景下，存在诸多限制。
+<ul>
+<li>CORS除非设置白名单否则是不允许带Cookie的；</li>
+<li>大部分浏览器对跨域设置Cookie有严格的限制。比如：A网站使用iframe嵌套B网站来实现集成，B网站依赖Cookie来维持登录态，如果是Chrome浏览器，需要将Cookie的Secure设置为true，即必须使用https，同时将SameSite设置为None，这样可以解决问题但是存在跨站访问攻击（CSRF）的安全漏洞，而Safari则是完全禁止设置跨站Cookie的）</li>
+</ul>
+</li>
+</ul>
+<p>JwtBear可以解决上面的缺点</p>
+<ul>
+<li>Jwt是国际标准</li>
+<li>Jwt不依赖Cookie，不存在跨站访问攻击问题</li>
+</ul>
+<h1 id="依赖注入">依赖注入</h1>
+<p>提供了四个重载方法，主要设置配置类 JwtBearerOptions。
+默认添加名称为Bearer的认证Schema，JwtBearerHandler为处理器类。</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-csharp" data-lang="csharp">  <span style="color:#66d9ef">public</span> <span style="color:#66d9ef">static</span> <span style="color:#66d9ef">class</span> <span style="color:#a6e22e">JwtBearerExtensions</span>
+    {
+        <span style="color:#66d9ef">public</span> <span style="color:#66d9ef">static</span> AuthenticationBuilder AddJwtBearer(<span style="color:#66d9ef">this</span> AuthenticationBuilder builder)
+            =&gt; builder.AddJwtBearer(JwtBearerDefaults.AuthenticationScheme, _ =&gt; { });
+
+        <span style="color:#66d9ef">public</span> <span style="color:#66d9ef">static</span> AuthenticationBuilder AddJwtBearer(<span style="color:#66d9ef">this</span> AuthenticationBuilder builder, Action&lt;JwtBearerOptions&gt; configureOptions)
+            =&gt; builder.AddJwtBearer(JwtBearerDefaults.AuthenticationScheme, configureOptions);
+
+        <span style="color:#66d9ef">public</span> <span style="color:#66d9ef">static</span> AuthenticationBuilder AddJwtBearer(<span style="color:#66d9ef">this</span> AuthenticationBuilder builder, <span style="color:#66d9ef">string</span> authenticationScheme, Action&lt;JwtBearerOptions&gt; configureOptions)
+            =&gt; builder.AddJwtBearer(authenticationScheme, displayName: <span style="color:#66d9ef">null</span>, configureOptions: configureOptions);
+
+        <span style="color:#66d9ef">public</span> <span style="color:#66d9ef">static</span> AuthenticationBuilder AddJwtBearer(<span style="color:#66d9ef">this</span> AuthenticationBuilder builder, <span style="color:#66d9ef">string</span> authenticationScheme, <span style="color:#66d9ef">string</span> displayName, Action&lt;JwtBearerOptions&gt; configureOptions)
+        {
+            builder.Services.TryAddEnumerable(ServiceDescriptor.Singleton&lt;IPostConfigureOptions&lt;JwtBearerOptions&gt;, JwtBearerPostConfigureOptions&gt;());
+            <span style="color:#66d9ef">return</span> builder.AddScheme&lt;JwtBearerOptions, JwtBearerHandler&gt;(authenticationScheme, displayName, configureOptions);
+        }
+    }
+</code></pre></div><p>通常来说用默认配置就够了。</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-csharp" data-lang="csharp">    <span style="color:#66d9ef">public</span> <span style="color:#66d9ef">class</span> <span style="color:#a6e22e">JwtBearerOptions</span> : AuthenticationSchemeOptions
+    {
+        <span style="color:#75715e">/// &lt;summary&gt;
+</span><span style="color:#75715e"></span>        <span style="color:#75715e">/// Gets or sets if HTTPS is required for the metadata address or authority.
+</span><span style="color:#75715e"></span>        <span style="color:#75715e">/// The default is true. This should be disabled only in development environments.
+</span><span style="color:#75715e"></span>        <span style="color:#75715e">/// &lt;/summary&gt;
+</span><span style="color:#75715e"></span>        <span style="color:#66d9ef">public</span> <span style="color:#66d9ef">bool</span> RequireHttpsMetadata { <span style="color:#66d9ef">get</span>; <span style="color:#66d9ef">set</span>; } = <span style="color:#66d9ef">true</span>;
+
+        <span style="color:#75715e">/// &lt;summary&gt;
+</span><span style="color:#75715e"></span>        <span style="color:#75715e">/// Gets or sets the discovery endpoint for obtaining metadata
+</span><span style="color:#75715e"></span>        <span style="color:#75715e">/// &lt;/summary&gt;
+</span><span style="color:#75715e"></span>        <span style="color:#66d9ef">public</span> <span style="color:#66d9ef">string</span> MetadataAddress { <span style="color:#66d9ef">get</span>; <span style="color:#66d9ef">set</span>; }
+
+        <span style="color:#75715e">/// &lt;summary&gt;
+</span><span style="color:#75715e"></span>        <span style="color:#75715e">/// Gets or sets the Authority to use when making OpenIdConnect calls.
+</span><span style="color:#75715e"></span>        <span style="color:#75715e">/// &lt;/summary&gt;
+</span><span style="color:#75715e"></span>        <span style="color:#66d9ef">public</span> <span style="color:#66d9ef">string</span> Authority { <span style="color:#66d9ef">get</span>; <span style="color:#66d9ef">set</span>; }
+
+        <span style="color:#75715e">/// &lt;summary&gt;
+</span><span style="color:#75715e"></span>        <span style="color:#75715e">/// Gets or sets a single valid audience value for any received OpenIdConnect token.
+</span><span style="color:#75715e"></span>        <span style="color:#75715e">/// This value is passed into TokenValidationParameters.ValidAudience if that property is empty.
+</span><span style="color:#75715e"></span>        <span style="color:#75715e">/// &lt;/summary&gt;
+</span><span style="color:#75715e"></span>        <span style="color:#75715e">/// &lt;value&gt;
+</span><span style="color:#75715e"></span>        <span style="color:#75715e">/// The expected audience for any received OpenIdConnect token.
+</span><span style="color:#75715e"></span>        <span style="color:#75715e">/// &lt;/value&gt;
+</span><span style="color:#75715e"></span>        <span style="color:#66d9ef">public</span> <span style="color:#66d9ef">string</span> Audience { <span style="color:#66d9ef">get</span>; <span style="color:#66d9ef">set</span>; }
+
+        <span style="color:#75715e">/// &lt;summary&gt;
+</span><span style="color:#75715e"></span>        <span style="color:#75715e">/// Gets or sets the challenge to put in the &#34;WWW-Authenticate&#34; header.
+</span><span style="color:#75715e"></span>        <span style="color:#75715e">/// &lt;/summary&gt;
+</span><span style="color:#75715e"></span>        <span style="color:#66d9ef">public</span> <span style="color:#66d9ef">string</span> Challenge { <span style="color:#66d9ef">get</span>; <span style="color:#66d9ef">set</span>; } = JwtBearerDefaults.AuthenticationScheme;
+
+        <span style="color:#75715e">/// &lt;summary&gt;
+</span><span style="color:#75715e"></span>        <span style="color:#75715e">/// The object provided by the application to process events raised by the bearer authentication handler.
+</span><span style="color:#75715e"></span>        <span style="color:#75715e">/// The application may implement the interface fully, or it may create an instance of JwtBearerEvents
+</span><span style="color:#75715e"></span>        <span style="color:#75715e">/// and assign delegates only to the events it wants to process.
+</span><span style="color:#75715e"></span>        <span style="color:#75715e">/// &lt;/summary&gt;
+</span><span style="color:#75715e"></span>        <span style="color:#66d9ef">public</span> <span style="color:#66d9ef">new</span> JwtBearerEvents Events
+        {
+            <span style="color:#66d9ef">get</span> { <span style="color:#66d9ef">return</span> (JwtBearerEvents)<span style="color:#66d9ef">base</span>.Events; }
+            <span style="color:#66d9ef">set</span> { <span style="color:#66d9ef">base</span>.Events = <span style="color:#66d9ef">value</span>; }
+        }
+
+        <span style="color:#75715e">/// &lt;summary&gt;
+</span><span style="color:#75715e"></span>        <span style="color:#75715e">/// The HttpMessageHandler used to retrieve metadata.
+</span><span style="color:#75715e"></span>        <span style="color:#75715e">/// This cannot be set at the same time as BackchannelCertificateValidator unless the value
+</span><span style="color:#75715e"></span>        <span style="color:#75715e">/// is a WebRequestHandler.
+</span><span style="color:#75715e"></span>        <span style="color:#75715e">/// &lt;/summary&gt;
+</span><span style="color:#75715e"></span>        <span style="color:#66d9ef">public</span> HttpMessageHandler BackchannelHttpHandler { <span style="color:#66d9ef">get</span>; <span style="color:#66d9ef">set</span>; }
+
+        <span style="color:#75715e">/// &lt;summary&gt;
+</span><span style="color:#75715e"></span>        <span style="color:#75715e">/// Gets or sets the timeout when using the backchannel to make an http call.
+</span><span style="color:#75715e"></span>        <span style="color:#75715e">/// &lt;/summary&gt;
+</span><span style="color:#75715e"></span>        <span style="color:#66d9ef">public</span> TimeSpan BackchannelTimeout { <span style="color:#66d9ef">get</span>; <span style="color:#66d9ef">set</span>; } = TimeSpan.FromMinutes(<span style="color:#ae81ff">1</span>);
+
+        <span style="color:#75715e">/// &lt;summary&gt;
+</span><span style="color:#75715e"></span>        <span style="color:#75715e">/// Configuration provided directly by the developer. If provided, then MetadataAddress and the Backchannel properties
+</span><span style="color:#75715e"></span>        <span style="color:#75715e">/// will not be used. This information should not be updated during request processing.
+</span><span style="color:#75715e"></span>        <span style="color:#75715e">/// &lt;/summary&gt;
+</span><span style="color:#75715e"></span>        <span style="color:#66d9ef">public</span> OpenIdConnectConfiguration Configuration { <span style="color:#66d9ef">get</span>; <span style="color:#66d9ef">set</span>; }
+
+        <span style="color:#75715e">/// &lt;summary&gt;
+</span><span style="color:#75715e"></span>        <span style="color:#75715e">/// Responsible for retrieving, caching, and refreshing the configuration from metadata.
+</span><span style="color:#75715e"></span>        <span style="color:#75715e">/// If not provided, then one will be created using the MetadataAddress and Backchannel properties.
+</span><span style="color:#75715e"></span>        <span style="color:#75715e">/// &lt;/summary&gt;
+</span><span style="color:#75715e"></span>        <span style="color:#66d9ef">public</span> IConfigurationManager&lt;OpenIdConnectConfiguration&gt; ConfigurationManager { <span style="color:#66d9ef">get</span>; <span style="color:#66d9ef">set</span>; }
+
+        <span style="color:#75715e">/// &lt;summary&gt;
+</span><span style="color:#75715e"></span>        <span style="color:#75715e">/// Gets or sets if a metadata refresh should be attempted after a SecurityTokenSignatureKeyNotFoundException. This allows for automatic
+</span><span style="color:#75715e"></span>        <span style="color:#75715e">/// recovery in the event of a signature key rollover. This is enabled by default.
+</span><span style="color:#75715e"></span>        <span style="color:#75715e">/// &lt;/summary&gt;
+</span><span style="color:#75715e"></span>        <span style="color:#66d9ef">public</span> <span style="color:#66d9ef">bool</span> RefreshOnIssuerKeyNotFound { <span style="color:#66d9ef">get</span>; <span style="color:#66d9ef">set</span>; } = <span style="color:#66d9ef">true</span>;
+
+        <span style="color:#75715e">/// &lt;summary&gt;
+</span><span style="color:#75715e"></span>        <span style="color:#75715e">/// Gets the ordered list of &lt;see cref=&#34;ISecurityTokenValidator&#34;/&gt; used to validate access tokens.
+</span><span style="color:#75715e"></span>        <span style="color:#75715e">/// &lt;/summary&gt;
+</span><span style="color:#75715e"></span>        <span style="color:#66d9ef">public</span> IList&lt;ISecurityTokenValidator&gt; SecurityTokenValidators { <span style="color:#66d9ef">get</span>; } = <span style="color:#66d9ef">new</span> List&lt;ISecurityTokenValidator&gt; { <span style="color:#66d9ef">new</span> JwtSecurityTokenHandler() };
+
+        <span style="color:#75715e">/// &lt;summary&gt;
+</span><span style="color:#75715e"></span>        <span style="color:#75715e">/// Gets or sets the parameters used to validate identity tokens.
+</span><span style="color:#75715e"></span>        <span style="color:#75715e">/// &lt;/summary&gt;
+</span><span style="color:#75715e"></span>        <span style="color:#75715e">/// &lt;remarks&gt;Contains the types and definitions required for validating a token.&lt;/remarks&gt;
+</span><span style="color:#75715e"></span>        <span style="color:#75715e">/// &lt;exception cref=&#34;ArgumentNullException&#34;&gt;if &#39;value&#39; is null.&lt;/exception&gt;
+</span><span style="color:#75715e"></span>        <span style="color:#66d9ef">public</span> TokenValidationParameters TokenValidationParameters { <span style="color:#66d9ef">get</span>; <span style="color:#66d9ef">set</span>; } = <span style="color:#66d9ef">new</span> TokenValidationParameters();
+
+        <span style="color:#75715e">/// &lt;summary&gt;
+</span><span style="color:#75715e"></span>        <span style="color:#75715e">/// Defines whether the bearer token should be stored in the
+</span><span style="color:#75715e"></span>        <span style="color:#75715e">/// &lt;see cref=&#34;AuthenticationProperties&#34;/&gt; after a successful authorization.
+</span><span style="color:#75715e"></span>        <span style="color:#75715e">/// &lt;/summary&gt;
+</span><span style="color:#75715e"></span>        <span style="color:#66d9ef">public</span> <span style="color:#66d9ef">bool</span> SaveToken { <span style="color:#66d9ef">get</span>; <span style="color:#66d9ef">set</span>; } = <span style="color:#66d9ef">true</span>;
+
+        <span style="color:#75715e">/// &lt;summary&gt;
+</span><span style="color:#75715e"></span>        <span style="color:#75715e">/// Defines whether the token validation errors should be returned to the caller.
+</span><span style="color:#75715e"></span>        <span style="color:#75715e">/// Enabled by default, this option can be disabled to prevent the JWT handler
+</span><span style="color:#75715e"></span>        <span style="color:#75715e">/// from returning an error and an error_description in the WWW-Authenticate header.
+</span><span style="color:#75715e"></span>        <span style="color:#75715e">/// &lt;/summary&gt;
+</span><span style="color:#75715e"></span>        <span style="color:#66d9ef">public</span> <span style="color:#66d9ef">bool</span> IncludeErrorDetails { <span style="color:#66d9ef">get</span>; <span style="color:#66d9ef">set</span>; } = <span style="color:#66d9ef">true</span>;
+    }
+</code></pre></div><p>这里会对配置做校验。JwtBear默认是没有提供发放Token的方法的，需要我们自己实现，这个后面再说。发放Token可以本地发放，也可以请求远程地址。</p>
+<p>很多配置都是使用OpenConnectId协议来实现远程认证需要的，如果是本地发放token则不要配置。</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-csharp" data-lang="csharp"> <span style="color:#75715e">/// &lt;summary&gt;
+</span><span style="color:#75715e">/// Invoked to post configure a JwtBearerOptions instance.
+</span><span style="color:#75715e">/// &lt;/summary&gt;
+</span><span style="color:#75715e">/// &lt;param name=&#34;name&#34;&gt;The name of the options instance being configured.&lt;/param&gt;
+</span><span style="color:#75715e">/// &lt;param name=&#34;options&#34;&gt;The options instance to configure.&lt;/param&gt;
+</span><span style="color:#75715e"></span><span style="color:#66d9ef">public</span> <span style="color:#66d9ef">void</span> PostConfigure(<span style="color:#66d9ef">string</span> name, JwtBearerOptions options)
+{
+    <span style="color:#66d9ef">if</span> (<span style="color:#66d9ef">string</span>.IsNullOrEmpty(options.TokenValidationParameters.ValidAudience) &amp;&amp; !<span style="color:#66d9ef">string</span>.IsNullOrEmpty(options.Audience))
+    {
+        options.TokenValidationParameters.ValidAudience = options.Audience;
+    }
+
+    <span style="color:#66d9ef">if</span> (options.ConfigurationManager == <span style="color:#66d9ef">null</span>)
+    {
+        <span style="color:#66d9ef">if</span> (options.Configuration != <span style="color:#66d9ef">null</span>)
+        {
+            options.ConfigurationManager = <span style="color:#66d9ef">new</span> StaticConfigurationManager&lt;OpenIdConnectConfiguration&gt;(options.Configuration);
+        }
+        <span style="color:#66d9ef">else</span> <span style="color:#66d9ef">if</span> (!(<span style="color:#66d9ef">string</span>.IsNullOrEmpty(options.MetadataAddress) &amp;&amp; <span style="color:#66d9ef">string</span>.IsNullOrEmpty(options.Authority)))
+        {
+            <span style="color:#66d9ef">if</span> (<span style="color:#66d9ef">string</span>.IsNullOrEmpty(options.MetadataAddress) &amp;&amp; !<span style="color:#66d9ef">string</span>.IsNullOrEmpty(options.Authority))
+            {
+                options.MetadataAddress = options.Authority;
+                <span style="color:#66d9ef">if</span> (!options.MetadataAddress.EndsWith(<span style="color:#e6db74">&#34;/&#34;</span>, StringComparison.Ordinal))
+                {
+                    options.MetadataAddress += <span style="color:#e6db74">&#34;/&#34;</span>;
+                }
+
+                options.MetadataAddress += <span style="color:#e6db74">&#34;.well-known/openid-configuration&#34;</span>;
+            }
+
+            <span style="color:#66d9ef">if</span> (options.RequireHttpsMetadata &amp;&amp; !options.MetadataAddress.StartsWith(<span style="color:#e6db74">&#34;https://&#34;</span>, StringComparison.OrdinalIgnoreCase))
+            {
+                <span style="color:#66d9ef">throw</span> <span style="color:#66d9ef">new</span> InvalidOperationException(<span style="color:#e6db74">&#34;The MetadataAddress or Authority must use HTTPS unless disabled for development by setting RequireHttpsMetadata=false.&#34;</span>);
+            }
+
+            <span style="color:#66d9ef">var</span> httpClient = <span style="color:#66d9ef">new</span> HttpClient(options.BackchannelHttpHandler ?? <span style="color:#66d9ef">new</span> HttpClientHandler());
+            httpClient.Timeout = options.BackchannelTimeout;
+            httpClient.MaxResponseContentBufferSize = <span style="color:#ae81ff">1024</span> * <span style="color:#ae81ff">1024</span> * <span style="color:#ae81ff">10</span>; <span style="color:#75715e">// 10 MB
+</span><span style="color:#75715e"></span>
+            options.ConfigurationManager = <span style="color:#66d9ef">new</span> ConfigurationManager&lt;OpenIdConnectConfiguration&gt;(options.MetadataAddress, <span style="color:#66d9ef">new</span> OpenIdConnectConfigurationRetriever(),
+                <span style="color:#66d9ef">new</span> HttpDocumentRetriever(httpClient) { RequireHttps = options.RequireHttpsMetadata });
+        }
+    }
+}
+</code></pre></div><h1 id="发放token">发放Token</h1>
+<p>上面提到了JwtBear项目没有提供发放Token的方法，可以使用微软的扩展库来实现。<br>
+SymmetricSecurityKey ：表示使用对称算法生成的所有密钥的抽象基类。</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-csharp" data-lang="csharp"><span style="color:#66d9ef">using</span> Microsoft.AspNetCore.Mvc;
+<span style="color:#66d9ef">using</span> System;
+<span style="color:#66d9ef">using</span> System.Text;
+
+<span style="color:#66d9ef">using</span> IdentityModel;
+<span style="color:#66d9ef">using</span> Microsoft.IdentityModel.Tokens;
+<span style="color:#66d9ef">using</span> System.IdentityModel.Tokens.Jwt;
+<span style="color:#66d9ef">using</span> System.Security.Claims;
+<span style="color:#a6e22e">
+</span><span style="color:#a6e22e">[Route(&#34;api/user/login&#34;)]</span>
+<span style="color:#a6e22e">[HttpPost]</span>
+<span style="color:#66d9ef">public</span> IActionResult Login([FromBody]UserDto dto)
+{
+    <span style="color:#75715e">//验证username.password等逻辑..略
+</span><span style="color:#75715e"></span>    <span style="color:#66d9ef">var</span> tokenHandler = <span style="color:#66d9ef">new</span> JwtSecurityTokenHandler();
+    <span style="color:#66d9ef">var</span> key = Encoding.ASCII.GetBytes(<span style="color:#e6db74">&#34;this is a SecretKey&#34;</span>);
+    <span style="color:#66d9ef">var</span> authTime = DateTime.UtcNow;
+    <span style="color:#66d9ef">var</span> expiresAt = authTime.AddDays(<span style="color:#ae81ff">7</span>);
+    <span style="color:#66d9ef">var</span> tokenDescriptor = <span style="color:#66d9ef">new</span> SecurityTokenDescriptor
+    {
+        Subject = <span style="color:#66d9ef">new</span> ClaimsIdentity(<span style="color:#66d9ef">new</span> Claim[]
+        {
+            <span style="color:#66d9ef">new</span> Claim(JwtClaimTypes.Id, <span style="color:#e6db74">&#34;1&#34;</span>),
+            <span style="color:#75715e">//谁用token
+</span><span style="color:#75715e"></span>            <span style="color:#66d9ef">new</span> Claim(JwtClaimTypes.Audience,<span style="color:#e6db74">&#34;http://localhost:5000&#34;</span>),
+            <span style="color:#75715e">//谁发token
+</span><span style="color:#75715e"></span>            <span style="color:#66d9ef">new</span> Claim(JwtClaimTypes.Issuer,<span style="color:#e6db74">&#34;http://localhost:5000&#34;</span>),
+        }),
+        Expires = expiresAt,
+        SigningCredentials = <span style="color:#66d9ef">new</span> SigningCredentials(<span style="color:#66d9ef">new</span> SymmetricSecurityKey(key), SecurityAlgorithms.HmacSha256Signature)
+    };
+    <span style="color:#66d9ef">var</span> token = tokenHandler.CreateToken(tokenDescriptor);
+    <span style="color:#66d9ef">var</span> tokenString = tokenHandler.WriteToken(token);
+    <span style="color:#66d9ef">return</span> Ok(tokenString);
+}
+</code></pre></div><p><strong>HS256算法要求key大于128bit即16字节,否则会出错</strong>
+扩展库源码地址：</p>
+<blockquote>
+<p><a href="https://github.com/AzureAD/azure-activedirectory-identitymodel-extensions-for-dotnet/issues">https://github.com/AzureAD/azure-activedirectory-identitymodel-extensions-for-dotnet/issues</a></p>
+</blockquote>
+<p>上面的代码只实现了很简单的token颁发的功能，刷新token，scope的校验，单点登录等都没有实现，不建议生产环境使用（除非你的需求十分简单已经可以满足）。实现这些十分麻烦，通常需要借助框架比如IdentityServer，这个后面再聊。</p>
+<h1 id="cookie认证与jwt认证对比">Cookie认证与Jwt认证对比</h1>
+<p>Cookie认证简图<br>
+Cookie认证需要通知浏览器操作cookie，以及302跳转，所以前后端同域的web场景比较合适。</p>
+<div class="mermaid">
+sequenceDiagram
+    client->>server: 校验用户名密码后登录(HttpContext.SignInAsync())
+    server->>server: Cookie维护登录信息
+    server->>client: 302跳转RedirectUrl
+    client->>server: 登出(HttpContext.SignOutAsync())
+    server->>client: 清除Cookie,302跳转LogoutUrl
+</div>
+<p>Jwt认证简图<br>
+可以看到服务端只负责颁发token、校验token，校验失败返回标准401，至于401怎么处理在于客户端，服务端不依赖于浏览器，所以用于非web端、或者前后端分离的场景比较合适</p>
+<div class="mermaid">
+sequenceDiagram
+    client->>server: 登录(Login)
+    server->>server: 校验信息
+    server->>client: 颁发token
+    client->>server: 访问受保护api
+    server->>server: 校验token,将jwt中的claims信息写入HttpContext
+    server->>client: 返回api结果 or 401
+    client->>client: 处理401,自行跳到登录页或其他操作
+</div>
+<h1 id="jwtbearerhandler源码分析">JwtBearerHandler源码分析</h1>
+<p>JwtBearerHandler继承自AuthenticationHandler，比CookieHandler少了SignIn和Signout的实现，它只处理认证（Authenticate）、质询（Chanllenge）和拒绝（Forbid），上面已经说明过原因了。</p>
+<div class="mermaid">
+ classDiagram
+      class AuthenticationHandler{
+          AuthenticationScheme Scheme
+          TOptions Options
+          HttpContext Context
+          HttpRequest Request
+          HttpResponse Response
+          PathString OriginalPath
+          PathString OriginalPathBase
+          ILogger Logger
+          UrlEncoder UrlEncoder
+          ISystemClock Clock
+          object Events
+          string ClaimsIssuer
+          string CurrentUri
+          InitializeAsync()
+          +Task AuthenticateAsync()
+          +Task ChallengeAsync(AuthenticationProperties properties)
+          +Task ForbidAsync(AuthenticationProperties properties)
+      }
+      class IAuthenticationHandler{
+          HandleAsync()
+      }
+      JwtBearerHandler-->AuthenticationHandler
+      AuthenticationHandler-->IAuthenticationHandler
+</div>
+<script src="https://unpkg.com/mermaid/dist/mermaid.min.js"></script>
+<h2 id="authenticate---认证">Authenticate - 认证</h2>
+<ul>
+<li>触发MessageReceived事件，相当于是个钩子，开发可以直接拦截返回认证结果，或者设置token取代header中的token</li>
+<li>从header中取token</li>
+<li>获取配置和校验配置</li>
+<li>循环Option.SecurityTokenValidators执行每个校验器的校验逻辑(默认校验器逻辑等下说)</li>
+<li>如果配置 Options.SaveToken=true, 则会将access_token保存在HttpContext.Properties中</li>
+</ul>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-csharp" data-lang="csharp"><span style="color:#66d9ef">protected</span> <span style="color:#66d9ef">override</span> <span style="color:#66d9ef">async</span> Task&lt;AuthenticateResult&gt; HandleAuthenticateAsync()
+{
+    <span style="color:#66d9ef">string</span> token = <span style="color:#66d9ef">null</span>;
+    <span style="color:#66d9ef">try</span>
+    {
+        <span style="color:#75715e">// Give application opportunity to find from a different location, adjust, or reject token
+</span><span style="color:#75715e"></span>        <span style="color:#66d9ef">var</span> messageReceivedContext = <span style="color:#66d9ef">new</span> MessageReceivedContext(Context, Scheme, Options);
+
+        <span style="color:#75715e">// event can set the token
+</span><span style="color:#75715e"></span>        <span style="color:#66d9ef">await</span> Events.MessageReceived(messageReceivedContext);
+        <span style="color:#66d9ef">if</span> (messageReceivedContext.Result != <span style="color:#66d9ef">null</span>)
+        {
+            <span style="color:#66d9ef">return</span> messageReceivedContext.Result;
+        }
+
+        <span style="color:#75715e">// If application retrieved token from somewhere else, use that.
+</span><span style="color:#75715e"></span>        token = messageReceivedContext.Token;
+
+        <span style="color:#66d9ef">if</span> (<span style="color:#66d9ef">string</span>.IsNullOrEmpty(token))
+        {
+            <span style="color:#66d9ef">string</span> authorization = Request.Headers[HeaderNames.Authorization];
+
+            <span style="color:#75715e">// If no authorization header found, nothing to process further
+</span><span style="color:#75715e"></span>            <span style="color:#66d9ef">if</span> (<span style="color:#66d9ef">string</span>.IsNullOrEmpty(authorization))
+            {
+                <span style="color:#66d9ef">return</span> AuthenticateResult.NoResult();
+            }
+
+            <span style="color:#66d9ef">if</span> (authorization.StartsWith(<span style="color:#e6db74">&#34;Bearer &#34;</span>, StringComparison.OrdinalIgnoreCase))
+            {
+                token = authorization.Substring(<span style="color:#e6db74">&#34;Bearer &#34;</span>.Length).Trim();
+            }
+
+            <span style="color:#75715e">// If no token found, no further work possible
+</span><span style="color:#75715e"></span>            <span style="color:#66d9ef">if</span> (<span style="color:#66d9ef">string</span>.IsNullOrEmpty(token))
+            {
+                <span style="color:#66d9ef">return</span> AuthenticateResult.NoResult();
+            }
+        }
+
+        <span style="color:#66d9ef">if</span> (_configuration == <span style="color:#66d9ef">null</span> &amp;&amp; Options.ConfigurationManager != <span style="color:#66d9ef">null</span>)
+        {
+            _configuration = <span style="color:#66d9ef">await</span> Options.ConfigurationManager.GetConfigurationAsync(Context.RequestAborted);
+        }
+
+        <span style="color:#66d9ef">var</span> validationParameters = Options.TokenValidationParameters.Clone();
+        <span style="color:#66d9ef">if</span> (_configuration != <span style="color:#66d9ef">null</span>)
+        {
+            <span style="color:#66d9ef">var</span> issuers = <span style="color:#66d9ef">new</span>[] { _configuration.Issuer };
+            validationParameters.ValidIssuers = validationParameters.ValidIssuers?.Concat(issuers) ?? issuers;
+
+            validationParameters.IssuerSigningKeys = validationParameters.IssuerSigningKeys?.Concat(_configuration.SigningKeys)
+                ?? _configuration.SigningKeys;
+        }
+
+        List&lt;Exception&gt; validationFailures = <span style="color:#66d9ef">null</span>;
+        SecurityToken validatedToken;
+        <span style="color:#66d9ef">foreach</span> (<span style="color:#66d9ef">var</span> validator <span style="color:#66d9ef">in</span> Options.SecurityTokenValidators)
+        {
+            <span style="color:#66d9ef">if</span> (validator.CanReadToken(token))
+            {
+                ClaimsPrincipal principal;
+                <span style="color:#66d9ef">try</span>
+                {
+                    principal = validator.ValidateToken(token, validationParameters, <span style="color:#66d9ef">out</span> validatedToken);
+                }
+                <span style="color:#66d9ef">catch</span> (Exception ex)
+                {
+                    Logger.TokenValidationFailed(ex);
+
+                    <span style="color:#75715e">// Refresh the configuration for exceptions that may be caused by key rollovers. The user can also request a refresh in the event.
+</span><span style="color:#75715e"></span>                    <span style="color:#66d9ef">if</span> (Options.RefreshOnIssuerKeyNotFound &amp;&amp; Options.ConfigurationManager != <span style="color:#66d9ef">null</span>
+                        &amp;&amp; ex <span style="color:#66d9ef">is</span> SecurityTokenSignatureKeyNotFoundException)
+                    {
+                        Options.ConfigurationManager.RequestRefresh();
+                    }
+
+                    <span style="color:#66d9ef">if</span> (validationFailures == <span style="color:#66d9ef">null</span>)
+                    {
+                        validationFailures = <span style="color:#66d9ef">new</span> List&lt;Exception&gt;(<span style="color:#ae81ff">1</span>);
+                    }
+                    validationFailures.Add(ex);
+                    <span style="color:#66d9ef">continue</span>;
+                }
+
+                Logger.TokenValidationSucceeded();
+
+                <span style="color:#66d9ef">var</span> tokenValidatedContext = <span style="color:#66d9ef">new</span> TokenValidatedContext(Context, Scheme, Options)
+                {
+                    Principal = principal,
+                    SecurityToken = validatedToken
+                };
+
+                <span style="color:#66d9ef">await</span> Events.TokenValidated(tokenValidatedContext);
+                <span style="color:#66d9ef">if</span> (tokenValidatedContext.Result != <span style="color:#66d9ef">null</span>)
+                {
+                    <span style="color:#66d9ef">return</span> tokenValidatedContext.Result;
+                }
+
+                <span style="color:#66d9ef">if</span> (Options.SaveToken)
+                {
+                    tokenValidatedContext.Properties.StoreTokens(<span style="color:#66d9ef">new</span>[]
+                    {
+                        <span style="color:#66d9ef">new</span> AuthenticationToken { Name = <span style="color:#e6db74">&#34;access_token&#34;</span>, Value = token }
+                    });
+                }
+
+                tokenValidatedContext.Success();
+                <span style="color:#66d9ef">return</span> tokenValidatedContext.Result;
+            }
+        }
+
+        <span style="color:#66d9ef">if</span> (validationFailures != <span style="color:#66d9ef">null</span>)
+        {
+            <span style="color:#66d9ef">var</span> authenticationFailedContext = <span style="color:#66d9ef">new</span> AuthenticationFailedContext(Context, Scheme, Options)
+            {
+                Exception = (validationFailures.Count == <span style="color:#ae81ff">1</span>) ? validationFailures[<span style="color:#ae81ff">0</span>] : <span style="color:#66d9ef">new</span> AggregateException(validationFailures)
+            };
+
+            <span style="color:#66d9ef">await</span> Events.AuthenticationFailed(authenticationFailedContext);
+            <span style="color:#66d9ef">if</span> (authenticationFailedContext.Result != <span style="color:#66d9ef">null</span>)
+            {
+                <span style="color:#66d9ef">return</span> authenticationFailedContext.Result;
+            }
+
+            <span style="color:#66d9ef">return</span> AuthenticateResult.Fail(authenticationFailedContext.Exception);
+        }
+
+        <span style="color:#66d9ef">return</span> AuthenticateResult.Fail(<span style="color:#e6db74">&#34;No SecurityTokenValidator available for token: &#34;</span> + token ?? <span style="color:#e6db74">&#34;[null]&#34;</span>);
+    }
+    <span style="color:#66d9ef">catch</span> (Exception ex)
+    {
+        Logger.ErrorProcessingMessage(ex);
+
+        <span style="color:#66d9ef">var</span> authenticationFailedContext = <span style="color:#66d9ef">new</span> AuthenticationFailedContext(Context, Scheme, Options)
+        {
+            Exception = ex
+        };
+
+        <span style="color:#66d9ef">await</span> Events.AuthenticationFailed(authenticationFailedContext);
+        <span style="color:#66d9ef">if</span> (authenticationFailedContext.Result != <span style="color:#66d9ef">null</span>)
+        {
+            <span style="color:#66d9ef">return</span> authenticationFailedContext.Result;
+        }
+
+        <span style="color:#66d9ef">throw</span>;
+    }
+}
+</code></pre></div><p>JwtBearOptions配置类的这段代码可以看到, 默认校验类是JwtSecurityTokenHandler，这是上面提到的扩展包里面的类，命名空间是System.IdentityModel.Tokens.Jwt</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-csharp" data-lang="csharp"><span style="color:#75715e">/// &lt;summary&gt;
+</span><span style="color:#75715e">/// Gets the ordered list of &lt;see cref=&#34;ISecurityTokenValidator&#34;/&gt; used to validate access tokens.
+</span><span style="color:#75715e">/// &lt;/summary&gt;
+</span><span style="color:#75715e"></span><span style="color:#66d9ef">public</span> IList&lt;ISecurityTokenValidator&gt; SecurityTokenValidators { <span style="color:#66d9ef">get</span>; } = <span style="color:#66d9ef">new</span> List&lt;ISecurityTokenValidator&gt; { <span style="color:#66d9ef">new</span> JwtSecurityTokenHandler() };
+</code></pre></div><p>看一看代码，代码比较简单，就是解码token，然后将claims信息返回。之前生成jwt也是使用的这个类。<br>
+如果需要额外的校验逻辑，可以自己实现ISecurityTokenValidator，用这个类解码token得到claims之后实现自己的业务逻辑。</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-csharp" data-lang="csharp"><span style="color:#66d9ef">public</span> <span style="color:#66d9ef">override</span> ClaimsPrincipal ValidateToken(<span style="color:#66d9ef">string</span> token, TokenValidationParameters validationParameters, <span style="color:#66d9ef">out</span> SecurityToken validatedToken)
+    {
+        <span style="color:#66d9ef">if</span> (<span style="color:#66d9ef">string</span>.IsNullOrWhiteSpace(token))
+            <span style="color:#66d9ef">throw</span> LogHelper.LogArgumentNullException(nameof(token));
+
+        <span style="color:#66d9ef">if</span> (validationParameters == <span style="color:#66d9ef">null</span>)
+            <span style="color:#66d9ef">throw</span> LogHelper.LogArgumentNullException(nameof(validationParameters));
+
+        <span style="color:#66d9ef">if</span> (token.Length &gt; MaximumTokenSizeInBytes)
+            <span style="color:#66d9ef">throw</span> LogHelper.LogExceptionMessage(<span style="color:#66d9ef">new</span> ArgumentException(LogHelper.FormatInvariant(TokenLogMessages.IDX10209, token.Length, MaximumTokenSizeInBytes)));
+
+        <span style="color:#66d9ef">var</span> tokenParts = token.Split(<span style="color:#66d9ef">new</span> <span style="color:#66d9ef">char</span>[] { <span style="color:#e6db74">&#39;.&#39;</span> }, JwtConstants.MaxJwtSegmentCount + <span style="color:#ae81ff">1</span>);
+        <span style="color:#66d9ef">if</span> (tokenParts.Length != JwtConstants.JwsSegmentCount &amp;&amp; tokenParts.Length != JwtConstants.JweSegmentCount)
+            <span style="color:#66d9ef">throw</span> LogHelper.LogExceptionMessage(<span style="color:#66d9ef">new</span> ArgumentException(LogHelper.FormatInvariant(LogMessages.IDX12741, token)));
+
+        <span style="color:#66d9ef">if</span> (tokenParts.Length == JwtConstants.JweSegmentCount)
+        {
+            <span style="color:#66d9ef">var</span> jwtToken = ReadJwtToken(token);
+            <span style="color:#66d9ef">var</span> decryptedJwt = DecryptToken(jwtToken, validationParameters);
+            <span style="color:#66d9ef">var</span> innerToken = ValidateSignature(decryptedJwt, validationParameters);
+            jwtToken.InnerToken = innerToken;
+            validatedToken = jwtToken;
+            <span style="color:#66d9ef">return</span> ValidateTokenPayload(innerToken, validationParameters);
+        }
+        <span style="color:#66d9ef">else</span>
+        {
+            validatedToken = ValidateSignature(token, validationParameters);
+            <span style="color:#66d9ef">return</span> ValidateTokenPayload(validatedToken <span style="color:#66d9ef">as</span> JwtSecurityToken, validationParameters);
+        }
+    }
+</code></pre></div><h2 id="chanllenge----质询">Chanllenge &ndash; 质询</h2>
+<p>质询逻辑简单说下，执行认证方法，成功则返回结果，失败返回401，生成的报文大致这样</p>
+<pre><code>https://tools.ietf.org/html/rfc6750#section-3.1
+WWW-Authenticate: Bearer realm=&quot;example&quot;, error=&quot;invalid_token&quot;, error_description=&quot;The access token expired&quot;
+</code></pre><div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-csharp" data-lang="csharp"><span style="color:#66d9ef">protected</span> <span style="color:#66d9ef">override</span> <span style="color:#66d9ef">async</span> Task HandleChallengeAsync(AuthenticationProperties properties)
+{
+    <span style="color:#66d9ef">var</span> authResult = <span style="color:#66d9ef">await</span> HandleAuthenticateOnceSafeAsync();
+    <span style="color:#66d9ef">var</span> eventContext = <span style="color:#66d9ef">new</span> JwtBearerChallengeContext(Context, Scheme, Options, properties)
+    {
+        AuthenticateFailure = authResult?.Failure
+    };
+
+    <span style="color:#75715e">// Avoid returning error=invalid_token if the error is not caused by an authentication failure (e.g missing token).
+</span><span style="color:#75715e"></span>    <span style="color:#66d9ef">if</span> (Options.IncludeErrorDetails &amp;&amp; eventContext.AuthenticateFailure != <span style="color:#66d9ef">null</span>)
+    {
+        eventContext.Error = <span style="color:#e6db74">&#34;invalid_token&#34;</span>;
+        eventContext.ErrorDescription = CreateErrorDescription(eventContext.AuthenticateFailure);
+    }
+
+    <span style="color:#66d9ef">await</span> Events.Challenge(eventContext);
+    <span style="color:#66d9ef">if</span> (eventContext.Handled)
+    {
+        <span style="color:#66d9ef">return</span>;
+    }
+
+    Response.StatusCode = <span style="color:#ae81ff">401</span>;
+
+    <span style="color:#66d9ef">if</span> (<span style="color:#66d9ef">string</span>.IsNullOrEmpty(eventContext.Error) &amp;&amp;
+        <span style="color:#66d9ef">string</span>.IsNullOrEmpty(eventContext.ErrorDescription) &amp;&amp;
+        <span style="color:#66d9ef">string</span>.IsNullOrEmpty(eventContext.ErrorUri))
+    {
+        Response.Headers.Append(HeaderNames.WWWAuthenticate, Options.Challenge);
+    }
+    <span style="color:#66d9ef">else</span>
+    {
+        <span style="color:#75715e">// https://tools.ietf.org/html/rfc6750#section-3.1
+</span><span style="color:#75715e"></span>        <span style="color:#75715e">// WWW-Authenticate: Bearer realm=&#34;example&#34;, error=&#34;invalid_token&#34;, error_description=&#34;The access token expired&#34;
+</span><span style="color:#75715e"></span>        <span style="color:#66d9ef">var</span> builder = <span style="color:#66d9ef">new</span> StringBuilder(Options.Challenge);
+        <span style="color:#66d9ef">if</span> (Options.Challenge.IndexOf(<span style="color:#e6db74">&#39; &#39;</span>) &gt; <span style="color:#ae81ff">0</span>)
+        {
+            <span style="color:#75715e">// Only add a comma after the first param, if any
+</span><span style="color:#75715e"></span>            builder.Append(<span style="color:#e6db74">&#39;,&#39;</span>);
+        }
+        <span style="color:#66d9ef">if</span> (!<span style="color:#66d9ef">string</span>.IsNullOrEmpty(eventContext.Error))
+        {
+            builder.Append(<span style="color:#e6db74">&#34; error=\&#34;&#34;</span>);
+            builder.Append(eventContext.Error);
+            builder.Append(<span style="color:#e6db74">&#34;\&#34;&#34;</span>);
+        }
+        <span style="color:#66d9ef">if</span> (!<span style="color:#66d9ef">string</span>.IsNullOrEmpty(eventContext.ErrorDescription))
+        {
+            <span style="color:#66d9ef">if</span> (!<span style="color:#66d9ef">string</span>.IsNullOrEmpty(eventContext.Error))
+            {
+                builder.Append(<span style="color:#e6db74">&#34;,&#34;</span>);
+            }
+
+            builder.Append(<span style="color:#e6db74">&#34; error_description=\&#34;&#34;</span>);
+            builder.Append(eventContext.ErrorDescription);
+            builder.Append(<span style="color:#e6db74">&#39;\&#34;&#39;</span>);
+        }
+        <span style="color:#66d9ef">if</span> (!<span style="color:#66d9ef">string</span>.IsNullOrEmpty(eventContext.ErrorUri))
+        {
+            <span style="color:#66d9ef">if</span> (!<span style="color:#66d9ef">string</span>.IsNullOrEmpty(eventContext.Error) ||
+                !<span style="color:#66d9ef">string</span>.IsNullOrEmpty(eventContext.ErrorDescription))
+            {
+                builder.Append(<span style="color:#e6db74">&#34;,&#34;</span>);
+            }
+
+            builder.Append(<span style="color:#e6db74">&#34; error_uri=\&#34;&#34;</span>);
+            builder.Append(eventContext.ErrorUri);
+            builder.Append(<span style="color:#e6db74">&#39;\&#34;&#39;</span>);
+        }
+
+        Response.Headers.Append(HeaderNames.WWWAuthenticate, builder.ToString());
+    }
+}
+</code></pre></div><h2 id="forbid---拒绝">Forbid - 拒绝</h2>
+<p>返回403</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-csharp" data-lang="csharp"><span style="color:#66d9ef">protected</span> <span style="color:#66d9ef">override</span> Task HandleForbiddenAsync(AuthenticationProperties properties)
+{
+    <span style="color:#66d9ef">var</span> forbiddenContext = <span style="color:#66d9ef">new</span> ForbiddenContext(Context, Scheme, Options);
+    Response.StatusCode = <span style="color:#ae81ff">403</span>;
+    <span style="color:#66d9ef">return</span> Events.Forbidden(forbiddenContext);
+}
+</code></pre></div><p>参考资料：</p>
+<p>Cookie的SameSite属性</p>
+<blockquote>
+<p><a href="http://www.ruanyifeng.com/blog/2019/09/cookie-samesite.html">http://www.ruanyifeng.com/blog/2019/09/cookie-samesite.html</a></p>
+</blockquote>
+<p>CORS</p>
+<blockquote>
+<p><a href="https://holdengong.com/aspnetcore3.1_middleware%E6%BA%90%E7%A0%81%E8%A7%A3%E6%9E%90_1_cors/">https://holdengong.com/aspnetcore3.1_middleware%E6%BA%90%E7%A0%81%E8%A7%A3%E6%9E%90_1_cors/</a></p>
+</blockquote>
+<p>ASPNET Core 认证与授权[4]:JwtBearer认证</p>
+<blockquote>
+<p><a href="https://www.cnblogs.com/RainingNight/p/jwtbearer-authentication-in-asp-net-core.html">https://www.cnblogs.com/RainingNight/p/jwtbearer-authentication-in-asp-net-core.html</a></p>
+</blockquote>
+
+</div>
+
+
+    </main>
+
+    
+      
+    
+  </body>
+</html>
