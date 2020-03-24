@@ -6,10 +6,27 @@
     <description>Recent content on Holden Gong</description>
     <generator>Hugo -- gohugo.io</generator>
     <language>zh-Hans</language>
-    <lastBuildDate>Sun, 22 Mar 2020 16:29:29 +0800</lastBuildDate>
+    <lastBuildDate>Tue, 24 Mar 2020 23:27:45 +0800</lastBuildDate>
     
 	<atom:link href="https://holdengong.com/index.xml" rel="self" type="application/rss+xml" />
     
+    
+    <item>
+      <title>AspNetCore3.1_Secutiry源码解析_5_Authentication_OAuth</title>
+      <link>https://holdengong.com/aspnetcore3.1_secutiry%E6%BA%90%E7%A0%81%E8%A7%A3%E6%9E%90_5_authentication_oauth/</link>
+      <pubDate>Tue, 24 Mar 2020 23:27:45 +0800</pubDate>
+      
+      <guid>https://holdengong.com/aspnetcore3.1_secutiry%E6%BA%90%E7%A0%81%E8%A7%A3%E6%9E%90_5_authentication_oauth/</guid>
+      <description>OAuth简介 现在随便一个网站，不用注册，只用微信扫一扫，然后就可以自动登录，然后第三方网站右上角还出现了你的微信头像和昵称，怎么做到的？
+sequenceDiagram 用户-x站点: 请求微信登录 x站点-微信: 请求 oauth token 微信-用户: x站点请求基本资料权限,是否同意? 用户-微信: 同意 微信-x站点: token x站点-微信: 请求user基本资料(token) 微信-微信: 校验token 微信-x站点: user基本资料   大概就这么个意思，OAuth可以让第三方获取有限的授权去获取资源。
+入门的看博客
+ https://www.cnblogs.com/linianhui/p/oauth2-authorization.html
+ 英文好有基础的直接看协议
+ https://tools.ietf.org/html/rfc6749
+ 依赖注入 配置类：OAuthOptions
+处理器类： OAuthHandler
+public static class OAuthExtensions { public static AuthenticationBuilder AddOAuth(this AuthenticationBuilder builder, string authenticationScheme, Action&amp;lt;OAuthOptions&amp;gt; configureOptions) =&amp;gt; builder.AddOAuth&amp;lt;OAuthOptions, OAuthHandler&amp;lt;OAuthOptions&amp;gt;&amp;gt;(authenticationScheme, configureOptions); public static AuthenticationBuilder AddOAuth(this AuthenticationBuilder builder, string authenticationScheme, string displayName, Action&amp;lt;OAuthOptions&amp;gt; configureOptions) =&amp;gt; builder.AddOAuth&amp;lt;OAuthOptions, OAuthHandler&amp;lt;OAuthOptions&amp;gt;&amp;gt;(authenticationScheme, displayName, configureOptions); public static AuthenticationBuilder AddOAuth&amp;lt;TOptions, THandler&amp;gt;(this AuthenticationBuilder builder, string authenticationScheme, Action&amp;lt;TOptions&amp;gt; configureOptions) where TOptions : OAuthOptions, new() where THandler : OAuthHandler&amp;lt;TOptions&amp;gt; =&amp;gt; builder.</description>
+    </item>
     
     <item>
       <title>AspNetCore3.1_Secutiry源码解析_4_Authentication_JwtBear</title>

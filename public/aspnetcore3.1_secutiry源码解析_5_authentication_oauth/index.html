@@ -1,0 +1,410 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="zh-Hans" lang="zh-Hans">
+<head>
+  <link href="https://gmpg.org/xfn/11" rel="profile">
+  <meta http-equiv="content-type" content="text/html; charset=utf-8">
+  <meta name="generator" content="Hugo 0.67.0" />
+
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <title>AspNetCore3.1_Secutiry源码解析_5_Authentication_OAuth &middot; Holden Gong</title>
+  <meta name="description" content="" />
+
+  
+  <link type="text/css" rel="stylesheet" href="https://holdengong.com/css/print.css" media="print">
+  <link type="text/css" rel="stylesheet" href="https://holdengong.com/css/poole.css">
+  <link type="text/css" rel="stylesheet" href="https://holdengong.com/css/syntax.css">
+  <link type="text/css" rel="stylesheet" href="https://holdengong.com/css/hyde.css">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Abril+Fatface|PT+Sans:400,400i,700">
+
+
+  
+  <link rel="apple-touch-icon-precomposed" sizes="144x144" href="/apple-touch-icon-144-precomposed.png">
+  <link rel="shortcut icon" href="/favicon.png">
+
+  
+  
+</head>
+
+  <body class=" ">
+  <aside class="sidebar">
+  <div class="container sidebar-sticky">
+    <div class="sidebar-about">
+      <a href="https://holdengong.com/">
+        <h1>Holden Gong</h1>
+      </a>
+      <p class="lead">
+        code & life
+      </p>
+    </div>
+
+    <nav>
+      <ul class="sidebar-nav">
+  
+      </ul>
+    </nav>
+    
+    <div>
+      <p>&copy; 2020. All rights reserved. </p>
+      <p>鄂ICP备20003133号</p>
+      <script type="text/javascript">document.write(unescape("%3Cspan id='cnzz_stat_icon_1278689390'%3E%3C/span%3E%3Cscript src='https://v1.cnzz.com/z_stat.php%3Fid%3D1278689390%26show%3Dpic' type='text/javascript'%3E%3C/script%3E"));</script>
+    </div>
+  </div>
+</aside>
+
+    <main class="content container">
+    <div class="post">
+  <h1>AspNetCore3.1_Secutiry源码解析_5_Authentication_OAuth</h1>
+  <time datetime=2020-03-24T23:27:45&#43;0800 class="post-date">Tue, Mar 24, 2020</time>
+  <h1 id="oauth简介">OAuth简介</h1>
+<p>现在随便一个网站，不用注册，只用微信扫一扫，然后就可以自动登录，然后第三方网站右上角还出现了你的微信头像和昵称，怎么做到的？</p>
+<div class="mermaid">
+sequenceDiagram
+    用户->>x站点: 请求微信登录
+    x站点->>微信: 请求 oauth token
+    微信->>用户: x站点请求基本资料权限,是否同意?
+    用户->>微信: 同意
+    微信->>x站点: token
+    x站点->>微信: 请求user基本资料(token)
+    微信->微信: 校验token
+    微信->>x站点: user基本资料
+</div>
+<script src="https://unpkg.com/mermaid/dist/mermaid.min.js"></script>
+<p>大概就这么个意思，OAuth可以让第三方获取有限的授权去获取资源。</p>
+<p>入门的看博客</p>
+<blockquote>
+<p><a href="https://www.cnblogs.com/linianhui/p/oauth2-authorization.html">https://www.cnblogs.com/linianhui/p/oauth2-authorization.html</a></p>
+</blockquote>
+<p>英文好有基础的直接看协议</p>
+<blockquote>
+<p><a href="https://tools.ietf.org/html/rfc6749">https://tools.ietf.org/html/rfc6749</a></p>
+</blockquote>
+<h1 id="依赖注入">依赖注入</h1>
+<p>配置类：OAuthOptions<br>
+处理器类： OAuthHandler</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-csharp" data-lang="csharp"><span style="color:#66d9ef">public</span> <span style="color:#66d9ef">static</span> <span style="color:#66d9ef">class</span> <span style="color:#a6e22e">OAuthExtensions</span>
+{
+    <span style="color:#66d9ef">public</span> <span style="color:#66d9ef">static</span> AuthenticationBuilder AddOAuth(<span style="color:#66d9ef">this</span> AuthenticationBuilder builder, <span style="color:#66d9ef">string</span> authenticationScheme, Action&lt;OAuthOptions&gt; configureOptions)
+        =&gt; builder.AddOAuth&lt;OAuthOptions, OAuthHandler&lt;OAuthOptions&gt;&gt;(authenticationScheme, configureOptions);
+
+    <span style="color:#66d9ef">public</span> <span style="color:#66d9ef">static</span> AuthenticationBuilder AddOAuth(<span style="color:#66d9ef">this</span> AuthenticationBuilder builder, <span style="color:#66d9ef">string</span> authenticationScheme, <span style="color:#66d9ef">string</span> displayName, Action&lt;OAuthOptions&gt; configureOptions)
+        =&gt; builder.AddOAuth&lt;OAuthOptions, OAuthHandler&lt;OAuthOptions&gt;&gt;(authenticationScheme, displayName, configureOptions);
+
+    <span style="color:#66d9ef">public</span> <span style="color:#66d9ef">static</span> AuthenticationBuilder AddOAuth&lt;TOptions, THandler&gt;(<span style="color:#66d9ef">this</span> AuthenticationBuilder builder, <span style="color:#66d9ef">string</span> authenticationScheme, Action&lt;TOptions&gt; configureOptions)
+        <span style="color:#66d9ef">where</span> TOptions : OAuthOptions, <span style="color:#66d9ef">new</span>()
+        <span style="color:#66d9ef">where</span> THandler : OAuthHandler&lt;TOptions&gt;
+        =&gt; builder.AddOAuth&lt;TOptions, THandler&gt;(authenticationScheme, OAuthDefaults.DisplayName, configureOptions);
+
+    <span style="color:#66d9ef">public</span> <span style="color:#66d9ef">static</span> AuthenticationBuilder AddOAuth&lt;TOptions, THandler&gt;(<span style="color:#66d9ef">this</span> AuthenticationBuilder builder, <span style="color:#66d9ef">string</span> authenticationScheme, <span style="color:#66d9ef">string</span> displayName, Action&lt;TOptions&gt; configureOptions)
+        <span style="color:#66d9ef">where</span> TOptions : OAuthOptions, <span style="color:#66d9ef">new</span>()
+        <span style="color:#66d9ef">where</span> THandler : OAuthHandler&lt;TOptions&gt;
+    {
+        builder.Services.TryAddEnumerable(ServiceDescriptor.Singleton&lt;IPostConfigureOptions&lt;TOptions&gt;, OAuthPostConfigureOptions&lt;TOptions, THandler&gt;&gt;());
+        <span style="color:#66d9ef">return</span> builder.AddRemoteScheme&lt;TOptions, THandler&gt;(authenticationScheme, displayName, configureOptions);
+    }
+}
+</code></pre></div><h2 id="oauthoptions---配置类">OAuthOptions - 配置类</h2>
+<div class="mermaid">
+ classDiagram
+      class OAuthOptions{
+          ClientId
+          ClientSecret
+          AuthorizationEndpoint
+          TokenEndPoint
+          UserInformationEndPoint
+          Scope
+          Events
+          ClaimActions
+          StateDataFormat
+      }
+      class RemoteAuthenticationOptions{
+          BackchannelTimeout
+          BackchannelHttpHandler
+          Backchannel
+          DataProtectionProvider
+          CallbackPath
+          AccessDeniedPath
+          ReturnUrlParameter
+          SignInScheme
+          RemoteAuthenticationTimeout
+          SaveTokens
+      }
+      class AuthenticationSchemeOptions{
+      }
+      OAuthOptions-->RemoteAuthenticationOptions
+      RemoteAuthenticationOptions-->AuthenticationSchemeOptions
+</div>
+<p>下面是校验逻辑，这些配置是必需的。</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-csharp" data-lang="csharp"><span style="color:#66d9ef">public</span> <span style="color:#66d9ef">override</span> <span style="color:#66d9ef">void</span> Validate()
+{
+    <span style="color:#66d9ef">base</span>.Validate();
+
+    <span style="color:#66d9ef">if</span> (<span style="color:#66d9ef">string</span>.IsNullOrEmpty(ClientId))
+    {
+        <span style="color:#66d9ef">throw</span> <span style="color:#66d9ef">new</span> ArgumentException(<span style="color:#66d9ef">string</span>.Format(CultureInfo.CurrentCulture, Resources.Exception_OptionMustBeProvided, nameof(ClientId)), nameof(ClientId));
+    }
+
+    <span style="color:#66d9ef">if</span> (<span style="color:#66d9ef">string</span>.IsNullOrEmpty(ClientSecret))
+    {
+        <span style="color:#66d9ef">throw</span> <span style="color:#66d9ef">new</span> ArgumentException(<span style="color:#66d9ef">string</span>.Format(CultureInfo.CurrentCulture, Resources.Exception_OptionMustBeProvided, nameof(ClientSecret)), nameof(ClientSecret));
+    }
+
+    <span style="color:#66d9ef">if</span> (<span style="color:#66d9ef">string</span>.IsNullOrEmpty(AuthorizationEndpoint))
+    {
+        <span style="color:#66d9ef">throw</span> <span style="color:#66d9ef">new</span> ArgumentException(<span style="color:#66d9ef">string</span>.Format(CultureInfo.CurrentCulture, Resources.Exception_OptionMustBeProvided, nameof(AuthorizationEndpoint)), nameof(AuthorizationEndpoint));
+    }
+
+    <span style="color:#66d9ef">if</span> (<span style="color:#66d9ef">string</span>.IsNullOrEmpty(TokenEndpoint))
+    {
+        <span style="color:#66d9ef">throw</span> <span style="color:#66d9ef">new</span> ArgumentException(<span style="color:#66d9ef">string</span>.Format(CultureInfo.CurrentCulture, Resources.Exception_OptionMustBeProvided, nameof(TokenEndpoint)), nameof(TokenEndpoint));
+    }
+
+    <span style="color:#66d9ef">if</span> (!CallbackPath.HasValue)
+    {
+        <span style="color:#66d9ef">throw</span> <span style="color:#66d9ef">new</span> ArgumentException(<span style="color:#66d9ef">string</span>.Format(CultureInfo.CurrentCulture, Resources.Exception_OptionMustBeProvided, nameof(CallbackPath)), nameof(CallbackPath));
+    }
+}
+</code></pre></div><h2 id="oauthpostconfigureoptions---配置处理">OAuthPostConfigureOptions - 配置处理</h2>
+<ol>
+<li>DataProtectionProvider没有配置的话则使用默认实现</li>
+<li>Backchannel没有配置的话则处理构造默认配置</li>
+<li>StateDataFormat没有配置的话则使用PropertiesDataFormat</li>
+</ol>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-csharp" data-lang="csharp"><span style="color:#66d9ef">public</span> <span style="color:#66d9ef">void</span> PostConfigure(<span style="color:#66d9ef">string</span> name, TOptions options)
+{
+    options.DataProtectionProvider = options.DataProtectionProvider ?? _dp;
+    <span style="color:#66d9ef">if</span> (options.Backchannel == <span style="color:#66d9ef">null</span>)
+    {
+        options.Backchannel = <span style="color:#66d9ef">new</span> HttpClient(options.BackchannelHttpHandler ?? <span style="color:#66d9ef">new</span> HttpClientHandler());
+        options.Backchannel.DefaultRequestHeaders.UserAgent.ParseAdd(<span style="color:#e6db74">&#34;Microsoft ASP.NET Core OAuth handler&#34;</span>);
+        options.Backchannel.Timeout = options.BackchannelTimeout;
+        options.Backchannel.MaxResponseContentBufferSize = <span style="color:#ae81ff">1024</span> * <span style="color:#ae81ff">1024</span> * <span style="color:#ae81ff">10</span>; <span style="color:#75715e">// 10 MB
+</span><span style="color:#75715e"></span>    }
+
+    <span style="color:#66d9ef">if</span> (options.StateDataFormat == <span style="color:#66d9ef">null</span>)
+    {
+        <span style="color:#66d9ef">var</span> dataProtector = options.DataProtectionProvider.CreateProtector(
+            <span style="color:#66d9ef">typeof</span>(THandler).FullName, name, <span style="color:#e6db74">&#34;v1&#34;</span>);
+        options.StateDataFormat = <span style="color:#66d9ef">new</span> PropertiesDataFormat(dataProtector);
+    }
+}
+</code></pre></div><p>这个StateDataFormat就是处理state字段的加密解密的，state在认证过程中用于防止跨站伪造攻击和存放一些状态信息，我们看一下协议的定义</p>
+<pre><code> state
+         RECOMMENDED.  An opaque value used by the client to maintain
+         state between the request and callback.  The authorization
+         server includes this value when redirecting the user-agent back
+         to the client.  The parameter SHOULD be used for preventing
+         cross-site request forgery as described in Section 10.12.
+
+</code></pre><p>比如，认证之后的回跳地址就是存放在这里。所以如果希望从state字段中解密得到信息的话，就需要使用到PropertiesDataFormat。PropertiesDataFormat没有任何代码，继承自SecureDataFormat。 为什么这里介绍这么多呢，因为实际项目中用到过这个。</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-csharp" data-lang="csharp"><span style="color:#66d9ef">public</span> <span style="color:#66d9ef">class</span> <span style="color:#a6e22e">SecureDataFormat</span>&lt;TData&gt; : ISecureDataFormat&lt;TData&gt;
+{
+    <span style="color:#66d9ef">private</span> <span style="color:#66d9ef">readonly</span> IDataSerializer&lt;TData&gt; _serializer;
+    <span style="color:#66d9ef">private</span> <span style="color:#66d9ef">readonly</span> IDataProtector _protector;
+
+    <span style="color:#66d9ef">public</span> SecureDataFormat(IDataSerializer&lt;TData&gt; serializer, IDataProtector protector)
+    {
+        _serializer = serializer;
+        _protector = protector;
+    }
+
+    <span style="color:#66d9ef">public</span> <span style="color:#66d9ef">string</span> Protect(TData data)
+    {
+        <span style="color:#66d9ef">return</span> Protect(data, purpose: <span style="color:#66d9ef">null</span>);
+    }
+
+    <span style="color:#66d9ef">public</span> <span style="color:#66d9ef">string</span> Protect(TData data, <span style="color:#66d9ef">string</span> purpose)
+    {
+        <span style="color:#66d9ef">var</span> userData = _serializer.Serialize(data);
+
+        <span style="color:#66d9ef">var</span> protector = _protector;
+        <span style="color:#66d9ef">if</span> (!<span style="color:#66d9ef">string</span>.IsNullOrEmpty(purpose))
+        {
+            protector = protector.CreateProtector(purpose);
+        }
+
+        <span style="color:#66d9ef">var</span> protectedData = protector.Protect(userData);
+        <span style="color:#66d9ef">return</span> Base64UrlTextEncoder.Encode(protectedData);
+    }
+
+    <span style="color:#66d9ef">public</span> TData Unprotect(<span style="color:#66d9ef">string</span> protectedText)
+    {
+        <span style="color:#66d9ef">return</span> Unprotect(protectedText, purpose: <span style="color:#66d9ef">null</span>);
+    }
+
+    <span style="color:#66d9ef">public</span> TData Unprotect(<span style="color:#66d9ef">string</span> protectedText, <span style="color:#66d9ef">string</span> purpose)
+    {
+        <span style="color:#66d9ef">try</span>
+        {
+            <span style="color:#66d9ef">if</span> (protectedText == <span style="color:#66d9ef">null</span>)
+            {
+                <span style="color:#66d9ef">return</span> <span style="color:#66d9ef">default</span>(TData);
+            }
+
+            <span style="color:#66d9ef">var</span> protectedData = Base64UrlTextEncoder.Decode(protectedText);
+            <span style="color:#66d9ef">if</span> (protectedData == <span style="color:#66d9ef">null</span>)
+            {
+                <span style="color:#66d9ef">return</span> <span style="color:#66d9ef">default</span>(TData);
+            }
+
+            <span style="color:#66d9ef">var</span> protector = _protector;
+            <span style="color:#66d9ef">if</span> (!<span style="color:#66d9ef">string</span>.IsNullOrEmpty(purpose))
+            {
+                protector = protector.CreateProtector(purpose);
+            }
+
+            <span style="color:#66d9ef">var</span> userData = protector.Unprotect(protectedData);
+            <span style="color:#66d9ef">if</span> (userData == <span style="color:#66d9ef">null</span>)
+            {
+                <span style="color:#66d9ef">return</span> <span style="color:#66d9ef">default</span>(TData);
+            }
+
+            <span style="color:#66d9ef">return</span> _serializer.Deserialize(userData);
+        }
+        <span style="color:#66d9ef">catch</span>
+        {
+            <span style="color:#75715e">// TODO trace exception, but do not leak other information
+</span><span style="color:#75715e"></span>            <span style="color:#66d9ef">return</span> <span style="color:#66d9ef">default</span>(TData);
+        }
+    }
+}
+</code></pre></div><p>AddRemoteSchema和AddShema的差别就是做了下面的处理，确认始终有不是远程schema的SignInSchema</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-csharp" data-lang="csharp"><span style="color:#66d9ef">private</span> <span style="color:#66d9ef">class</span> <span style="color:#a6e22e">EnsureSignInScheme</span>&lt;TOptions&gt; : IPostConfigureOptions&lt;TOptions&gt; <span style="color:#66d9ef">where</span> TOptions : RemoteAuthenticationOptions
+{
+    <span style="color:#66d9ef">private</span> <span style="color:#66d9ef">readonly</span> AuthenticationOptions _authOptions;
+
+    <span style="color:#66d9ef">public</span> EnsureSignInScheme(IOptions&lt;AuthenticationOptions&gt; authOptions)
+    {
+        _authOptions = authOptions.Value;
+    }
+
+    <span style="color:#66d9ef">public</span> <span style="color:#66d9ef">void</span> PostConfigure(<span style="color:#66d9ef">string</span> name, TOptions options)
+    {
+        options.SignInScheme = options.SignInScheme ?? _authOptions.DefaultSignInScheme ?? _authOptions.DefaultScheme;
+    }
+}
+</code></pre></div><h1 id="oauthhandler">OAuthHandler</h1>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-csharp" data-lang="csharp">  <span style="color:#66d9ef">protected</span> <span style="color:#66d9ef">override</span> <span style="color:#66d9ef">async</span> Task&lt;HandleRequestResult&gt; HandleRemoteAuthenticateAsync()
+        {
+            <span style="color:#66d9ef">var</span> query = Request.Query;
+
+            <span style="color:#66d9ef">var</span> state = query[<span style="color:#e6db74">&#34;state&#34;</span>];
+            <span style="color:#66d9ef">var</span> properties = Options.StateDataFormat.Unprotect(state);
+
+            <span style="color:#66d9ef">if</span> (properties == <span style="color:#66d9ef">null</span>)
+            {
+                <span style="color:#66d9ef">return</span> HandleRequestResult.Fail(<span style="color:#e6db74">&#34;The oauth state was missing or invalid.&#34;</span>);
+            }
+
+            <span style="color:#75715e">// OAuth2 10.12 CSRF
+</span><span style="color:#75715e"></span>            <span style="color:#66d9ef">if</span> (!ValidateCorrelationId(properties))
+            {
+                <span style="color:#66d9ef">return</span> HandleRequestResult.Fail(<span style="color:#e6db74">&#34;Correlation failed.&#34;</span>, properties);
+            }
+
+            <span style="color:#66d9ef">var</span> error = query[<span style="color:#e6db74">&#34;error&#34;</span>];
+            <span style="color:#66d9ef">if</span> (!StringValues.IsNullOrEmpty(error))
+            {
+                <span style="color:#75715e">// Note: access_denied errors are special protocol errors indicating the user didn&#39;t
+</span><span style="color:#75715e"></span>                <span style="color:#75715e">// approve the authorization demand requested by the remote authorization server.
+</span><span style="color:#75715e"></span>                <span style="color:#75715e">// Since it&#39;s a frequent scenario (that is not caused by incorrect configuration),
+</span><span style="color:#75715e"></span>                <span style="color:#75715e">// denied errors are handled differently using HandleAccessDeniedErrorAsync().
+</span><span style="color:#75715e"></span>                <span style="color:#75715e">// Visit https://tools.ietf.org/html/rfc6749#section-4.1.2.1 for more information.
+</span><span style="color:#75715e"></span>                <span style="color:#66d9ef">if</span> (StringValues.Equals(error, <span style="color:#e6db74">&#34;access_denied&#34;</span>))
+                {
+                    <span style="color:#66d9ef">return</span> <span style="color:#66d9ef">await</span> HandleAccessDeniedErrorAsync(properties);
+                }
+
+                <span style="color:#66d9ef">var</span> failureMessage = <span style="color:#66d9ef">new</span> StringBuilder();
+                failureMessage.Append(error);
+                <span style="color:#66d9ef">var</span> errorDescription = query[<span style="color:#e6db74">&#34;error_description&#34;</span>];
+                <span style="color:#66d9ef">if</span> (!StringValues.IsNullOrEmpty(errorDescription))
+                {
+                    failureMessage.Append(<span style="color:#e6db74">&#34;;Description=&#34;</span>).Append(errorDescription);
+                }
+                <span style="color:#66d9ef">var</span> errorUri = query[<span style="color:#e6db74">&#34;error_uri&#34;</span>];
+                <span style="color:#66d9ef">if</span> (!StringValues.IsNullOrEmpty(errorUri))
+                {
+                    failureMessage.Append(<span style="color:#e6db74">&#34;;Uri=&#34;</span>).Append(errorUri);
+                }
+
+                <span style="color:#66d9ef">return</span> HandleRequestResult.Fail(failureMessage.ToString(), properties);
+            }
+
+            <span style="color:#66d9ef">var</span> code = query[<span style="color:#e6db74">&#34;code&#34;</span>];
+
+            <span style="color:#66d9ef">if</span> (StringValues.IsNullOrEmpty(code))
+            {
+                <span style="color:#66d9ef">return</span> HandleRequestResult.Fail(<span style="color:#e6db74">&#34;Code was not found.&#34;</span>, properties);
+            }
+
+            <span style="color:#66d9ef">var</span> tokens = <span style="color:#66d9ef">await</span> ExchangeCodeAsync(code, BuildRedirectUri(Options.CallbackPath));
+
+            <span style="color:#66d9ef">if</span> (tokens.Error != <span style="color:#66d9ef">null</span>)
+            {
+                <span style="color:#66d9ef">return</span> HandleRequestResult.Fail(tokens.Error, properties);
+            }
+
+            <span style="color:#66d9ef">if</span> (<span style="color:#66d9ef">string</span>.IsNullOrEmpty(tokens.AccessToken))
+            {
+                <span style="color:#66d9ef">return</span> HandleRequestResult.Fail(<span style="color:#e6db74">&#34;Failed to retrieve access token.&#34;</span>, properties);
+            }
+
+            <span style="color:#66d9ef">var</span> identity = <span style="color:#66d9ef">new</span> ClaimsIdentity(ClaimsIssuer);
+
+            <span style="color:#66d9ef">if</span> (Options.SaveTokens)
+            {
+                <span style="color:#66d9ef">var</span> authTokens = <span style="color:#66d9ef">new</span> List&lt;AuthenticationToken&gt;();
+
+                authTokens.Add(<span style="color:#66d9ef">new</span> AuthenticationToken { Name = <span style="color:#e6db74">&#34;access_token&#34;</span>, Value = tokens.AccessToken });
+                <span style="color:#66d9ef">if</span> (!<span style="color:#66d9ef">string</span>.IsNullOrEmpty(tokens.RefreshToken))
+                {
+                    authTokens.Add(<span style="color:#66d9ef">new</span> AuthenticationToken { Name = <span style="color:#e6db74">&#34;refresh_token&#34;</span>, Value = tokens.RefreshToken });
+                }
+
+                <span style="color:#66d9ef">if</span> (!<span style="color:#66d9ef">string</span>.IsNullOrEmpty(tokens.TokenType))
+                {
+                    authTokens.Add(<span style="color:#66d9ef">new</span> AuthenticationToken { Name = <span style="color:#e6db74">&#34;token_type&#34;</span>, Value = tokens.TokenType });
+                }
+
+                <span style="color:#66d9ef">if</span> (!<span style="color:#66d9ef">string</span>.IsNullOrEmpty(tokens.ExpiresIn))
+                {
+                    <span style="color:#66d9ef">int</span> <span style="color:#66d9ef">value</span>;
+                    <span style="color:#66d9ef">if</span> (<span style="color:#66d9ef">int</span>.TryParse(tokens.ExpiresIn, NumberStyles.Integer, CultureInfo.InvariantCulture, <span style="color:#66d9ef">out</span> <span style="color:#66d9ef">value</span>))
+                    {
+                        <span style="color:#75715e">// https://www.w3.org/TR/xmlschema-2/#dateTime
+</span><span style="color:#75715e"></span>                        <span style="color:#75715e">// https://msdn.microsoft.com/en-us/library/az4se3k1(v=vs.110).aspx
+</span><span style="color:#75715e"></span>                        <span style="color:#66d9ef">var</span> expiresAt = Clock.UtcNow + TimeSpan.FromSeconds(<span style="color:#66d9ef">value</span>);
+                        authTokens.Add(<span style="color:#66d9ef">new</span> AuthenticationToken
+                        {
+                            Name = <span style="color:#e6db74">&#34;expires_at&#34;</span>,
+                            Value = expiresAt.ToString(<span style="color:#e6db74">&#34;o&#34;</span>, CultureInfo.InvariantCulture)
+                        });
+                    }
+                }
+
+                properties.StoreTokens(authTokens);
+            }
+
+            <span style="color:#66d9ef">var</span> ticket = <span style="color:#66d9ef">await</span> CreateTicketAsync(identity, properties, tokens);
+            <span style="color:#66d9ef">if</span> (ticket != <span style="color:#66d9ef">null</span>)
+            {
+                <span style="color:#66d9ef">return</span> HandleRequestResult.Success(ticket);
+            }
+            <span style="color:#66d9ef">else</span>
+            {
+                <span style="color:#66d9ef">return</span> HandleRequestResult.Fail(<span style="color:#e6db74">&#34;Failed to retrieve user information from remote server.&#34;</span>, properties);
+            }
+        }
+</code></pre></div>
+</div>
+
+
+    </main>
+
+    
+      
+    
+  </body>
+</html>

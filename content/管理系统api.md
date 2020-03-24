@@ -28,6 +28,180 @@ POST /api/user/login
 }
 ```
 
+## 新增用户
+POST /api/user/addUser   
+入参：  
+```csharp
+{
+  "employeeId": 0, //员工id
+  "code": "string", //编码
+  "password": "string", //密码
+  "confirmPassword": "string",
+  "roleId": 0, //角色id
+  "effectiveDate": "2020-03-23T04:45:58.957Z", //生效时间
+  "expireDate": "2020-03-23T04:45:58.957Z", //过期时间
+  "remarks": "string", //备注
+  "status": "string", //用户状态 正常/禁用/建档/删除
+  "isDeptAdmin": true, //是否部门管理人员
+  "isAllRegionAdmin": true, //是否所有区域管理
+  "email": "string", //邮箱
+  "mobile": "string", //手机
+  "officePhone": "string", //办公电话
+  "internalPhone": "string", //内线电话
+  "isContractApprover": true, //是否合同审批人员
+  "isContractConfirmer": true //是否合同确认人员
+}
+```
+## 删除用户
+POST /api/user/deleteUser  
+入参
+```json
+{
+    "id":"string"
+}
+```
+## 更新用户
+POST /api/user/updateUser  
+入参
+```json
+{
+  "code": "string",
+  "companyId": "string",
+  "departmentId": 0,
+  "positionId": 0,
+  "roleId": 0,
+  "effectiveDate": "2020-03-23T05:28:22.449Z",
+  "expireDate": "2020-03-23T05:28:22.449Z",
+  "birthday": "2020-03-23T05:28:22.449Z",
+  "status": "string",
+  "isDeptAdmin": true,
+  "isAllRegionAdmin": true,
+  "officePhone": "string",
+  "internalPhone": "string",
+  "isContractApprover": true,
+  "isContractConfirmer": true
+}
+```
+
+## 查询用户
+GET /api/user/getUserById?id={id}  
+入参：
+```json
+{
+  "code": 1,
+  "data": {
+    "code": "string",
+    "companyId": "string",
+    "departmenttId": 0,
+    "positionId": 0,
+    "roleId": 0,
+    "effectiveDate": "2020-03-23T05:29:04.181Z",
+    "expireDate": "2020-03-23T05:29:04.181Z",
+    "birthday": "2020-03-23T05:29:04.181Z",
+    "status": "string",
+    "isDeptAdmin": true,
+    "isAllRegionAdmin": true,
+    "officePhone": "string",
+    "internalPhone": "string",
+    "isContractApprover": true,
+    "isContractConfirmer": true
+  }
+}
+```
+
+## 导出用户
+POST /api/user/export  
+**Content-Type:form-data**
+```
+deptId：部门id
+code：用户编码
+name：姓名
+gender：性别，男/女
+status：正常/禁用/建档
+mobile：移动电话
+officephone：办公电话
+position：职位
+roleName：角色名
+companyName：公司名
+```
+
+## 用户列表
+GET /api/user/getList
+入参： 
+```
+deptId：部门id
+code：用户编码
+name：姓名
+gender：性别，男/女
+status：正常/禁用/建档
+mobile：移动电话
+officephone：办公电话
+position：职位
+roleName：角色名
+companyName：公司名
+```
+出参：
+```json
+{
+    "code": 1,
+    "data": [
+        {
+            "code": "test",
+            "name": "测试",
+            "gender": null,
+            "deptName": null,
+            "position": "0",
+            "roleName": null,
+            "mobile": "",
+            "status": "正常",
+            "companyName": null,
+            "createdOn": null,
+            "officePhone": null,
+            "roleCount": 0
+        }
+    ]
+}
+```
+## 查询用户角色
+GET /api/user/getUserRoles?userId={userId}
+出参
+```json
+{
+  "code": 0,
+  "data": [
+    {
+      "id": 0,
+      "roleName": "string",
+      "remarks": "string",
+      "createdBy": "string",
+      "createdOn": "2020-03-23T05:30:58.558Z"
+    }
+  ]
+}
+```
+## 新增用户角色
+POST /api/user/addUserRoles  
+入参：
+```json
+{
+  "userId": "string",
+  "roleIds": [
+    0
+  ]
+}
+```
+## 删除用户角色
+POST /api/user/deleteUserRoles
+入参：
+```json
+{
+  "userId": "string",
+  "roleIds": [
+    0
+  ]
+}
+```
+
 # 企业档案
 企业档案、子公司对象结构
 ```json
@@ -173,6 +347,20 @@ GET /department/getById?id={id}
 {
     "code": 1,
     "data": {obj}
+}
+```
+
+## 新增部门
+POST /api/department/add
+入参： 
+```json
+{obj}
+```
+出参：  
+```json
+{
+    "code": 1,
+    "data": true
 }
 ```
 
@@ -351,44 +539,153 @@ POST /api/role/saveRoleModuleRights
 
 ## 操作权限 - TODO
 
-# 用户管理
-## 用户列表
-GET /api/user/getList
-入参： 
-```
-deptId：部门id
-code：用户编码
-name：姓名
-gender：性别，男/女
-status：正常/禁用/建档
-mobile：移动电话
-officephone：办公电话
-position：职位
-roleName：角色名
-companyName：公司名
-```
-出参：
+# 分组管理
+## 新增分组
+POST /api/group/add
 ```json
 {
-    "code": 1,
-    "data": [
-        {
-            "code": "test",
-            "name": "测试",
-            "gender": null,
-            "deptName": null,
-            "position": "0",
-            "roleName": null,
-            "mobile": "",
-            "status": "正常",
-            "companyName": null,
-            "createdOn": null,
-            "officePhone": null,
-            "roleCount": 0
-        }
-    ]
+  "name": "string",
+  "description": "string"
+}
+```
+## 删除分组
+POST /api/group/delete
+```json
+{
+  "id": "string"
 }
 ```
 
+## 更新分组
+POST /api/group/update
+```json
+{
+  "id": 0,
+  "name": "string",
+  "description": "string"
+}
+```
 
+## 查询分组
+GET /api/group/getById?id={id}  
+出参：
+```json
+{
+  "code": 0,
+  "data": {
+    "id": 0,
+    "name": "string",
+    "description": "string"
+  }
+}
+```
+
+## 查询分组列表
+GET /api/group/getList  
+出参：
+```json
+{
+  "code": 0,
+  "data": [
+    {
+      "id": 0,
+      "name": "string",
+      "description": "string"
+    }
+  ]
+}
+```
+## 查询分组待办授权列表
+GET /api/group/getGroupTodoList?groupId={groupId}  
+出参：  
+```json
+{
+  "code": 0,
+  "data": {
+    "todoId": 0,
+    "todoName": "string",
+    "status": "string",
+    "type": "string",
+    "hasRight": true
+  }
+}
+```
+
+## 新增分组待办授权
+POST /api/group/addGroupTodo  
+入参：  
+```json
+{
+    "groupId":0,
+    "todoId":0
+}
+```
+## 删除分组待办授权
+POST /api/group/deleteGroupTodo  
+入参：  
+```json
+{
+    "groupId":0,
+    "todoId":0
+}
+```
+## 新增分组-用户、职位、角色关联
+POST /api/group/addGroupUser
+入参：
+```json
+{
+  "groupId": 0,
+  "objectId": "string", //对象id
+  "objectType": "string" //对象类型
+}
+```
+
+## 删除分组-用户、职位、角色关联
+POST /api/group/deleteGroupUser  
+入参：
+```json
+{
+  "groupId": 0,
+  "objectId": "string", //对象id
+  "objectType": "string" //对象类型
+}
+```
+
+# 日志查询
+## 查询登录汇总日志列表
+GET /api/log/getLoginLogSummary?userCode=x&startTime=x&endTime=x
+出参  
+```json
+{
+  "code": 0,
+  "data": [
+    {
+      "userCode": "string",
+      "userName": "string",
+      "loginCount": 0
+    }
+  ]
+}
+```
+
+## 查询登录日志分页列表
+GET /api/log/getLoginLogList?pageNo=1&pageSize=10&usercode=x&startTime=x
+&endTime=x&module=x&ip=x&status=x
+出参  
+```json
+{
+  "code": 0,
+  "data": [
+    {
+      "loginDate": "string",
+      "userCode": "string",
+      "userName": "string",
+      "ip": "string",
+      "port": "string",
+      "status": "string",
+      "module": "string"
+    }
+  ]
+}
+```
 
