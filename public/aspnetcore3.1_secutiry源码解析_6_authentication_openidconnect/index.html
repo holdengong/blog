@@ -1,0 +1,930 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="zh-Hans" lang="zh-Hans">
+<head>
+  <link href="https://gmpg.org/xfn/11" rel="profile">
+  <meta http-equiv="content-type" content="text/html; charset=utf-8">
+  <meta name="generator" content="Hugo 0.67.0" />
+
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <title>AspNetCore3.1_Secutiry源码解析_6_Authentication_OpenIdConnect &middot; Holden Gong</title>
+  <meta name="description" content="" />
+
+  
+  <link type="text/css" rel="stylesheet" href="https://holdengong.com/css/print.css" media="print">
+  <link type="text/css" rel="stylesheet" href="https://holdengong.com/css/poole.css">
+  <link type="text/css" rel="stylesheet" href="https://holdengong.com/css/syntax.css">
+  <link type="text/css" rel="stylesheet" href="https://holdengong.com/css/hyde.css">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Abril+Fatface|PT+Sans:400,400i,700">
+
+
+  
+  <link rel="apple-touch-icon-precomposed" sizes="144x144" href="/apple-touch-icon-144-precomposed.png">
+  <link rel="shortcut icon" href="/favicon.png">
+
+  
+  
+</head>
+
+  <body class=" ">
+  <aside class="sidebar">
+  <div class="container sidebar-sticky">
+    <div class="sidebar-about">
+      <a href="https://holdengong.com/">
+        <h1>Holden Gong</h1>
+      </a>
+      <p class="lead">
+        code & life
+      </p>
+    </div>
+
+    <nav>
+      <ul class="sidebar-nav">
+  
+      </ul>
+    </nav>
+    
+    <div>
+      <p>&copy; 2020. All rights reserved. </p>
+      <p>鄂ICP备20003133号</p>
+      <script type="text/javascript">document.write(unescape("%3Cspan id='cnzz_stat_icon_1278689390'%3E%3C/span%3E%3Cscript src='https://v1.cnzz.com/z_stat.php%3Fid%3D1278689390%26show%3Dpic' type='text/javascript'%3E%3C/script%3E"));</script>
+    </div>
+  </div>
+</aside>
+
+    <main class="content container">
+    <div class="post">
+  <h1>AspNetCore3.1_Secutiry源码解析_6_Authentication_OpenIdConnect</h1>
+  <time datetime=2020-03-25T21:33:12&#43;0800 class="post-date">Wed, Mar 25, 2020</time>
+  <h1 id="oidc简介">oidc简介</h1>
+<p>oidc是基于oauth2.0的上层协议。</p>
+<p>OAuth有点像卖电影票的，只关心用户能不能进电影院，不关心用户是谁。而oidc则像身份证，扫描就可以上飞机，一次扫描，机场不仅能知道你是否能上飞机，还可以知道你的身份信息。</p>
+<p>oidc兼容OAuth2.0, 可以实现跨顶级域的SSO(单点登录、登出)，下个系列要学习的IdentityServer4就是对oidc协议族的一个具体实现框架。</p>
+<p>更多理论知识看下面的参考资料，本系列主要过下源码脉络</p>
+<p>博客园</p>
+<blockquote>
+<p><a href="https://www.cnblogs.com/linianhui/p/openid-connect-core.html">https://www.cnblogs.com/linianhui/p/openid-connect-core.html</a></p>
+</blockquote>
+<p>协议</p>
+<blockquote>
+<p><a href="https://openid.net/connect/">https://openid.net/connect/</a></p>
+</blockquote>
+<h1 id="依赖注入">依赖注入</h1>
+<p>默认架构名称是OpenIdConnect，处理器类是OpenIdConnectHandler，配置类是OpenIdConnectOptions</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-csharp" data-lang="csharp"><span style="color:#66d9ef">public</span> <span style="color:#66d9ef">static</span> AuthenticationBuilder AddOpenIdConnect(<span style="color:#66d9ef">this</span> AuthenticationBuilder builder)
+        =&gt; builder.AddOpenIdConnect(OpenIdConnectDefaults.AuthenticationScheme, _ =&gt; { });
+
+    <span style="color:#66d9ef">public</span> <span style="color:#66d9ef">static</span> AuthenticationBuilder AddOpenIdConnect(<span style="color:#66d9ef">this</span> AuthenticationBuilder builder, Action&lt;OpenIdConnectOptions&gt; configureOptions)
+        =&gt; builder.AddOpenIdConnect(OpenIdConnectDefaults.AuthenticationScheme, configureOptions);
+
+    <span style="color:#66d9ef">public</span> <span style="color:#66d9ef">static</span> AuthenticationBuilder AddOpenIdConnect(<span style="color:#66d9ef">this</span> AuthenticationBuilder builder, <span style="color:#66d9ef">string</span> authenticationScheme, Action&lt;OpenIdConnectOptions&gt; configureOptions)
+        =&gt; builder.AddOpenIdConnect(authenticationScheme, OpenIdConnectDefaults.DisplayName, configureOptions);
+
+    <span style="color:#66d9ef">public</span> <span style="color:#66d9ef">static</span> AuthenticationBuilder AddOpenIdConnect(<span style="color:#66d9ef">this</span> AuthenticationBuilder builder, <span style="color:#66d9ef">string</span> authenticationScheme, <span style="color:#66d9ef">string</span> displayName, Action&lt;OpenIdConnectOptions&gt; configureOptions)
+    {
+        builder.Services.TryAddEnumerable(ServiceDescriptor.Singleton&lt;IPostConfigureOptions&lt;OpenIdConnectOptions&gt;, OpenIdConnectPostConfigureOptions&gt;());
+        <span style="color:#66d9ef">return</span> builder.AddRemoteScheme&lt;OpenIdConnectOptions, OpenIdConnectHandler&gt;(authenticationScheme, displayName, configureOptions);
+    }
+</code></pre></div><h1 id="配置类---openidconnectoptions">配置类 - OpenIdConnectOptions</h1>
+<h2 id="构造函数">构造函数</h2>
+<p>CallbackPath: 回调地址，即远程认证之后跳回的地址<br>
+SignedOutCallbackPath：登出后的回调地址<br>
+RemoteSignOutPath：远程登出地址</p>
+<p>scope添加openid（用户id）,profile（用户基本信息），所以如果client没有这两个基本的权限是会被远程认证拒绝的。</p>
+<p>删除了nonce,aud等claim，添加了sub(用户id,必须有),name,profile,email等claim。MapUniqueJsonKey方法的意思是如果某claim无值，远程认证服务返回的用户json数据中中存在此key且有值，则将值插入claim中，否则什么也不做。</p>
+<p>然后new了防重放攻击的nonce cookie。</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-csharp" data-lang="csharp"><span style="color:#66d9ef">public</span> OpenIdConnectOptions()
+{
+    CallbackPath = <span style="color:#66d9ef">new</span> PathString(<span style="color:#e6db74">&#34;/signin-oidc&#34;</span>);
+    SignedOutCallbackPath = <span style="color:#66d9ef">new</span> PathString(<span style="color:#e6db74">&#34;/signout-callback-oidc&#34;</span>);
+    RemoteSignOutPath = <span style="color:#66d9ef">new</span> PathString(<span style="color:#e6db74">&#34;/signout-oidc&#34;</span>);
+
+    Events = <span style="color:#66d9ef">new</span> OpenIdConnectEvents();
+    Scope.Add(<span style="color:#e6db74">&#34;openid&#34;</span>);
+    Scope.Add(<span style="color:#e6db74">&#34;profile&#34;</span>);
+
+    ClaimActions.DeleteClaim(<span style="color:#e6db74">&#34;nonce&#34;</span>);
+    ClaimActions.DeleteClaim(<span style="color:#e6db74">&#34;aud&#34;</span>);
+    ClaimActions.DeleteClaim(<span style="color:#e6db74">&#34;azp&#34;</span>);
+    ClaimActions.DeleteClaim(<span style="color:#e6db74">&#34;acr&#34;</span>);
+    ClaimActions.DeleteClaim(<span style="color:#e6db74">&#34;iss&#34;</span>);
+    ClaimActions.DeleteClaim(<span style="color:#e6db74">&#34;iat&#34;</span>);
+    ClaimActions.DeleteClaim(<span style="color:#e6db74">&#34;nbf&#34;</span>);
+    ClaimActions.DeleteClaim(<span style="color:#e6db74">&#34;exp&#34;</span>);
+    ClaimActions.DeleteClaim(<span style="color:#e6db74">&#34;at_hash&#34;</span>);
+    ClaimActions.DeleteClaim(<span style="color:#e6db74">&#34;c_hash&#34;</span>);
+    ClaimActions.DeleteClaim(<span style="color:#e6db74">&#34;ipaddr&#34;</span>);
+    ClaimActions.DeleteClaim(<span style="color:#e6db74">&#34;platf&#34;</span>);
+    ClaimActions.DeleteClaim(<span style="color:#e6db74">&#34;ver&#34;</span>);
+
+    <span style="color:#75715e">// http://openid.net/specs/openid-connect-core-1_0.html#StandardClaims
+</span><span style="color:#75715e"></span>    ClaimActions.MapUniqueJsonKey(<span style="color:#e6db74">&#34;sub&#34;</span>, <span style="color:#e6db74">&#34;sub&#34;</span>);
+    ClaimActions.MapUniqueJsonKey(<span style="color:#e6db74">&#34;name&#34;</span>, <span style="color:#e6db74">&#34;name&#34;</span>);
+    ClaimActions.MapUniqueJsonKey(<span style="color:#e6db74">&#34;given_name&#34;</span>, <span style="color:#e6db74">&#34;given_name&#34;</span>);
+    ClaimActions.MapUniqueJsonKey(<span style="color:#e6db74">&#34;family_name&#34;</span>, <span style="color:#e6db74">&#34;family_name&#34;</span>);
+    ClaimActions.MapUniqueJsonKey(<span style="color:#e6db74">&#34;profile&#34;</span>, <span style="color:#e6db74">&#34;profile&#34;</span>);
+    ClaimActions.MapUniqueJsonKey(<span style="color:#e6db74">&#34;email&#34;</span>, <span style="color:#e6db74">&#34;email&#34;</span>);
+
+    _nonceCookieBuilder = <span style="color:#66d9ef">new</span> OpenIdConnectNonceCookieBuilder(<span style="color:#66d9ef">this</span>)
+    {
+        Name = OpenIdConnectDefaults.CookieNoncePrefix,
+        HttpOnly = <span style="color:#66d9ef">true</span>,
+        SameSite = SameSiteMode.None,
+        SecurePolicy = CookieSecurePolicy.SameAsRequest,
+        IsEssential = <span style="color:#66d9ef">true</span>,
+    };
+}
+</code></pre></div><h2 id="配置校验---validate">配置校验 - Validate</h2>
+<p>父类RemoteAuthenticationOptions会校验SignInSchema不允许与当前Schema相同（SignInSchema微软只提供了Cookie的实现，登录似乎除了Cookie没有别的方式可以维持登录态？）</p>
+<p>校验max-age不能为负数</p>
+<p>ClientId不能为空</p>
+<p>CallbackPath必须有值</p>
+<p>ConfigurationManager不能为null</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-csharp" data-lang="csharp"><span style="color:#66d9ef">public</span> <span style="color:#66d9ef">override</span> <span style="color:#66d9ef">void</span> Validate()
+{
+    <span style="color:#66d9ef">base</span>.Validate();
+
+    <span style="color:#66d9ef">if</span> (MaxAge.HasValue &amp;&amp; MaxAge.Value &lt; TimeSpan.Zero)
+    {
+        <span style="color:#66d9ef">throw</span> <span style="color:#66d9ef">new</span> ArgumentOutOfRangeException(nameof(MaxAge), MaxAge.Value, <span style="color:#e6db74">&#34;The value must not be a negative TimeSpan.&#34;</span>);
+    }
+
+    <span style="color:#66d9ef">if</span> (<span style="color:#66d9ef">string</span>.IsNullOrEmpty(ClientId))
+    {
+        <span style="color:#66d9ef">throw</span> <span style="color:#66d9ef">new</span> ArgumentException(<span style="color:#e6db74">&#34;Options.ClientId must be provided&#34;</span>, nameof(ClientId));
+    }
+
+    <span style="color:#66d9ef">if</span> (!CallbackPath.HasValue)
+    {
+        <span style="color:#66d9ef">throw</span> <span style="color:#66d9ef">new</span> ArgumentException(<span style="color:#e6db74">&#34;Options.CallbackPath must be provided.&#34;</span>, nameof(CallbackPath));
+    }
+
+    <span style="color:#66d9ef">if</span> (ConfigurationManager == <span style="color:#66d9ef">null</span>)
+    {
+        <span style="color:#66d9ef">throw</span> <span style="color:#66d9ef">new</span> InvalidOperationException(<span style="color:#e6db74">$&#34;Provide {nameof(Authority)}, {nameof(MetadataAddress)}, &#34;</span>
+        + <span style="color:#e6db74">$&#34;{nameof(Configuration)}, or {nameof(ConfigurationManager)} to {nameof(OpenIdConnectOptions)}&#34;</span>);
+    }
+}
+</code></pre></div><h2 id="属性">属性</h2>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-csharp" data-lang="csharp"><span style="color:#75715e">/// &lt;summary&gt;
+</span><span style="color:#75715e">/// Gets or sets timeout value in milliseconds for back channel communications with the remote identity provider.
+</span><span style="color:#75715e">/// &lt;/summary&gt;
+</span><span style="color:#75715e">/// &lt;value&gt;
+</span><span style="color:#75715e">/// The back channel timeout.
+</span><span style="color:#75715e">/// &lt;/value&gt;
+</span><span style="color:#75715e"></span><span style="color:#66d9ef">public</span> TimeSpan BackchannelTimeout { <span style="color:#66d9ef">get</span>; <span style="color:#66d9ef">set</span>; } = TimeSpan.FromSeconds(<span style="color:#ae81ff">60</span>);
+
+<span style="color:#75715e">/// &lt;summary&gt;
+</span><span style="color:#75715e">/// The HttpMessageHandler used to communicate with remote identity provider.
+</span><span style="color:#75715e">/// This cannot be set at the same time as BackchannelCertificateValidator unless the value 
+</span><span style="color:#75715e">/// can be downcast to a WebRequestHandler.
+</span><span style="color:#75715e">/// &lt;/summary&gt;
+</span><span style="color:#75715e"></span><span style="color:#66d9ef">public</span> HttpMessageHandler BackchannelHttpHandler { <span style="color:#66d9ef">get</span>; <span style="color:#66d9ef">set</span>; }
+
+<span style="color:#75715e">/// &lt;summary&gt;
+</span><span style="color:#75715e">/// Used to communicate with the remote identity provider.
+</span><span style="color:#75715e">/// &lt;/summary&gt;
+</span><span style="color:#75715e"></span><span style="color:#66d9ef">public</span> HttpClient Backchannel { <span style="color:#66d9ef">get</span>; <span style="color:#66d9ef">set</span>; }
+
+<span style="color:#75715e">/// &lt;summary&gt;
+</span><span style="color:#75715e">/// Gets or sets the type used to secure data.
+</span><span style="color:#75715e">/// &lt;/summary&gt;
+</span><span style="color:#75715e"></span><span style="color:#66d9ef">public</span> IDataProtectionProvider DataProtectionProvider { <span style="color:#66d9ef">get</span>; <span style="color:#66d9ef">set</span>; }
+
+<span style="color:#75715e">/// &lt;summary&gt;
+</span><span style="color:#75715e">/// The request path within the application&#39;s base path where the user-agent will be returned.
+</span><span style="color:#75715e">/// The middleware will process this request when it arrives.
+</span><span style="color:#75715e">/// &lt;/summary&gt;
+</span><span style="color:#75715e"></span><span style="color:#66d9ef">public</span> PathString CallbackPath { <span style="color:#66d9ef">get</span>; <span style="color:#66d9ef">set</span>; }
+
+<span style="color:#75715e">/// &lt;summary&gt;
+</span><span style="color:#75715e">/// Gets or sets the optional path the user agent is redirected to if the user
+</span><span style="color:#75715e">/// doesn&#39;t approve the authorization demand requested by the remote server.
+</span><span style="color:#75715e">/// This property is not set by default. In this case, an exception is thrown
+</span><span style="color:#75715e">/// if an access_denied response is returned by the remote authorization server.
+</span><span style="color:#75715e">/// &lt;/summary&gt;
+</span><span style="color:#75715e"></span><span style="color:#66d9ef">public</span> PathString AccessDeniedPath { <span style="color:#66d9ef">get</span>; <span style="color:#66d9ef">set</span>; }
+
+<span style="color:#75715e">/// &lt;summary&gt;
+</span><span style="color:#75715e">/// Gets or sets the name of the parameter used to convey the original location
+</span><span style="color:#75715e">/// of the user before the remote challenge was triggered up to the access denied page.
+</span><span style="color:#75715e">/// This property is only used when the &lt;see cref=&#34;AccessDeniedPath&#34;/&gt; is explicitly specified.
+</span><span style="color:#75715e">/// &lt;/summary&gt;
+</span><span style="color:#75715e">// Note: this deliberately matches the default parameter name used by the cookie handler.
+</span><span style="color:#75715e"></span><span style="color:#66d9ef">public</span> <span style="color:#66d9ef">string</span> ReturnUrlParameter { <span style="color:#66d9ef">get</span>; <span style="color:#66d9ef">set</span>; } = <span style="color:#e6db74">&#34;ReturnUrl&#34;</span>;
+
+<span style="color:#75715e">/// &lt;summary&gt;
+</span><span style="color:#75715e">/// Gets or sets the authentication scheme corresponding to the middleware
+</span><span style="color:#75715e">/// responsible of persisting user&#39;s identity after a successful authentication.
+</span><span style="color:#75715e">/// This value typically corresponds to a cookie middleware registered in the Startup class.
+</span><span style="color:#75715e">/// When omitted, &lt;see cref=&#34;AuthenticationOptions.DefaultSignInScheme&#34;/&gt; is used as a fallback value.
+</span><span style="color:#75715e">/// &lt;/summary&gt;
+</span><span style="color:#75715e"></span><span style="color:#66d9ef">public</span> <span style="color:#66d9ef">string</span> SignInScheme { <span style="color:#66d9ef">get</span>; <span style="color:#66d9ef">set</span>; }
+
+<span style="color:#75715e">/// &lt;summary&gt;
+</span><span style="color:#75715e">/// Gets or sets the time limit for completing the authentication flow (15 minutes by default).
+</span><span style="color:#75715e">/// &lt;/summary&gt;
+</span><span style="color:#75715e"></span><span style="color:#66d9ef">public</span> TimeSpan RemoteAuthenticationTimeout { <span style="color:#66d9ef">get</span>; <span style="color:#66d9ef">set</span>; } = TimeSpan.FromMinutes(<span style="color:#ae81ff">15</span>);
+
+<span style="color:#66d9ef">public</span> <span style="color:#66d9ef">new</span> RemoteAuthenticationEvents Events
+{
+    <span style="color:#66d9ef">get</span> =&gt; (RemoteAuthenticationEvents)<span style="color:#66d9ef">base</span>.Events;
+    <span style="color:#66d9ef">set</span> =&gt; <span style="color:#66d9ef">base</span>.Events = <span style="color:#66d9ef">value</span>;
+}
+
+<span style="color:#75715e">/// &lt;summary&gt;
+</span><span style="color:#75715e">/// Defines whether access and refresh tokens should be stored in the
+</span><span style="color:#75715e">/// &lt;see cref=&#34;AuthenticationProperties&#34;/&gt; after a successful authorization.
+</span><span style="color:#75715e">/// This property is set to &lt;c&gt;false&lt;/c&gt; by default to reduce
+</span><span style="color:#75715e">/// the size of the final authentication cookie.
+</span><span style="color:#75715e">/// &lt;/summary&gt;
+</span><span style="color:#75715e"></span><span style="color:#66d9ef">public</span> <span style="color:#66d9ef">bool</span> SaveTokens { <span style="color:#66d9ef">get</span>; <span style="color:#66d9ef">set</span>; }
+
+<span style="color:#75715e">/// &lt;summary&gt;
+</span><span style="color:#75715e">/// Determines the settings used to create the correlation cookie before the
+</span><span style="color:#75715e">/// cookie gets added to the response.
+</span><span style="color:#75715e">/// &lt;/summary&gt;
+</span><span style="color:#75715e"></span><span style="color:#66d9ef">public</span> CookieBuilder CorrelationCookie
+{
+    <span style="color:#66d9ef">get</span> =&gt; _correlationCookieBuilder;
+    <span style="color:#66d9ef">set</span> =&gt; _correlationCookieBuilder = <span style="color:#66d9ef">value</span> ?? <span style="color:#66d9ef">throw</span> <span style="color:#66d9ef">new</span> ArgumentNullException(nameof(<span style="color:#66d9ef">value</span>));
+}
+</code></pre></div><h2 id="配置后处理逻辑---openidconnectpostconfigureoptions">配置后处理逻辑 - OpenIdConnectPostConfigureOptions</h2>
+<p>主要处理如果DataProtectionProvider，StateDataFormat等对象没有配置的话，则构造默认实现类。options.MetadataAddress += &ldquo;.well-known/openid-configuration&rdquo;，这是配置的元数据地址，描述了oidc的所有接口地址和其他信息。</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-csharp" data-lang="csharp"><span style="color:#66d9ef">public</span> <span style="color:#66d9ef">class</span> <span style="color:#a6e22e">OpenIdConnectPostConfigureOptions</span> : IPostConfigureOptions&lt;OpenIdConnectOptions&gt;
+{
+    <span style="color:#66d9ef">private</span> <span style="color:#66d9ef">readonly</span> IDataProtectionProvider _dp;
+
+    <span style="color:#66d9ef">public</span> OpenIdConnectPostConfigureOptions(IDataProtectionProvider dataProtection)
+    {
+        _dp = dataProtection;
+    }
+
+    <span style="color:#75715e">/// &lt;summary&gt;
+</span><span style="color:#75715e"></span>    <span style="color:#75715e">/// Invoked to post configure a TOptions instance.
+</span><span style="color:#75715e"></span>    <span style="color:#75715e">/// &lt;/summary&gt;
+</span><span style="color:#75715e"></span>    <span style="color:#75715e">/// &lt;param name=&#34;name&#34;&gt;The name of the options instance being configured.&lt;/param&gt;
+</span><span style="color:#75715e"></span>    <span style="color:#75715e">/// &lt;param name=&#34;options&#34;&gt;The options instance to configure.&lt;/param&gt;
+</span><span style="color:#75715e"></span>    <span style="color:#66d9ef">public</span> <span style="color:#66d9ef">void</span> PostConfigure(<span style="color:#66d9ef">string</span> name, OpenIdConnectOptions options)
+    {
+        options.DataProtectionProvider = options.DataProtectionProvider ?? _dp;
+
+        <span style="color:#66d9ef">if</span> (<span style="color:#66d9ef">string</span>.IsNullOrEmpty(options.SignOutScheme))
+        {
+            options.SignOutScheme = options.SignInScheme;
+        }
+
+        <span style="color:#66d9ef">if</span> (options.StateDataFormat == <span style="color:#66d9ef">null</span>)
+        {
+            <span style="color:#66d9ef">var</span> dataProtector = options.DataProtectionProvider.CreateProtector(
+                <span style="color:#66d9ef">typeof</span>(OpenIdConnectHandler).FullName, name, <span style="color:#e6db74">&#34;v1&#34;</span>);
+            options.StateDataFormat = <span style="color:#66d9ef">new</span> PropertiesDataFormat(dataProtector);
+        }
+
+        <span style="color:#66d9ef">if</span> (options.StringDataFormat == <span style="color:#66d9ef">null</span>)
+        {
+            <span style="color:#66d9ef">var</span> dataProtector = options.DataProtectionProvider.CreateProtector(
+                <span style="color:#66d9ef">typeof</span>(OpenIdConnectHandler).FullName,
+                <span style="color:#66d9ef">typeof</span>(<span style="color:#66d9ef">string</span>).FullName,
+                name,
+                <span style="color:#e6db74">&#34;v1&#34;</span>);
+
+            options.StringDataFormat = <span style="color:#66d9ef">new</span> SecureDataFormat&lt;<span style="color:#66d9ef">string</span>&gt;(<span style="color:#66d9ef">new</span> StringSerializer(), dataProtector);
+        }
+
+        <span style="color:#66d9ef">if</span> (<span style="color:#66d9ef">string</span>.IsNullOrEmpty(options.TokenValidationParameters.ValidAudience) &amp;&amp; !<span style="color:#66d9ef">string</span>.IsNullOrEmpty(options.ClientId))
+        {
+            options.TokenValidationParameters.ValidAudience = options.ClientId;
+        }
+
+        <span style="color:#66d9ef">if</span> (options.Backchannel == <span style="color:#66d9ef">null</span>)
+        {
+            options.Backchannel = <span style="color:#66d9ef">new</span> HttpClient(options.BackchannelHttpHandler ?? <span style="color:#66d9ef">new</span> HttpClientHandler());
+            options.Backchannel.DefaultRequestHeaders.UserAgent.ParseAdd(<span style="color:#e6db74">&#34;Microsoft ASP.NET Core OpenIdConnect handler&#34;</span>);
+            options.Backchannel.Timeout = options.BackchannelTimeout;
+            options.Backchannel.MaxResponseContentBufferSize = <span style="color:#ae81ff">1024</span> * <span style="color:#ae81ff">1024</span> * <span style="color:#ae81ff">10</span>; <span style="color:#75715e">// 10 MB
+</span><span style="color:#75715e"></span>        }
+
+        <span style="color:#66d9ef">if</span> (options.ConfigurationManager == <span style="color:#66d9ef">null</span>)
+        {
+            <span style="color:#66d9ef">if</span> (options.Configuration != <span style="color:#66d9ef">null</span>)
+            {
+                options.ConfigurationManager = <span style="color:#66d9ef">new</span> StaticConfigurationManager&lt;OpenIdConnectConfiguration&gt;(options.Configuration);
+            }
+            <span style="color:#66d9ef">else</span> <span style="color:#66d9ef">if</span> (!(<span style="color:#66d9ef">string</span>.IsNullOrEmpty(options.MetadataAddress) &amp;&amp; <span style="color:#66d9ef">string</span>.IsNullOrEmpty(options.Authority)))
+            {
+                <span style="color:#66d9ef">if</span> (<span style="color:#66d9ef">string</span>.IsNullOrEmpty(options.MetadataAddress) &amp;&amp; !<span style="color:#66d9ef">string</span>.IsNullOrEmpty(options.Authority))
+                {
+                    options.MetadataAddress = options.Authority;
+                    <span style="color:#66d9ef">if</span> (!options.MetadataAddress.EndsWith(<span style="color:#e6db74">&#34;/&#34;</span>, StringComparison.Ordinal))
+                    {
+                        options.MetadataAddress += <span style="color:#e6db74">&#34;/&#34;</span>;
+                    }
+
+                    options.MetadataAddress += <span style="color:#e6db74">&#34;.well-known/openid-configuration&#34;</span>;
+                }
+
+                <span style="color:#66d9ef">if</span> (options.RequireHttpsMetadata &amp;&amp; !options.MetadataAddress.StartsWith(<span style="color:#e6db74">&#34;https://&#34;</span>, StringComparison.OrdinalIgnoreCase))
+                {
+                    <span style="color:#66d9ef">throw</span> <span style="color:#66d9ef">new</span> InvalidOperationException(<span style="color:#e6db74">&#34;The MetadataAddress or Authority must use HTTPS unless disabled for development by setting RequireHttpsMetadata=false.&#34;</span>);
+                }
+
+                options.ConfigurationManager = <span style="color:#66d9ef">new</span> ConfigurationManager&lt;OpenIdConnectConfiguration&gt;(options.MetadataAddress, <span style="color:#66d9ef">new</span> OpenIdConnectConfigurationRetriever(),
+                    <span style="color:#66d9ef">new</span> HttpDocumentRetriever(options.Backchannel) { RequireHttps = options.RequireHttpsMetadata });
+            }
+        }
+    }
+
+    <span style="color:#66d9ef">private</span> <span style="color:#66d9ef">class</span> <span style="color:#a6e22e">StringSerializer</span> : IDataSerializer&lt;<span style="color:#66d9ef">string</span>&gt;
+    {
+        <span style="color:#66d9ef">public</span> <span style="color:#66d9ef">string</span> Deserialize(<span style="color:#66d9ef">byte</span>[] data)
+        {
+            <span style="color:#66d9ef">return</span> Encoding.UTF8.GetString(data);
+        }
+
+        <span style="color:#66d9ef">public</span> <span style="color:#66d9ef">byte</span>[] Serialize(<span style="color:#66d9ef">string</span> model)
+        {
+            <span style="color:#66d9ef">return</span> Encoding.UTF8.GetBytes(model);
+        }
+    }
+</code></pre></div><h1 id="处理器类----openidconnecthandler">处理器类 -  OpenIdConnectHandler</h1>
+<h2 id="处理认证---handremoteauthenticate">处理认证 - HandRemoteAuthenticate</h2>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-csharp" data-lang="csharp"><span style="color:#75715e">/// &lt;summary&gt;
+</span><span style="color:#75715e">/// Invoked to process incoming OpenIdConnect messages.
+</span><span style="color:#75715e">/// &lt;/summary&gt;
+</span><span style="color:#75715e">/// &lt;returns&gt;An &lt;see cref=&#34;HandleRequestResult&#34;/&gt;.&lt;/returns&gt;
+</span><span style="color:#75715e"></span><span style="color:#66d9ef">protected</span> <span style="color:#66d9ef">override</span> <span style="color:#66d9ef">async</span> Task&lt;HandleRequestResult&gt; HandleRemoteAuthenticateAsync()
+{
+    Logger.EnteringOpenIdAuthenticationHandlerHandleRemoteAuthenticateAsync(GetType().FullName);
+
+    OpenIdConnectMessage authorizationResponse = <span style="color:#66d9ef">null</span>;
+
+    <span style="color:#66d9ef">if</span> (<span style="color:#66d9ef">string</span>.Equals(Request.Method, <span style="color:#e6db74">&#34;GET&#34;</span>, StringComparison.OrdinalIgnoreCase))
+    {
+        authorizationResponse = <span style="color:#66d9ef">new</span> OpenIdConnectMessage(Request.Query.Select(pair =&gt; <span style="color:#66d9ef">new</span> KeyValuePair&lt;<span style="color:#66d9ef">string</span>, <span style="color:#66d9ef">string</span>[]&gt;(pair.Key, pair.Value)));
+
+        <span style="color:#75715e">// response_mode=query (explicit or not) and a response_type containing id_token
+</span><span style="color:#75715e"></span>        <span style="color:#75715e">// or token are not considered as a safe combination and MUST be rejected.
+</span><span style="color:#75715e"></span>        <span style="color:#75715e">// See http://openid.net/specs/oauth-v2-multiple-response-types-1_0.html#Security
+</span><span style="color:#75715e"></span>        <span style="color:#66d9ef">if</span> (!<span style="color:#66d9ef">string</span>.IsNullOrEmpty(authorizationResponse.IdToken) || !<span style="color:#66d9ef">string</span>.IsNullOrEmpty(authorizationResponse.AccessToken))
+        {
+            <span style="color:#66d9ef">if</span> (Options.SkipUnrecognizedRequests)
+            {
+                <span style="color:#75715e">// Not for us?
+</span><span style="color:#75715e"></span>                <span style="color:#66d9ef">return</span> HandleRequestResult.SkipHandler();
+            }
+            <span style="color:#66d9ef">return</span> HandleRequestResult.Fail(<span style="color:#e6db74">&#34;An OpenID Connect response cannot contain an &#34;</span> +
+                    <span style="color:#e6db74">&#34;identity token or an access token when using response_mode=query&#34;</span>);
+        }
+    }
+    <span style="color:#75715e">// assumption: if the ContentType is &#34;application/x-www-form-urlencoded&#34; it should be safe to read as it is small.
+</span><span style="color:#75715e"></span>    <span style="color:#66d9ef">else</span> <span style="color:#66d9ef">if</span> (<span style="color:#66d9ef">string</span>.Equals(Request.Method, <span style="color:#e6db74">&#34;POST&#34;</span>, StringComparison.OrdinalIgnoreCase)
+        &amp;&amp; !<span style="color:#66d9ef">string</span>.IsNullOrEmpty(Request.ContentType)
+        <span style="color:#75715e">// May have media/type; charset=utf-8, allow partial match.
+</span><span style="color:#75715e"></span>        &amp;&amp; Request.ContentType.StartsWith(<span style="color:#e6db74">&#34;application/x-www-form-urlencoded&#34;</span>, StringComparison.OrdinalIgnoreCase)
+        &amp;&amp; Request.Body.CanRead)
+    {
+        <span style="color:#66d9ef">var</span> form = <span style="color:#66d9ef">await</span> Request.ReadFormAsync();
+        authorizationResponse = <span style="color:#66d9ef">new</span> OpenIdConnectMessage(form.Select(pair =&gt; <span style="color:#66d9ef">new</span> KeyValuePair&lt;<span style="color:#66d9ef">string</span>, <span style="color:#66d9ef">string</span>[]&gt;(pair.Key, pair.Value)));
+    }
+
+    <span style="color:#66d9ef">if</span> (authorizationResponse == <span style="color:#66d9ef">null</span>)
+    {
+        <span style="color:#66d9ef">if</span> (Options.SkipUnrecognizedRequests)
+        {
+            <span style="color:#75715e">// Not for us?
+</span><span style="color:#75715e"></span>            <span style="color:#66d9ef">return</span> HandleRequestResult.SkipHandler();
+        }
+        <span style="color:#66d9ef">return</span> HandleRequestResult.Fail(<span style="color:#e6db74">&#34;No message.&#34;</span>);
+    }
+
+    AuthenticationProperties properties = <span style="color:#66d9ef">null</span>;
+    <span style="color:#66d9ef">try</span>
+    {
+        properties = ReadPropertiesAndClearState(authorizationResponse);
+
+        <span style="color:#66d9ef">var</span> messageReceivedContext = <span style="color:#66d9ef">await</span> RunMessageReceivedEventAsync(authorizationResponse, properties);
+        <span style="color:#66d9ef">if</span> (messageReceivedContext.Result != <span style="color:#66d9ef">null</span>)
+        {
+            <span style="color:#66d9ef">return</span> messageReceivedContext.Result;
+        }
+        authorizationResponse = messageReceivedContext.ProtocolMessage;
+        properties = messageReceivedContext.Properties;
+
+        <span style="color:#66d9ef">if</span> (properties == <span style="color:#66d9ef">null</span> || properties.Items.Count == <span style="color:#ae81ff">0</span>)
+        {
+            <span style="color:#75715e">// Fail if state is missing, it&#39;s required for the correlation id.
+</span><span style="color:#75715e"></span>            <span style="color:#66d9ef">if</span> (<span style="color:#66d9ef">string</span>.IsNullOrEmpty(authorizationResponse.State))
+            {
+                <span style="color:#75715e">// This wasn&#39;t a valid OIDC message, it may not have been intended for us.
+</span><span style="color:#75715e"></span>                Logger.NullOrEmptyAuthorizationResponseState();
+                <span style="color:#66d9ef">if</span> (Options.SkipUnrecognizedRequests)
+                {
+                    <span style="color:#66d9ef">return</span> HandleRequestResult.SkipHandler();
+                }
+                <span style="color:#66d9ef">return</span> HandleRequestResult.Fail(Resources.MessageStateIsNullOrEmpty);
+            }
+
+            properties = ReadPropertiesAndClearState(authorizationResponse);
+        }
+
+        <span style="color:#66d9ef">if</span> (properties == <span style="color:#66d9ef">null</span>)
+        {
+            Logger.UnableToReadAuthorizationResponseState();
+            <span style="color:#66d9ef">if</span> (Options.SkipUnrecognizedRequests)
+            {
+                <span style="color:#75715e">// Not for us?
+</span><span style="color:#75715e"></span>                <span style="color:#66d9ef">return</span> HandleRequestResult.SkipHandler();
+            }
+
+            <span style="color:#75715e">// if state exists and we failed to &#39;unprotect&#39; this is not a message we should process.
+</span><span style="color:#75715e"></span>            <span style="color:#66d9ef">return</span> HandleRequestResult.Fail(Resources.MessageStateIsInvalid);
+        }
+
+        <span style="color:#66d9ef">if</span> (!ValidateCorrelationId(properties))
+        {
+            <span style="color:#66d9ef">return</span> HandleRequestResult.Fail(<span style="color:#e6db74">&#34;Correlation failed.&#34;</span>, properties);
+        }
+
+        <span style="color:#75715e">// if any of the error fields are set, throw error null
+</span><span style="color:#75715e"></span>        <span style="color:#66d9ef">if</span> (!<span style="color:#66d9ef">string</span>.IsNullOrEmpty(authorizationResponse.Error))
+        {
+            <span style="color:#75715e">// Note: access_denied errors are special protocol errors indicating the user didn&#39;t
+</span><span style="color:#75715e"></span>            <span style="color:#75715e">// approve the authorization demand requested by the remote authorization server.
+</span><span style="color:#75715e"></span>            <span style="color:#75715e">// Since it&#39;s a frequent scenario (that is not caused by incorrect configuration),
+</span><span style="color:#75715e"></span>            <span style="color:#75715e">// denied errors are handled differently using HandleAccessDeniedErrorAsync().
+</span><span style="color:#75715e"></span>            <span style="color:#75715e">// Visit https://tools.ietf.org/html/rfc6749#section-4.1.2.1 for more information.
+</span><span style="color:#75715e"></span>            <span style="color:#66d9ef">if</span> (<span style="color:#66d9ef">string</span>.Equals(authorizationResponse.Error, <span style="color:#e6db74">&#34;access_denied&#34;</span>, StringComparison.Ordinal))
+            {
+                <span style="color:#66d9ef">var</span> result = <span style="color:#66d9ef">await</span> HandleAccessDeniedErrorAsync(properties);
+                <span style="color:#66d9ef">if</span> (!result.None)
+                {
+                    <span style="color:#66d9ef">return</span> result;
+                }
+            }
+
+            <span style="color:#66d9ef">return</span> HandleRequestResult.Fail(CreateOpenIdConnectProtocolException(authorizationResponse, response: <span style="color:#66d9ef">null</span>), properties);
+        }
+
+        <span style="color:#66d9ef">if</span> (_configuration == <span style="color:#66d9ef">null</span> &amp;&amp; Options.ConfigurationManager != <span style="color:#66d9ef">null</span>)
+        {
+            Logger.UpdatingConfiguration();
+            _configuration = <span style="color:#66d9ef">await</span> Options.ConfigurationManager.GetConfigurationAsync(Context.RequestAborted);
+        }
+
+        PopulateSessionProperties(authorizationResponse, properties);
+
+        ClaimsPrincipal user = <span style="color:#66d9ef">null</span>;
+        JwtSecurityToken jwt = <span style="color:#66d9ef">null</span>;
+        <span style="color:#66d9ef">string</span> nonce = <span style="color:#66d9ef">null</span>;
+        <span style="color:#66d9ef">var</span> validationParameters = Options.TokenValidationParameters.Clone();
+
+        <span style="color:#75715e">// Hybrid or Implicit flow
+</span><span style="color:#75715e"></span>        <span style="color:#66d9ef">if</span> (!<span style="color:#66d9ef">string</span>.IsNullOrEmpty(authorizationResponse.IdToken))
+        {
+            Logger.ReceivedIdToken();
+            user = ValidateToken(authorizationResponse.IdToken, properties, validationParameters, <span style="color:#66d9ef">out</span> jwt);
+
+            nonce = jwt.Payload.Nonce;
+            <span style="color:#66d9ef">if</span> (!<span style="color:#66d9ef">string</span>.IsNullOrEmpty(nonce))
+            {
+                nonce = ReadNonceCookie(nonce);
+            }
+
+            <span style="color:#66d9ef">var</span> tokenValidatedContext = <span style="color:#66d9ef">await</span> RunTokenValidatedEventAsync(authorizationResponse, <span style="color:#66d9ef">null</span>, user, properties, jwt, nonce);
+            <span style="color:#66d9ef">if</span> (tokenValidatedContext.Result != <span style="color:#66d9ef">null</span>)
+            {
+                <span style="color:#66d9ef">return</span> tokenValidatedContext.Result;
+            }
+            authorizationResponse = tokenValidatedContext.ProtocolMessage;
+            user = tokenValidatedContext.Principal;
+            properties = tokenValidatedContext.Properties;
+            jwt = tokenValidatedContext.SecurityToken;
+            nonce = tokenValidatedContext.Nonce;
+        }
+
+        Options.ProtocolValidator.ValidateAuthenticationResponse(<span style="color:#66d9ef">new</span> OpenIdConnectProtocolValidationContext()
+        {
+            ClientId = Options.ClientId,
+            ProtocolMessage = authorizationResponse,
+            ValidatedIdToken = jwt,
+            Nonce = nonce
+        });
+
+        OpenIdConnectMessage tokenEndpointResponse = <span style="color:#66d9ef">null</span>;
+
+        <span style="color:#75715e">// Authorization Code or Hybrid flow
+</span><span style="color:#75715e"></span>        <span style="color:#66d9ef">if</span> (!<span style="color:#66d9ef">string</span>.IsNullOrEmpty(authorizationResponse.Code))
+        {
+            <span style="color:#66d9ef">var</span> authorizationCodeReceivedContext = <span style="color:#66d9ef">await</span> RunAuthorizationCodeReceivedEventAsync(authorizationResponse, user, properties, jwt);
+            <span style="color:#66d9ef">if</span> (authorizationCodeReceivedContext.Result != <span style="color:#66d9ef">null</span>)
+            {
+                <span style="color:#66d9ef">return</span> authorizationCodeReceivedContext.Result;
+            }
+            authorizationResponse = authorizationCodeReceivedContext.ProtocolMessage;
+            user = authorizationCodeReceivedContext.Principal;
+            properties = authorizationCodeReceivedContext.Properties;
+            <span style="color:#66d9ef">var</span> tokenEndpointRequest = authorizationCodeReceivedContext.TokenEndpointRequest;
+            <span style="color:#75715e">// If the developer redeemed the code themselves...
+</span><span style="color:#75715e"></span>            tokenEndpointResponse = authorizationCodeReceivedContext.TokenEndpointResponse;
+            jwt = authorizationCodeReceivedContext.JwtSecurityToken;
+
+            <span style="color:#66d9ef">if</span> (!authorizationCodeReceivedContext.HandledCodeRedemption)
+            {
+                tokenEndpointResponse = <span style="color:#66d9ef">await</span> RedeemAuthorizationCodeAsync(tokenEndpointRequest);
+            }
+
+            <span style="color:#66d9ef">var</span> tokenResponseReceivedContext = <span style="color:#66d9ef">await</span> RunTokenResponseReceivedEventAsync(authorizationResponse, tokenEndpointResponse, user, properties);
+            <span style="color:#66d9ef">if</span> (tokenResponseReceivedContext.Result != <span style="color:#66d9ef">null</span>)
+            {
+                <span style="color:#66d9ef">return</span> tokenResponseReceivedContext.Result;
+            }
+
+            authorizationResponse = tokenResponseReceivedContext.ProtocolMessage;
+            tokenEndpointResponse = tokenResponseReceivedContext.TokenEndpointResponse;
+            user = tokenResponseReceivedContext.Principal;
+            properties = tokenResponseReceivedContext.Properties;
+
+            <span style="color:#75715e">// no need to validate signature when token is received using &#34;code flow&#34; as per spec
+</span><span style="color:#75715e"></span>            <span style="color:#75715e">// [http://openid.net/specs/openid-connect-core-1_0.html#IDTokenValidation].
+</span><span style="color:#75715e"></span>            validationParameters.RequireSignedTokens = <span style="color:#66d9ef">false</span>;
+
+            <span style="color:#75715e">// At least a cursory validation is required on the new IdToken, even if we&#39;ve already validated the one from the authorization response.
+</span><span style="color:#75715e"></span>            <span style="color:#75715e">// And we&#39;ll want to validate the new JWT in ValidateTokenResponse.
+</span><span style="color:#75715e"></span>            <span style="color:#66d9ef">var</span> tokenEndpointUser = ValidateToken(tokenEndpointResponse.IdToken, properties, validationParameters, <span style="color:#66d9ef">out</span> <span style="color:#66d9ef">var</span> tokenEndpointJwt);
+
+            <span style="color:#75715e">// Avoid reading &amp; deleting the nonce cookie, running the event, etc, if it was already done as part of the authorization response validation.
+</span><span style="color:#75715e"></span>            <span style="color:#66d9ef">if</span> (user == <span style="color:#66d9ef">null</span>)
+            {
+                nonce = tokenEndpointJwt.Payload.Nonce;
+                <span style="color:#66d9ef">if</span> (!<span style="color:#66d9ef">string</span>.IsNullOrEmpty(nonce))
+                {
+                    nonce = ReadNonceCookie(nonce);
+                }
+
+                <span style="color:#66d9ef">var</span> tokenValidatedContext = <span style="color:#66d9ef">await</span> RunTokenValidatedEventAsync(authorizationResponse, tokenEndpointResponse, tokenEndpointUser, properties, tokenEndpointJwt, nonce);
+                <span style="color:#66d9ef">if</span> (tokenValidatedContext.Result != <span style="color:#66d9ef">null</span>)
+                {
+                    <span style="color:#66d9ef">return</span> tokenValidatedContext.Result;
+                }
+                authorizationResponse = tokenValidatedContext.ProtocolMessage;
+                tokenEndpointResponse = tokenValidatedContext.TokenEndpointResponse;
+                user = tokenValidatedContext.Principal;
+                properties = tokenValidatedContext.Properties;
+                jwt = tokenValidatedContext.SecurityToken;
+                nonce = tokenValidatedContext.Nonce;
+            }
+            <span style="color:#66d9ef">else</span>
+            {
+                <span style="color:#66d9ef">if</span> (!<span style="color:#66d9ef">string</span>.Equals(jwt.Subject, tokenEndpointJwt.Subject, StringComparison.Ordinal))
+                {
+                    <span style="color:#66d9ef">throw</span> <span style="color:#66d9ef">new</span> SecurityTokenException(<span style="color:#e6db74">&#34;The sub claim does not match in the id_token&#39;s from the authorization and token endpoints.&#34;</span>);
+                }
+
+                jwt = tokenEndpointJwt;
+            }
+
+            <span style="color:#75715e">// Validate the token response if it wasn&#39;t provided manually
+</span><span style="color:#75715e"></span>            <span style="color:#66d9ef">if</span> (!authorizationCodeReceivedContext.HandledCodeRedemption)
+            {
+                Options.ProtocolValidator.ValidateTokenResponse(<span style="color:#66d9ef">new</span> OpenIdConnectProtocolValidationContext()
+                {
+                    ClientId = Options.ClientId,
+                    ProtocolMessage = tokenEndpointResponse,
+                    ValidatedIdToken = jwt,
+                    Nonce = nonce
+                });
+            }
+        }
+
+        <span style="color:#66d9ef">if</span> (Options.SaveTokens)
+        {
+            SaveTokens(properties, tokenEndpointResponse ?? authorizationResponse);
+        }
+
+        <span style="color:#66d9ef">if</span> (Options.GetClaimsFromUserInfoEndpoint)
+        {
+            <span style="color:#66d9ef">return</span> <span style="color:#66d9ef">await</span> GetUserInformationAsync(tokenEndpointResponse ?? authorizationResponse, jwt, user, properties);
+        }
+        <span style="color:#66d9ef">else</span>
+        {
+            <span style="color:#66d9ef">using</span> (<span style="color:#66d9ef">var</span> payload = JsonDocument.Parse(<span style="color:#e6db74">&#34;{}&#34;</span>))
+            {
+                <span style="color:#66d9ef">var</span> identity = (ClaimsIdentity)user.Identity;
+                <span style="color:#66d9ef">foreach</span> (<span style="color:#66d9ef">var</span> action <span style="color:#66d9ef">in</span> Options.ClaimActions)
+                {
+                    action.Run(payload.RootElement, identity, ClaimsIssuer);
+                }
+            }
+        }
+
+        <span style="color:#66d9ef">return</span> HandleRequestResult.Success(<span style="color:#66d9ef">new</span> AuthenticationTicket(user, properties, Scheme.Name));
+    }
+    <span style="color:#66d9ef">catch</span> (Exception exception)
+    {
+        Logger.ExceptionProcessingMessage(exception);
+
+        <span style="color:#75715e">// Refresh the configuration for exceptions that may be caused by key rollovers. The user can also request a refresh in the event.
+</span><span style="color:#75715e"></span>        <span style="color:#66d9ef">if</span> (Options.RefreshOnIssuerKeyNotFound &amp;&amp; exception <span style="color:#66d9ef">is</span> SecurityTokenSignatureKeyNotFoundException)
+        {
+            <span style="color:#66d9ef">if</span> (Options.ConfigurationManager != <span style="color:#66d9ef">null</span>)
+            {
+                Logger.ConfigurationManagerRequestRefreshCalled();
+                Options.ConfigurationManager.RequestRefresh();
+            }
+        }
+
+        <span style="color:#66d9ef">var</span> authenticationFailedContext = <span style="color:#66d9ef">await</span> RunAuthenticationFailedEventAsync(authorizationResponse, exception);
+        <span style="color:#66d9ef">if</span> (authenticationFailedContext.Result != <span style="color:#66d9ef">null</span>)
+        {
+            <span style="color:#66d9ef">return</span> authenticationFailedContext.Result;
+        }
+
+        <span style="color:#66d9ef">return</span> HandleRequestResult.Fail(exception, properties);
+    }
+}
+</code></pre></div><p>OpenIdConectHandler跟OAuthHandler一样，继承自RemoteAuthenticationHandler，但是OpenId还实现了IAuthenticationSignOutHandler接口，因为OpenId是支持单点登录登出的，本地登出之后需要通知认证服务远程登出（注销本地站点Cookie），这样实现帐号的同步登出（注销sso站点cookie）。</p>
+<h2 id="处理远程登出---handleremotesignoutasync">处理远程登出 - HandleRemoteSignOutAsync</h2>
+<ul>
+<li>远程登出支持GET和Form-Post两种提交方式，客户端根据请求方式，将报文拼装好。</li>
+<li>触发远程登出事件</li>
+<li>使用SignOutScheme认证，得到身份信息 - Context.AuthenticateAsync(Options.SignOutScheme)</li>
+<li>Context.Proerties中必须有iss信息，issuer就是提供认证方</li>
+<li>调用本地登出方法 - Context.SignOutAsync(Options.SignOutScheme)</li>
+</ul>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-csharp" data-lang="csharp"><span style="color:#66d9ef">protected</span> <span style="color:#66d9ef">virtual</span> <span style="color:#66d9ef">async</span> Task&lt;<span style="color:#66d9ef">bool</span>&gt; HandleRemoteSignOutAsync()
+{
+    OpenIdConnectMessage message = <span style="color:#66d9ef">null</span>;
+
+    <span style="color:#66d9ef">if</span> (<span style="color:#66d9ef">string</span>.Equals(Request.Method, <span style="color:#e6db74">&#34;GET&#34;</span>, StringComparison.OrdinalIgnoreCase))
+    {
+        message = <span style="color:#66d9ef">new</span> OpenIdConnectMessage(Request.Query.Select(pair =&gt; <span style="color:#66d9ef">new</span> KeyValuePair&lt;<span style="color:#66d9ef">string</span>, <span style="color:#66d9ef">string</span>[]&gt;(pair.Key, pair.Value)));
+    }
+
+    <span style="color:#75715e">// assumption: if the ContentType is &#34;application/x-www-form-urlencoded&#34; it should be safe to read as it is small.
+</span><span style="color:#75715e"></span>    <span style="color:#66d9ef">else</span> <span style="color:#66d9ef">if</span> (<span style="color:#66d9ef">string</span>.Equals(Request.Method, <span style="color:#e6db74">&#34;POST&#34;</span>, StringComparison.OrdinalIgnoreCase)
+        &amp;&amp; !<span style="color:#66d9ef">string</span>.IsNullOrEmpty(Request.ContentType)
+        <span style="color:#75715e">// May have media/type; charset=utf-8, allow partial match.
+</span><span style="color:#75715e"></span>        &amp;&amp; Request.ContentType.StartsWith(<span style="color:#e6db74">&#34;application/x-www-form-urlencoded&#34;</span>, StringComparison.OrdinalIgnoreCase)
+        &amp;&amp; Request.Body.CanRead)
+    {
+        <span style="color:#66d9ef">var</span> form = <span style="color:#66d9ef">await</span> Request.ReadFormAsync();
+        message = <span style="color:#66d9ef">new</span> OpenIdConnectMessage(form.Select(pair =&gt; <span style="color:#66d9ef">new</span> KeyValuePair&lt;<span style="color:#66d9ef">string</span>, <span style="color:#66d9ef">string</span>[]&gt;(pair.Key, pair.Value)));
+    }
+
+    <span style="color:#66d9ef">var</span> remoteSignOutContext = <span style="color:#66d9ef">new</span> RemoteSignOutContext(Context, Scheme, Options, message);
+    <span style="color:#66d9ef">await</span> Events.RemoteSignOut(remoteSignOutContext);
+
+    <span style="color:#66d9ef">if</span> (remoteSignOutContext.Result != <span style="color:#66d9ef">null</span>)
+    {
+        <span style="color:#66d9ef">if</span> (remoteSignOutContext.Result.Handled)
+        {
+            Logger.RemoteSignOutHandledResponse();
+            <span style="color:#66d9ef">return</span> <span style="color:#66d9ef">true</span>;
+        }
+        <span style="color:#66d9ef">if</span> (remoteSignOutContext.Result.Skipped)
+        {
+            Logger.RemoteSignOutSkipped();
+            <span style="color:#66d9ef">return</span> <span style="color:#66d9ef">false</span>;
+        }
+        <span style="color:#66d9ef">if</span> (remoteSignOutContext.Result.Failure != <span style="color:#66d9ef">null</span>)
+        {
+            <span style="color:#66d9ef">throw</span> <span style="color:#66d9ef">new</span> InvalidOperationException(<span style="color:#e6db74">&#34;An error was returned from the RemoteSignOut event.&#34;</span>, remoteSignOutContext.Result.Failure);
+        }
+    }
+
+    <span style="color:#66d9ef">if</span> (message == <span style="color:#66d9ef">null</span>)
+    {
+        <span style="color:#66d9ef">return</span> <span style="color:#66d9ef">false</span>;
+    }
+
+    <span style="color:#75715e">// Try to extract the session identifier from the authentication ticket persisted by the sign-in handler.
+</span><span style="color:#75715e"></span>    <span style="color:#75715e">// If the identifier cannot be found, bypass the session identifier checks: this may indicate that the
+</span><span style="color:#75715e"></span>    <span style="color:#75715e">// authentication cookie was already cleared, that the session identifier was lost because of a lossy
+</span><span style="color:#75715e"></span>    <span style="color:#75715e">// external/application cookie conversion or that the identity provider doesn&#39;t support sessions.
+</span><span style="color:#75715e"></span>    <span style="color:#66d9ef">var</span> principal = (<span style="color:#66d9ef">await</span> Context.AuthenticateAsync(Options.SignOutScheme))?.Principal;
+
+    <span style="color:#66d9ef">var</span> sid = principal?.FindFirst(JwtRegisteredClaimNames.Sid)?.Value;
+    <span style="color:#66d9ef">if</span> (!<span style="color:#66d9ef">string</span>.IsNullOrEmpty(sid))
+    {
+        <span style="color:#75715e">// Ensure a &#39;sid&#39; parameter was sent by the identity provider.
+</span><span style="color:#75715e"></span>        <span style="color:#66d9ef">if</span> (<span style="color:#66d9ef">string</span>.IsNullOrEmpty(message.Sid))
+        {
+            Logger.RemoteSignOutSessionIdMissing();
+            <span style="color:#66d9ef">return</span> <span style="color:#66d9ef">true</span>;
+        }
+        <span style="color:#75715e">// Ensure the &#39;sid&#39; parameter corresponds to the &#39;sid&#39; stored in the authentication ticket.
+</span><span style="color:#75715e"></span>        <span style="color:#66d9ef">if</span> (!<span style="color:#66d9ef">string</span>.Equals(sid, message.Sid, StringComparison.Ordinal))
+        {
+            Logger.RemoteSignOutSessionIdInvalid();
+            <span style="color:#66d9ef">return</span> <span style="color:#66d9ef">true</span>;
+        }
+    }
+
+    <span style="color:#66d9ef">var</span> iss = principal?.FindFirst(JwtRegisteredClaimNames.Iss)?.Value;
+    <span style="color:#66d9ef">if</span> (!<span style="color:#66d9ef">string</span>.IsNullOrEmpty(iss))
+    {
+        <span style="color:#75715e">// Ensure a &#39;iss&#39; parameter was sent by the identity provider.
+</span><span style="color:#75715e"></span>        <span style="color:#66d9ef">if</span> (<span style="color:#66d9ef">string</span>.IsNullOrEmpty(message.Iss))
+        {
+            Logger.RemoteSignOutIssuerMissing();
+            <span style="color:#66d9ef">return</span> <span style="color:#66d9ef">true</span>;
+        }
+        <span style="color:#75715e">// Ensure the &#39;iss&#39; parameter corresponds to the &#39;iss&#39; stored in the authentication ticket.
+</span><span style="color:#75715e"></span>        <span style="color:#66d9ef">if</span> (!<span style="color:#66d9ef">string</span>.Equals(iss, message.Iss, StringComparison.Ordinal))
+        {
+            Logger.RemoteSignOutIssuerInvalid();
+            <span style="color:#66d9ef">return</span> <span style="color:#66d9ef">true</span>;
+        }
+    }
+
+    Logger.RemoteSignOut();
+
+    <span style="color:#75715e">// We&#39;ve received a remote sign-out request
+</span><span style="color:#75715e"></span>    <span style="color:#66d9ef">await</span> Context.SignOutAsync(Options.SignOutScheme);
+    <span style="color:#66d9ef">return</span> <span style="color:#66d9ef">true</span>;
+}
+</code></pre></div><h2 id="处理本地登出---contextsignoutasyncoptionssignoutscheme">处理本地登出 - Context.SignOutAsync(Options.SignOutScheme)</h2>
+<p>方法的注释：将用户重定向到身份认证站点登出。</p>
+<ul>
+<li>ForwardXXX是所有认证配置项的基类，可以拦截使用自己配置的Scheme。</li>
+<li>构造要发送给oidc服务的报文，包括IssuerAddress（EndSessionEndpoint：即结束会话节点地址），PostLogoutRedirectUri（登出回跳地址）等。</li>
+<li>构造RedirectUri（登录流程结束最终回到的地址）：优先使用HttpContext.Properties中的RedirectUri，然后使用配置中的SignedOutRedirectUri，最后使用请求源地址。</li>
+<li>获取IdToken，放到登出请求中</li>
+<li>state字段加密后（包含了redirecturi等信息），放入请求消息</li>
+<li>给oidc站点发送GET或者FormPost请求</li>
+</ul>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-csharp" data-lang="csharp"><span style="color:#75715e">/// &lt;summary&gt;
+</span><span style="color:#75715e">/// Redirect user to the identity provider for sign out
+</span><span style="color:#75715e">/// &lt;/summary&gt;
+</span><span style="color:#75715e">/// &lt;returns&gt;A task executing the sign out procedure&lt;/returns&gt;
+</span><span style="color:#75715e"></span><span style="color:#66d9ef">public</span> <span style="color:#66d9ef">async</span> <span style="color:#66d9ef">virtual</span> Task SignOutAsync(AuthenticationProperties properties)
+{
+    <span style="color:#66d9ef">var</span> target = ResolveTarget(Options.ForwardSignOut);
+    <span style="color:#66d9ef">if</span> (target != <span style="color:#66d9ef">null</span>)
+    {
+        <span style="color:#66d9ef">await</span> Context.SignOutAsync(target, properties);
+        <span style="color:#66d9ef">return</span>;
+    }
+
+    properties = properties ?? <span style="color:#66d9ef">new</span> AuthenticationProperties();
+
+    Logger.EnteringOpenIdAuthenticationHandlerHandleSignOutAsync(GetType().FullName);
+
+    <span style="color:#66d9ef">if</span> (_configuration == <span style="color:#66d9ef">null</span> &amp;&amp; Options.ConfigurationManager != <span style="color:#66d9ef">null</span>)
+    {
+        _configuration = <span style="color:#66d9ef">await</span> Options.ConfigurationManager.GetConfigurationAsync(Context.RequestAborted);
+    }
+
+    <span style="color:#66d9ef">var</span> message = <span style="color:#66d9ef">new</span> OpenIdConnectMessage()
+    {
+        EnableTelemetryParameters = !Options.DisableTelemetry,
+        IssuerAddress = _configuration?.EndSessionEndpoint ?? <span style="color:#66d9ef">string</span>.Empty,
+
+        <span style="color:#75715e">// Redirect back to SigneOutCallbackPath first before user agent is redirected to actual post logout redirect uri
+</span><span style="color:#75715e"></span>        PostLogoutRedirectUri = BuildRedirectUriIfRelative(Options.SignedOutCallbackPath)
+    };
+
+    <span style="color:#75715e">// Get the post redirect URI.
+</span><span style="color:#75715e"></span>    <span style="color:#66d9ef">if</span> (<span style="color:#66d9ef">string</span>.IsNullOrEmpty(properties.RedirectUri))
+    {
+        properties.RedirectUri = BuildRedirectUriIfRelative(Options.SignedOutRedirectUri);
+        <span style="color:#66d9ef">if</span> (<span style="color:#66d9ef">string</span>.IsNullOrWhiteSpace(properties.RedirectUri))
+        {
+            properties.RedirectUri = OriginalPathBase + OriginalPath + Request.QueryString;
+        }
+    }
+    Logger.PostSignOutRedirect(properties.RedirectUri);
+
+    <span style="color:#75715e">// Attach the identity token to the logout request when possible.
+</span><span style="color:#75715e"></span>    message.IdTokenHint = <span style="color:#66d9ef">await</span> Context.GetTokenAsync(Options.SignOutScheme, OpenIdConnectParameterNames.IdToken);
+
+    <span style="color:#66d9ef">var</span> redirectContext = <span style="color:#66d9ef">new</span> RedirectContext(Context, Scheme, Options, properties)
+    {
+        ProtocolMessage = message
+    };
+
+    <span style="color:#66d9ef">await</span> Events.RedirectToIdentityProviderForSignOut(redirectContext);
+    <span style="color:#66d9ef">if</span> (redirectContext.Handled)
+    {
+        Logger.RedirectToIdentityProviderForSignOutHandledResponse();
+        <span style="color:#66d9ef">return</span>;
+    }
+
+    message = redirectContext.ProtocolMessage;
+
+    <span style="color:#66d9ef">if</span> (!<span style="color:#66d9ef">string</span>.IsNullOrEmpty(message.State))
+    {
+        properties.Items[OpenIdConnectDefaults.UserstatePropertiesKey] = message.State;
+    }
+
+    message.State = Options.StateDataFormat.Protect(properties);
+
+    <span style="color:#66d9ef">if</span> (<span style="color:#66d9ef">string</span>.IsNullOrEmpty(message.IssuerAddress))
+    {
+        <span style="color:#66d9ef">throw</span> <span style="color:#66d9ef">new</span> InvalidOperationException(<span style="color:#e6db74">&#34;Cannot redirect to the end session endpoint, the configuration may be missing or invalid.&#34;</span>);
+    }
+
+    <span style="color:#66d9ef">if</span> (Options.AuthenticationMethod == OpenIdConnectRedirectBehavior.RedirectGet)
+    {
+        <span style="color:#66d9ef">var</span> redirectUri = message.CreateLogoutRequestUrl();
+        <span style="color:#66d9ef">if</span> (!Uri.IsWellFormedUriString(redirectUri, UriKind.Absolute))
+        {
+            Logger.InvalidLogoutQueryStringRedirectUrl(redirectUri);
+        }
+
+        Response.Redirect(redirectUri);
+    }
+    <span style="color:#66d9ef">else</span> <span style="color:#66d9ef">if</span> (Options.AuthenticationMethod == OpenIdConnectRedirectBehavior.FormPost)
+    {
+        <span style="color:#66d9ef">var</span> content = message.BuildFormPost();
+        <span style="color:#66d9ef">var</span> buffer = Encoding.UTF8.GetBytes(content);
+
+        Response.ContentLength = buffer.Length;
+        Response.ContentType = <span style="color:#e6db74">&#34;text/html;charset=UTF-8&#34;</span>;
+
+        <span style="color:#75715e">// Emit Cache-Control=no-cache to prevent client caching.
+</span><span style="color:#75715e"></span>        Response.Headers[HeaderNames.CacheControl] = <span style="color:#e6db74">&#34;no-cache, no-store&#34;</span>;
+        Response.Headers[HeaderNames.Pragma] = <span style="color:#e6db74">&#34;no-cache&#34;</span>;
+        Response.Headers[HeaderNames.Expires] = HeaderValueEpocDate;
+
+        <span style="color:#66d9ef">await</span> Response.Body.WriteAsync(buffer, <span style="color:#ae81ff">0</span>, buffer.Length);
+    }
+    <span style="color:#66d9ef">else</span>
+    {
+        <span style="color:#66d9ef">throw</span> <span style="color:#66d9ef">new</span> NotImplementedException(<span style="color:#e6db74">$&#34;An unsupported authentication method has been configured: {Options.AuthenticationMethod}&#34;</span>);
+    }
+
+    Logger.AuthenticationSchemeSignedOut(Scheme.Name);
+}
+</code></pre></div><h2 id="oidc处理完后跳到回调地址">oidc处理完后跳到回调地址</h2>
+<p>oidc站点处理完登出请求之后（怎么处理的，应该是清除了oidc的cookie，或许回收了token？目前不清楚。后面看identitserver怎么实现的），回跳到callback地址，执行下面的callback方法</p>
+<p>callback方法很简单，就是将state字段解码，将redirect_uri拿到，然后跳过去。</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-csharp" data-lang="csharp"><span style="color:#75715e">/// &lt;summary&gt;
+</span><span style="color:#75715e">/// Response to the callback from OpenId provider after session ended.
+</span><span style="color:#75715e">/// &lt;/summary&gt;
+</span><span style="color:#75715e">/// &lt;returns&gt;A task executing the callback procedure&lt;/returns&gt;
+</span><span style="color:#75715e"></span><span style="color:#66d9ef">protected</span> <span style="color:#66d9ef">async</span> <span style="color:#66d9ef">virtual</span> Task&lt;<span style="color:#66d9ef">bool</span>&gt; HandleSignOutCallbackAsync()
+{
+    <span style="color:#66d9ef">var</span> message = <span style="color:#66d9ef">new</span> OpenIdConnectMessage(Request.Query.Select(pair =&gt; <span style="color:#66d9ef">new</span> KeyValuePair&lt;<span style="color:#66d9ef">string</span>, <span style="color:#66d9ef">string</span>[]&gt;(pair.Key, pair.Value)));
+    AuthenticationProperties properties = <span style="color:#66d9ef">null</span>;
+    <span style="color:#66d9ef">if</span> (!<span style="color:#66d9ef">string</span>.IsNullOrEmpty(message.State))
+    {
+        properties = Options.StateDataFormat.Unprotect(message.State);
+    }
+
+    <span style="color:#66d9ef">var</span> signOut = <span style="color:#66d9ef">new</span> RemoteSignOutContext(Context, Scheme, Options, message)
+    {
+        Properties = properties,
+    };
+
+    <span style="color:#66d9ef">await</span> Events.SignedOutCallbackRedirect(signOut);
+    <span style="color:#66d9ef">if</span> (signOut.Result != <span style="color:#66d9ef">null</span>)
+    {
+        <span style="color:#66d9ef">if</span> (signOut.Result.Handled)
+        {
+            Logger.SignOutCallbackRedirectHandledResponse();
+            <span style="color:#66d9ef">return</span> <span style="color:#66d9ef">true</span>;
+        }
+        <span style="color:#66d9ef">if</span> (signOut.Result.Skipped)
+        {
+            Logger.SignOutCallbackRedirectSkipped();
+            <span style="color:#66d9ef">return</span> <span style="color:#66d9ef">false</span>;
+        }
+        <span style="color:#66d9ef">if</span> (signOut.Result.Failure != <span style="color:#66d9ef">null</span>)
+        {
+            <span style="color:#66d9ef">throw</span> <span style="color:#66d9ef">new</span> InvalidOperationException(<span style="color:#e6db74">&#34;An error was returned from the SignedOutCallbackRedirect event.&#34;</span>, signOut.Result.Failure);
+        }
+    }
+
+    properties = signOut.Properties;
+    <span style="color:#66d9ef">if</span> (!<span style="color:#66d9ef">string</span>.IsNullOrEmpty(properties?.RedirectUri))
+    {
+        Response.Redirect(properties.RedirectUri);
+    }
+
+    <span style="color:#66d9ef">return</span> <span style="color:#66d9ef">true</span>;
+}
+</code></pre></div><h2 id="登出时序图">登出时序图</h2>
+<div class="mermaid">
+sequenceDiagram
+    mysite->>sso: GET/FormPost mysite/connect/endsession?params...
+    sso->>mysite: 302,移除sso站点cookie,回调到signout-callback地址
+    mysite->>mysite: 从state中解析redirect_uri,回跳redirect_uri
+</div>
+<script src="https://unpkg.com/mermaid/dist/mermaid.min.js"></script>
+<p>可以看到，oidc的登出只处理了oidc认证站点的cookie，mysite本地的cookie是没有处理的，因为当前schema是OpenIdConnnect，本地Cookie是SignInSchema的事情，所以登出需要掉两次SignOut方法</p>
+<pre><code>HttpContext.SignOutAsync(&quot;Cookies&quot;); //清除本地cookie
+HttpContext.SignOutAsync(&quot;OpenIdConnect&quot;) //清除远程sso站点cookie
+</code></pre>
+</div>
+
+
+    </main>
+
+    
+      
+    
+  </body>
+</html>

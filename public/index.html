@@ -58,6 +58,27 @@
     <div class="posts">
 <article class="post">
   <h1 class="post-title">
+    <a href="https://holdengong.com/aspnetcore3.1_secutiry%E6%BA%90%E7%A0%81%E8%A7%A3%E6%9E%90_6_authentication_openidconnect/">AspNetCore3.1_Secutiry源码解析_6_Authentication_OpenIdConnect</a>
+  </h1>
+  <time datetime="2020-03-25T21:33:12&#43;0800" class="post-date">Wed, Mar 25, 2020</time>
+  oidc简介 oidc是基于oauth2.0的上层协议。
+OAuth有点像卖电影票的，只关心用户能不能进电影院，不关心用户是谁。而oidc则像身份证，扫描就可以上飞机，一次扫描，机场不仅能知道你是否能上飞机，还可以知道你的身份信息。
+oidc兼容OAuth2.0, 可以实现跨顶级域的SSO(单点登录、登出)，下个系列要学习的IdentityServer4就是对oidc协议族的一个具体实现框架。
+更多理论知识看下面的参考资料，本系列主要过下源码脉络
+博客园
+ https://www.cnblogs.com/linianhui/p/openid-connect-core.html
+ 协议
+ https://openid.net/connect/
+ 依赖注入 默认架构名称是OpenIdConnect，处理器类是OpenIdConnectHandler，配置类是OpenIdConnectOptions
+public static AuthenticationBuilder AddOpenIdConnect(this AuthenticationBuilder builder) =&gt; builder.AddOpenIdConnect(OpenIdConnectDefaults.AuthenticationScheme, _ =&gt; { }); public static AuthenticationBuilder AddOpenIdConnect(this AuthenticationBuilder builder, Action&lt;OpenIdConnectOptions&gt; configureOptions) =&gt; builder.AddOpenIdConnect(OpenIdConnectDefaults.AuthenticationScheme, configureOptions); public static AuthenticationBuilder AddOpenIdConnect(this AuthenticationBuilder builder, string authenticationScheme, Action&lt;OpenIdConnectOptions&gt; configureOptions) =&gt; builder.AddOpenIdConnect(authenticationScheme, OpenIdConnectDefaults.DisplayName, configureOptions); public static AuthenticationBuilder AddOpenIdConnect(this AuthenticationBuilder builder, string authenticationScheme, string displayName, Action&lt;OpenIdConnectOptions&gt; configureOptions) { builder.Services.TryAddEnumerable(ServiceDescriptor.Singleton&lt;IPostConfigureOptions&lt;OpenIdConnectOptions&gt;, OpenIdConnectPostConfigureOptions&gt;()); return builder.AddRemoteScheme&lt;OpenIdConnectOptions, OpenIdConnectHandler&gt;(authenticationScheme, displayName, configureOptions); } 配置类 - OpenIdConnectOptions 构造函数 CallbackPath: 回调地址，即远程认证之后跳回的地址
+  
+  
+  <div class="read-more-link">
+    <a href="/aspnetcore3.1_secutiry%E6%BA%90%E7%A0%81%E8%A7%A3%E6%9E%90_6_authentication_openidconnect/">Read More…</a>
+  </div>
+  
+</article><article class="post">
+  <h1 class="post-title">
     <a href="https://holdengong.com/aspnetcore3.1_secutiry%E6%BA%90%E7%A0%81%E8%A7%A3%E6%9E%90_5_authentication_oauth/">AspNetCore3.1_Secutiry源码解析_5_Authentication_OAuth</a>
   </h1>
   <time datetime="2020-03-24T23:27:45&#43;0800" class="post-date">Tue, Mar 24, 2020</time>

@@ -3,12 +3,17 @@
   xmlns:xhtml="http://www.w3.org/1999/xhtml">
   
   <url>
-    <loc>https://holdengong.com/aspnetcore3.1_secutiry%E6%BA%90%E7%A0%81%E8%A7%A3%E6%9E%90_5_authentication_oauth/</loc>
-    <lastmod>2020-03-24T23:27:45+08:00</lastmod>
+    <loc>https://holdengong.com/aspnetcore3.1_secutiry%E6%BA%90%E7%A0%81%E8%A7%A3%E6%9E%90_6_authentication_openidconnect/</loc>
+    <lastmod>2020-03-25T21:33:12+08:00</lastmod>
   </url>
   
   <url>
     <loc>https://holdengong.com/</loc>
+    <lastmod>2020-03-25T21:33:12+08:00</lastmod>
+  </url>
+  
+  <url>
+    <loc>https://holdengong.com/aspnetcore3.1_secutiry%E6%BA%90%E7%A0%81%E8%A7%A3%E6%9E%90_5_authentication_oauth/</loc>
     <lastmod>2020-03-24T23:27:45+08:00</lastmod>
   </url>
   
