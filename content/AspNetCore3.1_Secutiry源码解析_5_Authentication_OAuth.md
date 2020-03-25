@@ -3,6 +3,17 @@ title: "AspNetCore3.1_Secutiry源码解析_5_Authentication_OAuth"
 date: 2020-03-24T23:27:45+08:00
 draft: false
 ---
+# 系列文章目录
+- [AspNetCore3.1_Secutiry源码解析_1_目录](https://holdengong.com/aspnetcore3.1_secutiry源码解析_1_目录)
+- [AspNetCore3.1_Secutiry源码解析_2_Authentication_核心流程](https://holdengong.com/aspnetcore3.1_secutiry源码解析_2_authentication_核心流程)
+- [AspNetCore3.1_Secutiry源码解析_3_Authentication_Cookies](https://holdengong.com/aspnetcore3.1_secutiry源码解析_3_authentication_cookies)
+- [AspNetCore3.1_Secutiry源码解析_4_Authentication_JwtBear](https://holdengong.com/aspnetcore3.1_secutiry源码解析_4_authentication_jwtbear)
+- [AspNetCore3.1_Secutiry源码解析_5_Authentication_OAuth](https://holdengong.com/aspnetcore3.1_secutiry源码解析_5_authentication_oauth)
+- AspNetCore3.1_Secutiry源码解析_6_Authentication_OpenIdConnect
+- AspNetCore3.1_Secutiry源码解析_7_Authentication_其他
+- AspNetCore3.1_Secutiry源码解析_8_Authorization_核心项目
+- AspNetCore3.1_Secutiry源码解析_9_Authorization_Policy
+
 # OAuth简介
 现在随便一个网站，不用注册，只用微信扫一扫，然后就可以自动登录，然后第三方网站右上角还出现了你的微信头像和昵称，怎么做到的？
 <div class="mermaid">
@@ -252,6 +263,12 @@ private class EnsureSignInScheme<TOptions> : IPostConfigureOptions<TOptions> whe
 ```
 
 # OAuthHandler
+- 解密state
+- 校验CorrelationId，防跨站伪造攻击
+- 如果error不为空说明失败返回错误
+- 拿到授权码code，换取token
+- 如果SaveTokens设置为true，将access_token,refresh_token,token_type存放到properties中
+- 创建凭据，返回成功
 ```csharp
   protected override async Task<HandleRequestResult> HandleRemoteAuthenticateAsync()
         {

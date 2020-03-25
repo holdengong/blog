@@ -57,7 +57,19 @@
     <div class="post">
   <h1>AspNetCore3.1_Secutiry源码解析_5_Authentication_OAuth</h1>
   <time datetime=2020-03-24T23:27:45&#43;0800 class="post-date">Tue, Mar 24, 2020</time>
-  <h1 id="oauth简介">OAuth简介</h1>
+  <h1 id="系列文章目录">系列文章目录</h1>
+<ul>
+<li><a href="https://holdengong.com/aspnetcore3.1_secutiry%E6%BA%90%E7%A0%81%E8%A7%A3%E6%9E%90_1_%E7%9B%AE%E5%BD%95">AspNetCore3.1_Secutiry源码解析_1_目录</a></li>
+<li><a href="https://holdengong.com/aspnetcore3.1_secutiry%E6%BA%90%E7%A0%81%E8%A7%A3%E6%9E%90_2_authentication_%E6%A0%B8%E5%BF%83%E6%B5%81%E7%A8%8B">AspNetCore3.1_Secutiry源码解析_2_Authentication_核心流程</a></li>
+<li><a href="https://holdengong.com/aspnetcore3.1_secutiry%E6%BA%90%E7%A0%81%E8%A7%A3%E6%9E%90_3_authentication_cookies">AspNetCore3.1_Secutiry源码解析_3_Authentication_Cookies</a></li>
+<li><a href="https://holdengong.com/aspnetcore3.1_secutiry%E6%BA%90%E7%A0%81%E8%A7%A3%E6%9E%90_4_authentication_jwtbear">AspNetCore3.1_Secutiry源码解析_4_Authentication_JwtBear</a></li>
+<li><a href="https://holdengong.com/aspnetcore3.1_secutiry%E6%BA%90%E7%A0%81%E8%A7%A3%E6%9E%90_5_authentication_oauth">AspNetCore3.1_Secutiry源码解析_5_Authentication_OAuth</a></li>
+<li>AspNetCore3.1_Secutiry源码解析_6_Authentication_OpenIdConnect</li>
+<li>AspNetCore3.1_Secutiry源码解析_7_Authentication_其他</li>
+<li>AspNetCore3.1_Secutiry源码解析_8_Authorization_核心项目</li>
+<li>AspNetCore3.1_Secutiry源码解析_9_Authorization_Policy</li>
+</ul>
+<h1 id="oauth简介">OAuth简介</h1>
 <p>现在随便一个网站，不用注册，只用微信扫一扫，然后就可以自动登录，然后第三方网站右上角还出现了你的微信头像和昵称，怎么做到的？</p>
 <div class="mermaid">
 sequenceDiagram
@@ -285,6 +297,14 @@ sequenceDiagram
     }
 }
 </code></pre></div><h1 id="oauthhandler">OAuthHandler</h1>
+<ul>
+<li>解密state</li>
+<li>校验CorrelationId，防跨站伪造攻击</li>
+<li>如果error不为空说明失败返回错误</li>
+<li>拿到授权码code，换取token</li>
+<li>如果SaveTokens设置为true，将access_token,refresh_token,token_type存放到properties中</li>
+<li>创建凭据，返回成功</li>
+</ul>
 <div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-csharp" data-lang="csharp">  <span style="color:#66d9ef">protected</span> <span style="color:#66d9ef">override</span> <span style="color:#66d9ef">async</span> Task&lt;HandleRequestResult&gt; HandleRemoteAuthenticateAsync()
         {
             <span style="color:#66d9ef">var</span> query = Request.Query;
