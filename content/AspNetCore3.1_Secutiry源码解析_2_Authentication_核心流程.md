@@ -9,10 +9,11 @@ draft: false
 - [AspNetCore3.1_Secutiry源码解析_3_Authentication_Cookies](https://holdengong.com/aspnetcore3.1_secutiry源码解析_3_authentication_cookies)
 - [AspNetCore3.1_Secutiry源码解析_4_Authentication_JwtBear](https://holdengong.com/aspnetcore3.1_secutiry源码解析_4_authentication_jwtbear)
 - [AspNetCore3.1_Secutiry源码解析_5_Authentication_OAuth](https://holdengong.com/aspnetcore3.1_secutiry源码解析_5_authentication_oauth)
-- AspNetCore3.1_Secutiry源码解析_6_Authentication_OpenIdConnect
+- [AspNetCore3.1_Secutiry源码解析_6_Authentication_OpenIdConnect](https://holdengong.com/aspnetcore3.1_secutiry源码解析_6_authentication_openidconnect)
 - AspNetCore3.1_Secutiry源码解析_7_Authentication_其他
 - AspNetCore3.1_Secutiry源码解析_8_Authorization_核心项目
 - AspNetCore3.1_Secutiry源码解析_9_Authorization_Policy
+
 
 # 依赖注入
 框架提供了三个依赖注入重载方法。

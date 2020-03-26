@@ -3,6 +3,16 @@ title: "AspNetCore3.1_Secutiry源码解析_6_Authentication_OpenIdConnect"
 date: 2020-03-25T21:33:12+08:00
 draft: false
 ---
+# 系列文章目录
+- [AspNetCore3.1_Secutiry源码解析_1_目录](https://holdengong.com/aspnetcore3.1_secutiry源码解析_1_目录)
+- [AspNetCore3.1_Secutiry源码解析_2_Authentication_核心流程](https://holdengong.com/aspnetcore3.1_secutiry源码解析_2_authentication_核心流程)
+- [AspNetCore3.1_Secutiry源码解析_3_Authentication_Cookies](https://holdengong.com/aspnetcore3.1_secutiry源码解析_3_authentication_cookies)
+- [AspNetCore3.1_Secutiry源码解析_4_Authentication_JwtBear](https://holdengong.com/aspnetcore3.1_secutiry源码解析_4_authentication_jwtbear)
+- [AspNetCore3.1_Secutiry源码解析_5_Authentication_OAuth](https://holdengong.com/aspnetcore3.1_secutiry源码解析_5_authentication_oauth)
+- [AspNetCore3.1_Secutiry源码解析_6_Authentication_OpenIdConnect](https://holdengong.com/aspnetcore3.1_secutiry源码解析_6_authentication_openidconnect)
+- AspNetCore3.1_Secutiry源码解析_7_Authentication_其他
+- AspNetCore3.1_Secutiry源码解析_8_Authorization_核心项目
+- AspNetCore3.1_Secutiry源码解析_9_Authorization_Policy
 
 # oidc简介
 oidc是基于oauth2.0的上层协议。
@@ -1098,10 +1108,3 @@ private async Task HandleChallengeAsyncInternal(AuthenticationProperties propert
 
 # 完
 OpenIdConnect的代码还是有点复杂的，很多细节无法覆盖到，后面学习了协议再回头梳理一下。
-
-
-
-
-
-
-

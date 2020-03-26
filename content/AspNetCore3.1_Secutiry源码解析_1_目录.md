@@ -9,10 +9,11 @@ draft: false
 - [AspNetCore3.1_Secutiry源码解析_3_Authentication_Cookies](https://holdengong.com/aspnetcore3.1_secutiry源码解析_3_authentication_cookies)
 - [AspNetCore3.1_Secutiry源码解析_4_Authentication_JwtBear](https://holdengong.com/aspnetcore3.1_secutiry源码解析_4_authentication_jwtbear)
 - [AspNetCore3.1_Secutiry源码解析_5_Authentication_OAuth](https://holdengong.com/aspnetcore3.1_secutiry源码解析_5_authentication_oauth)
-- AspNetCore3.1_Secutiry源码解析_6_Authentication_OpenIdConnect
+- [AspNetCore3.1_Secutiry源码解析_6_Authentication_OpenIdConnect](https://holdengong.com/aspnetcore3.1_secutiry源码解析_6_authentication_openidconnect)
 - AspNetCore3.1_Secutiry源码解析_7_Authentication_其他
 - AspNetCore3.1_Secutiry源码解析_8_Authorization_核心项目
 - AspNetCore3.1_Secutiry源码解析_9_Authorization_Policy
+
 
 # 概述
 最近一直在学习研究认证授权这一块，从AspNetCore的Security解决方案，到Identity，再到OAuth2.0、OpenIdConnect协议，然后IdentityServer4，这一块的东西十分多而且复杂，可以算是DotNet里最难啃的骨头之一了。计划做个认证授权的系列，藉由分析源码来学习、记录和加深对这一块的理解。
