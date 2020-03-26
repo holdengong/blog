@@ -327,6 +327,26 @@ public class OpenIdConnectPostConfigureOptions : IPostConfigureOptions<OpenIdCon
 
 # 处理器类 -  OpenIdConnectHandler
 ## 处理认证 - HandRemoteAuthenticate
+### oidc登录示例图
+<div class="mermaid">
+sequenceDiagram
+    mysite->>sso: GET connect/authorize?callback(clientId,redirect_uri,response_type)scope,state,nonce
+    sso->>mysite: Form.POST mysite/signin-oidc (code,id_token,scope,state)
+</div>
+<script src="https://unpkg.com/mermaid/dist/mermaid.min.js"></script>
+
+### 代码解析
+
+mysite向oidc的认证节点地址/connect/authorize发送请求，oidc站点根据response_mode用get或者form_post方式调用mysite的回调地址mysite/signin-oidc,HandleRemoteAuthenticateAsync就是处理oidc站点的响应的方法。
+
+- 判断GET/POST,从请求中提取参数，如果是get请求，id_token，access_token不允许放在query中
+- 从state参数读取信息放到properties
+- 校验correlationId，防跨站伪造攻击
+- 如果返回了id_token，校验token，将信息写入HttpContext
+- 如果返回了授权码code的处理
+
+代码量还是比较多，有些地方目前还不是特别理解，需求后面熟悉协议内容在回过头来看下。总体上就是对oidc站点返回信息的校验和处理。
+
 ```csharp
 /// <summary>
 /// Invoked to process incoming OpenIdConnect messages.
@@ -623,11 +643,9 @@ protected override async Task<HandleRequestResult> HandleRemoteAuthenticateAsync
     }
 }
 ```
-
+## 处理远程登出 - HandleRemoteSignOutAsync
 
 OpenIdConectHandler跟OAuthHandler一样，继承自RemoteAuthenticationHandler，但是OpenId还实现了IAuthenticationSignOutHandler接口，因为OpenId是支持单点登录登出的，本地登出之后需要通知认证服务远程登出（注销本地站点Cookie），这样实现帐号的同步登出（注销sso站点cookie）。
-
-## 处理远程登出 - HandleRemoteSignOutAsync
 
 - 远程登出支持GET和Form-Post两种提交方式，客户端根据请求方式，将报文拼装好。
 - 触发远程登出事件
@@ -900,7 +918,7 @@ protected async virtual Task<bool> HandleSignOutCallbackAsync()
 }
 ```
 
-## 登出时序图
+### 登出时序图
 
 <div class="mermaid">
 sequenceDiagram
@@ -916,6 +934,170 @@ HttpContext.SignOutAsync("Cookies"); //清除本地cookie
 HttpContext.SignOutAsync("OpenIdConnect") //清除远程sso站点cookie
 ```
 
+## 处理质询 - HandleChallengeAsync
+- OAuth&PKCE的处理，PKCE = Proof Key for Code Exchange。主要用于NativeApp防跨站攻击的，因为NativeApp没有Cookie支持，无法使用state字段，所以需要其他的安全保障。
+> https://tools.ietf.org/html/rfc7636
+- 拼装请求参数，根据配置，如果是GET，302跳转到oidc站点；如果是Form-POST，提交表单到oidc站点。
+
+```csharp
+/// <summary>
+/// Responds to a 401 Challenge. Sends an OpenIdConnect message to the 'identity authority' to obtain an identity.
+/// </summary>
+/// <returns></returns>
+protected override async Task HandleChallengeAsync(AuthenticationProperties properties)
+{
+    await HandleChallengeAsyncInternal(properties);
+    var location = Context.Response.Headers[HeaderNames.Location];
+    if (location == StringValues.Empty)
+    {
+        location = "(not set)";
+    }
+    var cookie = Context.Response.Headers[HeaderNames.SetCookie];
+    if (cookie == StringValues.Empty)
+    {
+        cookie = "(not set)";
+    }
+    Logger.HandleChallenge(location, cookie);
+}
+
+private async Task HandleChallengeAsyncInternal(AuthenticationProperties properties)
+{
+    Logger.EnteringOpenIdAuthenticationHandlerHandleUnauthorizedAsync(GetType().FullName);
+
+    // order for local RedirectUri
+    // 1. challenge.Properties.RedirectUri
+    // 2. CurrentUri if RedirectUri is not set)
+    if (string.IsNullOrEmpty(properties.RedirectUri))
+    {
+        properties.RedirectUri = OriginalPathBase + OriginalPath + Request.QueryString;
+    }
+    Logger.PostAuthenticationLocalRedirect(properties.RedirectUri);
+
+    if (_configuration == null && Options.ConfigurationManager != null)
+    {
+        _configuration = await Options.ConfigurationManager.GetConfigurationAsync(Context.RequestAborted);
+    }
+
+    var message = new OpenIdConnectMessage
+    {
+        ClientId = Options.ClientId,
+        EnableTelemetryParameters = !Options.DisableTelemetry,
+        IssuerAddress = _configuration?.AuthorizationEndpoint ?? string.Empty,
+        RedirectUri = BuildRedirectUri(Options.CallbackPath),
+        Resource = Options.Resource,
+        ResponseType = Options.ResponseType,
+        Prompt = properties.GetParameter<string>(OpenIdConnectParameterNames.Prompt) ?? Options.Prompt,
+        Scope = string.Join(" ", properties.GetParameter<ICollection<string>>(OpenIdConnectParameterNames.Scope) ?? Options.Scope),
+    };
+
+    // https://tools.ietf.org/html/rfc7636
+    if (Options.UsePkce && Options.ResponseType == OpenIdConnectResponseType.Code)
+    {
+        var bytes = new byte[32];
+        CryptoRandom.GetBytes(bytes);
+        var codeVerifier = Base64UrlTextEncoder.Encode(bytes);
+
+        // Store this for use during the code redemption. See RunAuthorizationCodeReceivedEventAsync.
+        properties.Items.Add(OAuthConstants.CodeVerifierKey, codeVerifier);
+
+        using var sha256 = SHA256.Create();
+        var challengeBytes = sha256.ComputeHash(Encoding.UTF8.GetBytes(codeVerifier));
+        var codeChallenge = WebEncoders.Base64UrlEncode(challengeBytes);
+
+        message.Parameters.Add(OAuthConstants.CodeChallengeKey, codeChallenge);
+        message.Parameters.Add(OAuthConstants.CodeChallengeMethodKey, OAuthConstants.CodeChallengeMethodS256);
+    }
+
+    // Add the 'max_age' parameter to the authentication request if MaxAge is not null.
+    // See http://openid.net/specs/openid-connect-core-1_0.html#AuthRequest
+    var maxAge = properties.GetParameter<TimeSpan?>(OpenIdConnectParameterNames.MaxAge) ?? Options.MaxAge;
+    if (maxAge.HasValue)
+    {
+        message.MaxAge = Convert.ToInt64(Math.Floor((maxAge.Value).TotalSeconds))
+            .ToString(CultureInfo.InvariantCulture);
+    }
+
+    // Omitting the response_mode parameter when it already corresponds to the default
+    // response_mode used for the specified response_type is recommended by the specifications.
+    // See http://openid.net/specs/oauth-v2-multiple-response-types-1_0.html#ResponseModes
+    if (!string.Equals(Options.ResponseType, OpenIdConnectResponseType.Code, StringComparison.Ordinal) ||
+        !string.Equals(Options.ResponseMode, OpenIdConnectResponseMode.Query, StringComparison.Ordinal))
+    {
+        message.ResponseMode = Options.ResponseMode;
+    }
+
+    if (Options.ProtocolValidator.RequireNonce)
+    {
+        message.Nonce = Options.ProtocolValidator.GenerateNonce();
+        WriteNonceCookie(message.Nonce);
+    }
+
+    GenerateCorrelationId(properties);
+
+    var redirectContext = new RedirectContext(Context, Scheme, Options, properties)
+    {
+        ProtocolMessage = message
+    };
+
+    await Events.RedirectToIdentityProvider(redirectContext);
+    if (redirectContext.Handled)
+    {
+        Logger.RedirectToIdentityProviderHandledResponse();
+        return;
+    }
+
+    message = redirectContext.ProtocolMessage;
+
+    if (!string.IsNullOrEmpty(message.State))
+    {
+        properties.Items[OpenIdConnectDefaults.UserstatePropertiesKey] = message.State;
+    }
+
+    // When redeeming a 'code' for an AccessToken, this value is needed
+    properties.Items.Add(OpenIdConnectDefaults.RedirectUriForCodePropertiesKey, message.RedirectUri);
+
+    message.State = Options.StateDataFormat.Protect(properties);
+
+    if (string.IsNullOrEmpty(message.IssuerAddress))
+    {
+        throw new InvalidOperationException(
+            "Cannot redirect to the authorization endpoint, the configuration may be missing or invalid.");
+    }
+
+    if (Options.AuthenticationMethod == OpenIdConnectRedirectBehavior.RedirectGet)
+    {
+        var redirectUri = message.CreateAuthenticationRequestUrl();
+        if (!Uri.IsWellFormedUriString(redirectUri, UriKind.Absolute))
+        {
+            Logger.InvalidAuthenticationRequestUrl(redirectUri);
+        }
+
+        Response.Redirect(redirectUri);
+        return;
+    }
+    else if (Options.AuthenticationMethod == OpenIdConnectRedirectBehavior.FormPost)
+    {
+        var content = message.BuildFormPost();
+        var buffer = Encoding.UTF8.GetBytes(content);
+
+        Response.ContentLength = buffer.Length;
+        Response.ContentType = "text/html;charset=UTF-8";
+
+        // Emit Cache-Control=no-cache to prevent client caching.
+        Response.Headers[HeaderNames.CacheControl] = "no-cache, no-store";
+        Response.Headers[HeaderNames.Pragma] = "no-cache";
+        Response.Headers[HeaderNames.Expires] = HeaderValueEpocDate;
+
+        await Response.Body.WriteAsync(buffer, 0, buffer.Length);
+        return;
+    }
+
+    throw new NotImplementedException($"An unsupported authentication method has been configured: {Options.AuthenticationMethod}");
+}
+```
+
+# 完
+OpenIdConnect的代码还是有点复杂的，很多细节无法覆盖到，后面学习了协议再回头梳理一下。
 
 
 
