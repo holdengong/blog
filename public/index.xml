@@ -21,7 +21,15 @@
 微软的Authorization项目提供了基于策略的灵活的授权框架。
 推荐看下面博客了解，我主要学习和梳理源码。
  https://www.cnblogs.com/RainingNight/p/authorization-in-asp-net-core.html
- 依赖注入 注入了以下接口，提供了默认实现 - IAuthorizationService ：授权服务，主干服务 - IAuthorizationPolicyProvider ： 策略提供类 - IAuthorizationHandlerProvider：处理器提供类 - IAuthorizationEvaluator：校验类 - IAuthorizationHandlerContextFactory：授权上下文工厂 - IAuthorizationHandler：授权处理器，这个是注入的集合，一个策略可以有多个授权处理器，依次执行 - 配置类：AuthorizationOptions 微软的命名风格还是比较一致的 Service：服务 Provider：某类的提供者 Evaluator：校验预处理类 Factory：工厂 Handler：处理器 Context：上下文 看源码的过程，不仅可以学习框架背后原理，还可以学习编码风格和设计模式，还是挺有用处的。 /// &amp;lt;summary&amp;gt; /// Adds authorization services to the specified &amp;lt;see cref=&amp;#34;IServiceCollection&amp;#34; /&amp;gt;. /// &amp;lt;/summary&amp;gt; /// &amp;lt;param name=&amp;#34;services&amp;#34;&amp;gt;The &amp;lt;see cref=&amp;#34;IServiceCollection&amp;#34; /&amp;gt; to add services to.</description>
+ 依赖注入 注入了以下接口，提供了默认实现
+ IAuthorizationService ：授权服务，主干服务 IAuthorizationPolicyProvider ： 策略提供类 IAuthorizationHandlerProvider：处理器提供类 IAuthorizationEvaluator：校验类 IAuthorizationHandlerContextFactory：授权上下文工厂 IAuthorizationHandler：授权处理器，这个是注入的集合，一个策略可以有多个授权处理器，依次执行 配置类：AuthorizationOptions  微软的命名风格还是比较一致的
+Service：服务
+Provider：某类的提供者 Evaluator：校验预处理类
+Factory：工厂
+Handler：处理器
+Context：上下文
+看源码的过程，不仅可以学习框架背后原理，还可以学习编码风格和设计模式，还是挺有用处的。
+/// &amp;lt;summary&amp;gt; /// Adds authorization services to the specified &amp;lt;see cref=&amp;#34;IServiceCollection&amp;#34; /&amp;gt;. /// &amp;lt;/summary&amp;gt; /// &amp;lt;param name=&amp;#34;services&amp;#34;&amp;gt;The &amp;lt;see cref=&amp;#34;IServiceCollection&amp;#34; /&amp;gt; to add services to.&amp;lt;/param&amp;gt; /// &amp;lt;returns&amp;gt;The &amp;lt;see cref=&amp;#34;IServiceCollection&amp;#34;/&amp;gt; so that additional calls can be chained.</description>
     </item>
     
     <item>

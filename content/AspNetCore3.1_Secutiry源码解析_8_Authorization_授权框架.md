@@ -15,7 +15,6 @@ draft: false
 > https://www.cnblogs.com/RainingNight/p/authorization-in-asp-net-core.html
 
 # 依赖注入
-```csharp
 注入了以下接口，提供了默认实现
 - IAuthorizationService ：授权服务，主干服务
 - IAuthorizationPolicyProvider ： 策略提供类
@@ -35,6 +34,7 @@ Context：上下文
 
 看源码的过程，不仅可以学习框架背后原理，还可以学习编码风格和设计模式，还是挺有用处的。
 
+```csharp
 /// <summary>
 /// Adds authorization services to the specified <see cref="IServiceCollection" />. 
 /// </summary>

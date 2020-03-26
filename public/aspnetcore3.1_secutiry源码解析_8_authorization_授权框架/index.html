@@ -76,26 +76,25 @@
 <p><a href="https://www.cnblogs.com/RainingNight/p/authorization-in-asp-net-core.html">https://www.cnblogs.com/RainingNight/p/authorization-in-asp-net-core.html</a></p>
 </blockquote>
 <h1 id="依赖注入">依赖注入</h1>
-<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-csharp" data-lang="csharp"><span style="color:#960050;background-color:#1e0010">注入了以下接口，提供了默认实现</span>
-- IAuthorizationService <span style="color:#960050;background-color:#1e0010">：授权服务，主干服务</span>
-- IAuthorizationPolicyProvider <span style="color:#960050;background-color:#1e0010">：</span> <span style="color:#960050;background-color:#1e0010">策略提供类</span>
-- IAuthorizationHandlerProvider<span style="color:#960050;background-color:#1e0010">：处理器提供类</span>
-- IAuthorizationEvaluator<span style="color:#960050;background-color:#1e0010">：校验类</span>
-- IAuthorizationHandlerContextFactory<span style="color:#960050;background-color:#1e0010">：授权上下文工厂</span>
-- IAuthorizationHandler<span style="color:#960050;background-color:#1e0010">：授权处理器，这个是注入的集合，一个策略可以有多个授权处理器，依次执行</span>
-- <span style="color:#960050;background-color:#1e0010">配置类：</span>AuthorizationOptions
-
-<span style="color:#960050;background-color:#1e0010">微软的命名风格还是比较一致的</span>  
-Service<span style="color:#960050;background-color:#1e0010">：服务</span>  
-Provider<span style="color:#960050;background-color:#1e0010">：某类的提供者</span>
-Evaluator<span style="color:#960050;background-color:#1e0010">：校验预处理类</span>  
-Factory<span style="color:#960050;background-color:#1e0010">：工厂</span>  
-Handler<span style="color:#960050;background-color:#1e0010">：处理器</span>  
-Context<span style="color:#960050;background-color:#1e0010">：上下文</span>
-
-<span style="color:#960050;background-color:#1e0010">看源码的过程，不仅可以学习框架背后原理，还可以学习编码风格和设计模式，还是挺有用处的。</span>
-
-<span style="color:#75715e">/// &lt;summary&gt;
+<p>注入了以下接口，提供了默认实现</p>
+<ul>
+<li>IAuthorizationService ：授权服务，主干服务</li>
+<li>IAuthorizationPolicyProvider ： 策略提供类</li>
+<li>IAuthorizationHandlerProvider：处理器提供类</li>
+<li>IAuthorizationEvaluator：校验类</li>
+<li>IAuthorizationHandlerContextFactory：授权上下文工厂</li>
+<li>IAuthorizationHandler：授权处理器，这个是注入的集合，一个策略可以有多个授权处理器，依次执行</li>
+<li>配置类：AuthorizationOptions</li>
+</ul>
+<p>微软的命名风格还是比较一致的<br>
+Service：服务<br>
+Provider：某类的提供者
+Evaluator：校验预处理类<br>
+Factory：工厂<br>
+Handler：处理器<br>
+Context：上下文</p>
+<p>看源码的过程，不仅可以学习框架背后原理，还可以学习编码风格和设计模式，还是挺有用处的。</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-csharp" data-lang="csharp"><span style="color:#75715e">/// &lt;summary&gt;
 </span><span style="color:#75715e">/// Adds authorization services to the specified &lt;see cref=&#34;IServiceCollection&#34; /&gt;. 
 </span><span style="color:#75715e">/// &lt;/summary&gt;
 </span><span style="color:#75715e">/// &lt;param name=&#34;services&#34;&gt;The &lt;see cref=&#34;IServiceCollection&#34; /&gt; to add services to.&lt;/param&gt;
