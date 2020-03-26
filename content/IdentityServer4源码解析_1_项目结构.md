@@ -3,6 +3,8 @@ title: "IdentityServer4源码解析_1_项目结构"
 date: 2020-03-26T20:31:25+08:00
 draft: false
 ---
+{{%idsv_menu%}}
+
 # 简介
 Security源码解析系列介绍了微软提供的各种认证架构，其中OAuth2.0，OpenIdConnect属于远程认证架构，所谓远程认证，是指token的颁发是由另外的站点实现的。
 
