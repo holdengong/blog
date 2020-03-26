@@ -58,6 +58,22 @@
     <div class="posts">
 <article class="post">
   <h1 class="post-title">
+    <a href="https://holdengong.com/aspnetcore3.1_secutiry%E6%BA%90%E7%A0%81%E8%A7%A3%E6%9E%90_7_authentication_%E5%85%B6%E4%BB%96/">AspNetCore3</a>
+  </h1>
+  <time datetime="2020-03-26T13:23:27&#43;0800" class="post-date">Thu, Mar 26, 2020</time>
+  系列文章目录  AspNetCore3.1_Secutiry源码解析_1_目录 AspNetCore3.1_Secutiry源码解析_2_Authentication_核心流程 AspNetCore3.1_Secutiry源码解析_3_Authentication_Cookies AspNetCore3.1_Secutiry源码解析_4_Authentication_JwtBear AspNetCore3.1_Secutiry源码解析_5_Authentication_OAuth AspNetCore3.1_Secutiry源码解析_6_Authentication_OpenIdConnect AspNetCore3.1_Secutiry源码解析_7_Authentication_其他 AspNetCore3.1_Secutiry源码解析_8_Authorization_核心项目 AspNetCore3.1_Secutiry源码解析_9_Authorization_Policy  简介 Secutiry的认证目录还有这些项目，基本都是具体的OAuth2.0服务商或者其他用的比较少的认证架构，简单看一下，了解一下。
+ Microsoft.AspNetCore.Authentication.Certificate Microsoft.AspNetCore.Authentication.Facebook Microsoft.AspNetCore.Authentication.Google Microsoft.AspNetCore.Authentication.MicrosoftAccount Microsoft.AspNetCore.Authentication.Negotiate Microsoft.AspNetCore.Authentication.Twitter Microsoft.AspNetCore.Authentication.WsFederation  OAuth2.0服务商 Facebook, Google,MicrosoftAccount这几个都可以归为一类，都是OAuth2.0的服务商。国内用的比较多的是QQ，Weixin。我们看一下Facebook的代码，其他的原理都是大同小异的，根据不同厂商的差异稍作调整就可以了。
+Twitter似乎是用的OAuth1.0协议。
+依赖注入 配置类: FacebookOptions,处理器类：FacebookHandler
+public static class FacebookAuthenticationOptionsExtensions { public static AuthenticationBuilder AddFacebook(this AuthenticationBuilder builder) =&gt; builder.AddFacebook(FacebookDefaults.AuthenticationScheme, _ =&gt; { }); public static AuthenticationBuilder AddFacebook(this AuthenticationBuilder builder, Action&lt;FacebookOptions&gt; configureOptions) =&gt; builder.AddFacebook(FacebookDefaults.AuthenticationScheme, configureOptions); public static AuthenticationBuilder AddFacebook(this AuthenticationBuilder builder, string authenticationScheme, Action&lt;FacebookOptions&gt; configureOptions) =&gt; builder.AddFacebook(authenticationScheme, FacebookDefaults.
+  
+  
+  <div class="read-more-link">
+    <a href="/aspnetcore3.1_secutiry%E6%BA%90%E7%A0%81%E8%A7%A3%E6%9E%90_7_authentication_%E5%85%B6%E4%BB%96/">Read More…</a>
+  </div>
+  
+</article><article class="post">
+  <h1 class="post-title">
     <a href="https://holdengong.com/aspnetcore3.1_secutiry%E6%BA%90%E7%A0%81%E8%A7%A3%E6%9E%90_6_authentication_openidconnect/">AspNetCore3.1_Secutiry源码解析_6_Authentication_OpenIdConnect</a>
   </h1>
   <time datetime="2020-03-25T21:33:12&#43;0800" class="post-date">Wed, Mar 25, 2020</time>
@@ -82,7 +98,7 @@ public static AuthenticationBuilder AddOpenIdConnect(this AuthenticationBuilder 
     <a href="https://holdengong.com/aspnetcore3.1_secutiry%E6%BA%90%E7%A0%81%E8%A7%A3%E6%9E%90_5_authentication_oauth/">AspNetCore3.1_Secutiry源码解析_5_Authentication_OAuth</a>
   </h1>
   <time datetime="2020-03-24T23:27:45&#43;0800" class="post-date">Tue, Mar 24, 2020</time>
-  系列文章目录  AspNetCore3.1_Secutiry源码解析_1_目录 AspNetCore3.1_Secutiry源码解析_2_Authentication_核心流程 AspNetCore3.1_Secutiry源码解析_3_Authentication_Cookies AspNetCore3.1_Secutiry源码解析_4_Authentication_JwtBear AspNetCore3.1_Secutiry源码解析_5_Authentication_OAuth AspNetCore3.1_Secutiry源码解析_6_Authentication_OpenIdConnect AspNetCore3.1_Secutiry源码解析_7_Authentication_其他 AspNetCore3.1_Secutiry源码解析_8_Authorization_核心项目 AspNetCore3.1_Secutiry源码解析_9_Authorization_Policy  OAuth简介 现在随便一个网站，不用注册，只用微信扫一扫，然后就可以自动登录，然后第三方网站右上角还出现了你的微信头像和昵称，怎么做到的？
+  系列文章目录  AspNetCore3.1_Secutiry源码解析_1_目录 AspNetCore3.1_Secutiry源码解析_2_Authentication_核心流程 AspNetCore3.1_Secutiry源码解析_3_Authentication_Cookies AspNetCore3.1_Secutiry源码解析_4_Authentication_JwtBear AspNetCore3.1_Secutiry源码解析_5_Authentication_OAuth AspNetCore3.1_Secutiry源码解析_6_Authentication_OpenIdConnect AspNetCore3.1_Secutiry源码解析_7_Authentication_其他 AspNetCore3.1_Secutiry源码解析_8_Authorization_核心项目 AspNetCore3.1_Secutiry源码解析_9_Authorization_Policy  系列文章目录  AspNetCore3.1_Secutiry源码解析_1_目录 AspNetCore3.1_Secutiry源码解析_2_Authentication_核心流程 AspNetCore3.1_Secutiry源码解析_3_Authentication_Cookies AspNetCore3.1_Secutiry源码解析_4_Authentication_JwtBear AspNetCore3.1_Secutiry源码解析_5_Authentication_OAuth AspNetCore3.1_Secutiry源码解析_6_Authentication_OpenIdConnect AspNetCore3.1_Secutiry源码解析_7_Authentication_其他 AspNetCore3.1_Secutiry源码解析_8_Authorization_核心项目 AspNetCore3.1_Secutiry源码解析_9_Authorization_Policy  OAuth简介 现在随便一个网站，不用注册，只用微信扫一扫，然后就可以自动登录，然后第三方网站右上角还出现了你的微信头像和昵称，怎么做到的？
 sequenceDiagram 用户-x站点: 请求微信登录 x站点-微信: 请求 oauth token 微信-用户: x站点请求基本资料权限,是否同意? 用户-微信: 同意 微信-x站点: token x站点-微信: 请求user基本资料(token) 微信-微信: 校验token 微信-x站点: user基本资料   大概就这么个意思，OAuth可以让第三方获取有限的授权去获取资源。
 入门的看博客
  https://www.cnblogs.com/linianhui/p/oauth2-authorization.html
@@ -90,7 +106,7 @@ sequenceDiagram 用户-x站点: 请求微信登录 x站点-微信: 请求 oauth 
  https://tools.ietf.org/html/rfc6749
  依赖注入 配置类：OAuthOptions
 处理器类： OAuthHandler
-public static class OAuthExtensions { public static AuthenticationBuilder AddOAuth(this AuthenticationBuilder builder, string authenticationScheme, Action&lt;OAuthOptions&gt; configureOptions) =&gt; builder.AddOAuth&lt;OAuthOptions, OAuthHandler&lt;OAuthOptions&gt;&gt;(authenticationScheme, configureOptions); public static AuthenticationBuilder AddOAuth(this AuthenticationBuilder builder, string authenticationScheme, string displayName, Action&lt;OAuthOptions&gt; configureOptions) =&gt; builder.
+public static class OAuthExtensions { public static AuthenticationBuilder AddOAuth(this AuthenticationBuilder builder, string authenticationScheme, Action&lt;OAuthOptions&gt; configureOptions) =&gt; builder.
   
   
   <div class="read-more-link">

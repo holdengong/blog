@@ -1,0 +1,276 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="zh-Hans" lang="zh-Hans">
+<head>
+  <link href="https://gmpg.org/xfn/11" rel="profile">
+  <meta http-equiv="content-type" content="text/html; charset=utf-8">
+  <meta name="generator" content="Hugo 0.67.0" />
+
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <title>AspNetCore3 &middot; Holden Gong</title>
+  <meta name="description" content="" />
+
+  
+  <link type="text/css" rel="stylesheet" href="https://holdengong.com/css/print.css" media="print">
+  <link type="text/css" rel="stylesheet" href="https://holdengong.com/css/poole.css">
+  <link type="text/css" rel="stylesheet" href="https://holdengong.com/css/syntax.css">
+  <link type="text/css" rel="stylesheet" href="https://holdengong.com/css/hyde.css">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Abril+Fatface|PT+Sans:400,400i,700">
+
+
+  
+  <link rel="apple-touch-icon-precomposed" sizes="144x144" href="/apple-touch-icon-144-precomposed.png">
+  <link rel="shortcut icon" href="/favicon.png">
+
+  
+  
+</head>
+
+  <body class=" ">
+  <aside class="sidebar">
+  <div class="container sidebar-sticky">
+    <div class="sidebar-about">
+      <a href="https://holdengong.com/">
+        <h1>Holden Gong</h1>
+      </a>
+      <p class="lead">
+        code & life
+      </p>
+    </div>
+
+    <nav>
+      <ul class="sidebar-nav">
+  
+      </ul>
+    </nav>
+    
+    <div>
+      <p>&copy; 2020. All rights reserved. </p>
+      <p>鄂ICP备20003133号</p>
+      <script type="text/javascript">document.write(unescape("%3Cspan id='cnzz_stat_icon_1278689390'%3E%3C/span%3E%3Cscript src='https://v1.cnzz.com/z_stat.php%3Fid%3D1278689390%26show%3Dpic' type='text/javascript'%3E%3C/script%3E"));</script>
+    </div>
+  </div>
+</aside>
+
+    <main class="content container">
+    <div class="post">
+  <h1>AspNetCore3</h1>
+  <time datetime=2020-03-26T13:23:27&#43;0800 class="post-date">Thu, Mar 26, 2020</time>
+  <h1 id="系列文章目录">系列文章目录</h1>
+<ul>
+<li><a href="https://holdengong.com/aspnetcore3.1_secutiry%E6%BA%90%E7%A0%81%E8%A7%A3%E6%9E%90_1_%E7%9B%AE%E5%BD%95">AspNetCore3.1_Secutiry源码解析_1_目录</a></li>
+<li><a href="https://holdengong.com/aspnetcore3.1_secutiry%E6%BA%90%E7%A0%81%E8%A7%A3%E6%9E%90_2_authentication_%E6%A0%B8%E5%BF%83%E6%B5%81%E7%A8%8B">AspNetCore3.1_Secutiry源码解析_2_Authentication_核心流程</a></li>
+<li><a href="https://holdengong.com/aspnetcore3.1_secutiry%E6%BA%90%E7%A0%81%E8%A7%A3%E6%9E%90_3_authentication_cookies">AspNetCore3.1_Secutiry源码解析_3_Authentication_Cookies</a></li>
+<li><a href="https://holdengong.com/aspnetcore3.1_secutiry%E6%BA%90%E7%A0%81%E8%A7%A3%E6%9E%90_4_authentication_jwtbear">AspNetCore3.1_Secutiry源码解析_4_Authentication_JwtBear</a></li>
+<li><a href="https://holdengong.com/aspnetcore3.1_secutiry%E6%BA%90%E7%A0%81%E8%A7%A3%E6%9E%90_5_authentication_oauth">AspNetCore3.1_Secutiry源码解析_5_Authentication_OAuth</a></li>
+<li><a href="https://holdengong.com/aspnetcore3.1_secutiry%E6%BA%90%E7%A0%81%E8%A7%A3%E6%9E%90_6_authentication_openidconnect">AspNetCore3.1_Secutiry源码解析_6_Authentication_OpenIdConnect</a></li>
+<li><a href="https://holdengong.com/aspnetcore3.1_secutiry%E6%BA%90%E7%A0%81%E8%A7%A3%E6%9E%90_7_authentication_%E5%85%B6%E4%BB%96">AspNetCore3.1_Secutiry源码解析_7_Authentication_其他</a></li>
+<li>AspNetCore3.1_Secutiry源码解析_8_Authorization_核心项目</li>
+<li>AspNetCore3.1_Secutiry源码解析_9_Authorization_Policy</li>
+</ul>
+<h1 id="简介">简介</h1>
+<p>Secutiry的认证目录还有这些项目，基本都是具体的OAuth2.0服务商或者其他用的比较少的认证架构，简单看一下，了解一下。</p>
+<ul>
+<li>Microsoft.AspNetCore.Authentication.Certificate</li>
+<li>Microsoft.AspNetCore.Authentication.Facebook</li>
+<li>Microsoft.AspNetCore.Authentication.Google</li>
+<li>Microsoft.AspNetCore.Authentication.MicrosoftAccount</li>
+<li>Microsoft.AspNetCore.Authentication.Negotiate</li>
+<li>Microsoft.AspNetCore.Authentication.Twitter</li>
+<li>Microsoft.AspNetCore.Authentication.WsFederation</li>
+</ul>
+<h1 id="oauth20服务商">OAuth2.0服务商</h1>
+<p>Facebook, Google,MicrosoftAccount这几个都可以归为一类，都是OAuth2.0的服务商。国内用的比较多的是QQ，Weixin。我们看一下Facebook的代码，其他的原理都是大同小异的，根据不同厂商的差异稍作调整就可以了。</p>
+<p>Twitter似乎是用的OAuth1.0协议。</p>
+<h2 id="依赖注入">依赖注入</h2>
+<p>配置类: FacebookOptions,处理器类：FacebookHandler</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-csharp" data-lang="csharp"><span style="color:#66d9ef">public</span> <span style="color:#66d9ef">static</span> <span style="color:#66d9ef">class</span> <span style="color:#a6e22e">FacebookAuthenticationOptionsExtensions</span>
+{
+    <span style="color:#66d9ef">public</span> <span style="color:#66d9ef">static</span> AuthenticationBuilder AddFacebook(<span style="color:#66d9ef">this</span> AuthenticationBuilder builder)
+        =&gt; builder.AddFacebook(FacebookDefaults.AuthenticationScheme, _ =&gt; { });
+
+    <span style="color:#66d9ef">public</span> <span style="color:#66d9ef">static</span> AuthenticationBuilder AddFacebook(<span style="color:#66d9ef">this</span> AuthenticationBuilder builder, Action&lt;FacebookOptions&gt; configureOptions)
+        =&gt; builder.AddFacebook(FacebookDefaults.AuthenticationScheme, configureOptions);
+
+    <span style="color:#66d9ef">public</span> <span style="color:#66d9ef">static</span> AuthenticationBuilder AddFacebook(<span style="color:#66d9ef">this</span> AuthenticationBuilder builder, <span style="color:#66d9ef">string</span> authenticationScheme, Action&lt;FacebookOptions&gt; configureOptions)
+        =&gt; builder.AddFacebook(authenticationScheme, FacebookDefaults.DisplayName, configureOptions);
+
+    <span style="color:#66d9ef">public</span> <span style="color:#66d9ef">static</span> AuthenticationBuilder AddFacebook(<span style="color:#66d9ef">this</span> AuthenticationBuilder builder, <span style="color:#66d9ef">string</span> authenticationScheme, <span style="color:#66d9ef">string</span> displayName, Action&lt;FacebookOptions&gt; configureOptions)
+        =&gt; builder.AddOAuth&lt;FacebookOptions, FacebookHandler&gt;(authenticationScheme, displayName, configureOptions);
+}
+</code></pre></div><h2 id="配置类---facebookoptions">配置类 - FacebookOptions</h2>
+<p>配置类继承自OAuthOptions，构造函数根据Facebook做了一些定制处理，如claim的映射等。</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-csharp" data-lang="csharp"><span style="color:#75715e">/// &lt;summary&gt;
+</span><span style="color:#75715e">/// Configuration options for &lt;see cref=&#34;FacebookHandler&#34;/&gt;.
+</span><span style="color:#75715e">/// &lt;/summary&gt;
+</span><span style="color:#75715e"></span><span style="color:#66d9ef">public</span> <span style="color:#66d9ef">class</span> <span style="color:#a6e22e">FacebookOptions</span> : OAuthOptions
+{
+    <span style="color:#75715e">/// &lt;summary&gt;
+</span><span style="color:#75715e"></span>    <span style="color:#75715e">/// Initializes a new &lt;see cref=&#34;FacebookOptions&#34;/&gt;.
+</span><span style="color:#75715e"></span>    <span style="color:#75715e">/// &lt;/summary&gt;
+</span><span style="color:#75715e"></span>    <span style="color:#66d9ef">public</span> FacebookOptions()
+    {
+        CallbackPath = <span style="color:#66d9ef">new</span> PathString(<span style="color:#e6db74">&#34;/signin-facebook&#34;</span>);
+        SendAppSecretProof = <span style="color:#66d9ef">true</span>;
+        AuthorizationEndpoint = FacebookDefaults.AuthorizationEndpoint;
+        TokenEndpoint = FacebookDefaults.TokenEndpoint;
+        UserInformationEndpoint = FacebookDefaults.UserInformationEndpoint;
+        Scope.Add(<span style="color:#e6db74">&#34;email&#34;</span>);
+        Fields.Add(<span style="color:#e6db74">&#34;name&#34;</span>);
+        Fields.Add(<span style="color:#e6db74">&#34;email&#34;</span>);
+        Fields.Add(<span style="color:#e6db74">&#34;first_name&#34;</span>);
+        Fields.Add(<span style="color:#e6db74">&#34;last_name&#34;</span>);
+
+        ClaimActions.MapJsonKey(ClaimTypes.NameIdentifier, <span style="color:#e6db74">&#34;id&#34;</span>);
+        ClaimActions.MapJsonSubKey(<span style="color:#e6db74">&#34;urn:facebook:age_range_min&#34;</span>, <span style="color:#e6db74">&#34;age_range&#34;</span>, <span style="color:#e6db74">&#34;min&#34;</span>);
+        ClaimActions.MapJsonSubKey(<span style="color:#e6db74">&#34;urn:facebook:age_range_max&#34;</span>, <span style="color:#e6db74">&#34;age_range&#34;</span>, <span style="color:#e6db74">&#34;max&#34;</span>);
+        ClaimActions.MapJsonKey(ClaimTypes.DateOfBirth, <span style="color:#e6db74">&#34;birthday&#34;</span>);
+        ClaimActions.MapJsonKey(ClaimTypes.Email, <span style="color:#e6db74">&#34;email&#34;</span>);
+        ClaimActions.MapJsonKey(ClaimTypes.Name, <span style="color:#e6db74">&#34;name&#34;</span>);
+        ClaimActions.MapJsonKey(ClaimTypes.GivenName, <span style="color:#e6db74">&#34;first_name&#34;</span>);
+        ClaimActions.MapJsonKey(<span style="color:#e6db74">&#34;urn:facebook:middle_name&#34;</span>, <span style="color:#e6db74">&#34;middle_name&#34;</span>);
+        ClaimActions.MapJsonKey(ClaimTypes.Surname, <span style="color:#e6db74">&#34;last_name&#34;</span>);
+        ClaimActions.MapJsonKey(ClaimTypes.Gender, <span style="color:#e6db74">&#34;gender&#34;</span>);
+        ClaimActions.MapJsonKey(<span style="color:#e6db74">&#34;urn:facebook:link&#34;</span>, <span style="color:#e6db74">&#34;link&#34;</span>);
+        ClaimActions.MapJsonSubKey(<span style="color:#e6db74">&#34;urn:facebook:location&#34;</span>, <span style="color:#e6db74">&#34;location&#34;</span>, <span style="color:#e6db74">&#34;name&#34;</span>);
+        ClaimActions.MapJsonKey(ClaimTypes.Locality, <span style="color:#e6db74">&#34;locale&#34;</span>);
+        ClaimActions.MapJsonKey(<span style="color:#e6db74">&#34;urn:facebook:timezone&#34;</span>, <span style="color:#e6db74">&#34;timezone&#34;</span>);
+    }
+
+    <span style="color:#75715e">/// &lt;summary&gt;
+</span><span style="color:#75715e"></span>    <span style="color:#75715e">/// Check that the options are valid.  Should throw an exception if things are not ok.
+</span><span style="color:#75715e"></span>    <span style="color:#75715e">/// &lt;/summary&gt;
+</span><span style="color:#75715e"></span>    <span style="color:#66d9ef">public</span> <span style="color:#66d9ef">override</span> <span style="color:#66d9ef">void</span> Validate()
+    {
+        <span style="color:#66d9ef">if</span> (<span style="color:#66d9ef">string</span>.IsNullOrEmpty(AppId))
+        {
+            <span style="color:#66d9ef">throw</span> <span style="color:#66d9ef">new</span> ArgumentException(<span style="color:#66d9ef">string</span>.Format(CultureInfo.CurrentCulture, Resources.Exception_OptionMustBeProvided, nameof(AppId)), nameof(AppId));
+        }
+
+        <span style="color:#66d9ef">if</span> (<span style="color:#66d9ef">string</span>.IsNullOrEmpty(AppSecret))
+        {
+            <span style="color:#66d9ef">throw</span> <span style="color:#66d9ef">new</span> ArgumentException(<span style="color:#66d9ef">string</span>.Format(CultureInfo.CurrentCulture, Resources.Exception_OptionMustBeProvided, nameof(AppSecret)), nameof(AppSecret));
+        }
+
+        <span style="color:#66d9ef">base</span>.Validate();
+    }
+
+    <span style="color:#75715e">// Facebook uses a non-standard term for this field.
+</span><span style="color:#75715e"></span>    <span style="color:#75715e">/// &lt;summary&gt;
+</span><span style="color:#75715e"></span>    <span style="color:#75715e">/// Gets or sets the Facebook-assigned appId.
+</span><span style="color:#75715e"></span>    <span style="color:#75715e">/// &lt;/summary&gt;
+</span><span style="color:#75715e"></span>    <span style="color:#66d9ef">public</span> <span style="color:#66d9ef">string</span> AppId
+    {
+        <span style="color:#66d9ef">get</span> { <span style="color:#66d9ef">return</span> ClientId; }
+        <span style="color:#66d9ef">set</span> { ClientId = <span style="color:#66d9ef">value</span>; }
+    }
+
+    <span style="color:#75715e">// Facebook uses a non-standard term for this field.
+</span><span style="color:#75715e"></span>    <span style="color:#75715e">/// &lt;summary&gt;
+</span><span style="color:#75715e"></span>    <span style="color:#75715e">/// Gets or sets the Facebook-assigned app secret.
+</span><span style="color:#75715e"></span>    <span style="color:#75715e">/// &lt;/summary&gt;
+</span><span style="color:#75715e"></span>    <span style="color:#66d9ef">public</span> <span style="color:#66d9ef">string</span> AppSecret
+    {
+        <span style="color:#66d9ef">get</span> { <span style="color:#66d9ef">return</span> ClientSecret; }
+        <span style="color:#66d9ef">set</span> { ClientSecret = <span style="color:#66d9ef">value</span>; }
+    }
+
+    <span style="color:#75715e">/// &lt;summary&gt;
+</span><span style="color:#75715e"></span>    <span style="color:#75715e">/// Gets or sets if the appsecret_proof should be generated and sent with Facebook API calls.
+</span><span style="color:#75715e"></span>    <span style="color:#75715e">/// This is enabled by default.
+</span><span style="color:#75715e"></span>    <span style="color:#75715e">/// &lt;/summary&gt;
+</span><span style="color:#75715e"></span>    <span style="color:#66d9ef">public</span> <span style="color:#66d9ef">bool</span> SendAppSecretProof { <span style="color:#66d9ef">get</span>; <span style="color:#66d9ef">set</span>; }
+
+    <span style="color:#75715e">/// &lt;summary&gt;
+</span><span style="color:#75715e"></span>    <span style="color:#75715e">/// The list of fields to retrieve from the UserInformationEndpoint.
+</span><span style="color:#75715e"></span>    <span style="color:#75715e">/// https://developers.facebook.com/docs/graph-api/reference/user
+</span><span style="color:#75715e"></span>    <span style="color:#75715e">/// &lt;/summary&gt;
+</span><span style="color:#75715e"></span>    <span style="color:#66d9ef">public</span> ICollection&lt;<span style="color:#66d9ef">string</span>&gt; Fields { <span style="color:#66d9ef">get</span>; } = <span style="color:#66d9ef">new</span> HashSet&lt;<span style="color:#66d9ef">string</span>&gt;();
+}
+</code></pre></div><h2 id="处理器类">处理器类</h2>
+<p>重写了OAuthHanlder的创建凭据方法，其他的都是使用的父类实现。</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-csharp" data-lang="csharp"><span style="color:#66d9ef">public</span> <span style="color:#66d9ef">class</span> <span style="color:#a6e22e">FacebookHandler</span> : OAuthHandler&lt;FacebookOptions&gt;
+{
+    <span style="color:#66d9ef">public</span> FacebookHandler(IOptionsMonitor&lt;FacebookOptions&gt; options, ILoggerFactory logger, UrlEncoder encoder, ISystemClock clock)
+        : <span style="color:#66d9ef">base</span>(options, logger, encoder, clock)
+    { }
+
+    <span style="color:#66d9ef">protected</span> <span style="color:#66d9ef">override</span> <span style="color:#66d9ef">async</span> Task&lt;AuthenticationTicket&gt; CreateTicketAsync(ClaimsIdentity identity, AuthenticationProperties properties, OAuthTokenResponse tokens)
+    {
+        <span style="color:#66d9ef">var</span> endpoint = QueryHelpers.AddQueryString(Options.UserInformationEndpoint, <span style="color:#e6db74">&#34;access_token&#34;</span>, tokens.AccessToken);
+        <span style="color:#66d9ef">if</span> (Options.SendAppSecretProof)
+        {
+            endpoint = QueryHelpers.AddQueryString(endpoint, <span style="color:#e6db74">&#34;appsecret_proof&#34;</span>, GenerateAppSecretProof(tokens.AccessToken));
+        }
+        <span style="color:#66d9ef">if</span> (Options.Fields.Count &gt; <span style="color:#ae81ff">0</span>)
+        {
+            endpoint = QueryHelpers.AddQueryString(endpoint, <span style="color:#e6db74">&#34;fields&#34;</span>, <span style="color:#66d9ef">string</span>.Join(<span style="color:#e6db74">&#34;,&#34;</span>, Options.Fields));
+        }
+
+        <span style="color:#66d9ef">var</span> response = <span style="color:#66d9ef">await</span> Backchannel.GetAsync(endpoint, Context.RequestAborted);
+        <span style="color:#66d9ef">if</span> (!response.IsSuccessStatusCode)
+        {
+            <span style="color:#66d9ef">throw</span> <span style="color:#66d9ef">new</span> HttpRequestException(<span style="color:#e6db74">$&#34;An error occurred when retrieving Facebook user information ({response.StatusCode}). Please check if the authentication information is correct and the corresponding Facebook Graph API is enabled.&#34;</span>);
+        }
+
+        <span style="color:#66d9ef">using</span> (<span style="color:#66d9ef">var</span> payload = JsonDocument.Parse(<span style="color:#66d9ef">await</span> response.Content.ReadAsStringAsync()))
+        {
+            <span style="color:#66d9ef">var</span> context = <span style="color:#66d9ef">new</span> OAuthCreatingTicketContext(<span style="color:#66d9ef">new</span> ClaimsPrincipal(identity), properties, Context, Scheme, Options, Backchannel, tokens, payload.RootElement);
+            context.RunClaimActions();
+            <span style="color:#66d9ef">await</span> Events.CreatingTicket(context);
+            <span style="color:#66d9ef">return</span> <span style="color:#66d9ef">new</span> AuthenticationTicket(context.Principal, context.Properties, Scheme.Name);
+        }
+    }
+
+    <span style="color:#66d9ef">private</span> <span style="color:#66d9ef">string</span> GenerateAppSecretProof(<span style="color:#66d9ef">string</span> accessToken)
+    {
+        <span style="color:#66d9ef">using</span> (<span style="color:#66d9ef">var</span> algorithm = <span style="color:#66d9ef">new</span> HMACSHA256(Encoding.ASCII.GetBytes(Options.AppSecret)))
+        {
+            <span style="color:#66d9ef">var</span> hash = algorithm.ComputeHash(Encoding.ASCII.GetBytes(accessToken));
+            <span style="color:#66d9ef">var</span> builder = <span style="color:#66d9ef">new</span> StringBuilder();
+            <span style="color:#66d9ef">for</span> (<span style="color:#66d9ef">int</span> i = <span style="color:#ae81ff">0</span>; i &lt; hash.Length; i++)
+            {
+                builder.Append(hash[i].ToString(<span style="color:#e6db74">&#34;x2&#34;</span>, CultureInfo.InvariantCulture));
+            }
+            <span style="color:#66d9ef">return</span> builder.ToString();
+        }
+    }
+
+    <span style="color:#66d9ef">protected</span> <span style="color:#66d9ef">override</span> <span style="color:#66d9ef">string</span> FormatScope(IEnumerable&lt;<span style="color:#66d9ef">string</span>&gt; scopes)
+    {
+        <span style="color:#75715e">// Facebook deviates from the OAuth spec here. They require comma separated instead of space separated.
+</span><span style="color:#75715e"></span>        <span style="color:#75715e">// https://developers.facebook.com/docs/reference/dialogs/oauth
+</span><span style="color:#75715e"></span>        <span style="color:#75715e">// http://tools.ietf.org/html/rfc6749#section-3.3
+</span><span style="color:#75715e"></span>        <span style="color:#66d9ef">return</span> <span style="color:#66d9ef">string</span>.Join(<span style="color:#e6db74">&#34;,&#34;</span>, scopes);
+    }
+
+    <span style="color:#66d9ef">protected</span> <span style="color:#66d9ef">override</span> <span style="color:#66d9ef">string</span> FormatScope()
+        =&gt; <span style="color:#66d9ef">base</span>.FormatScope();
+}
+</code></pre></div><h1 id="microsoftaspnetcoreauthenticationcertificate">Microsoft.AspNetCore.Authentication.Certificate</h1>
+<p>这个项目是3.1新加的，是做证书校验的，具体的不细说了，不太懂，有兴趣的看巨硬文档</p>
+<blockquote>
+<p><a href="https://docs.microsoft.com/zh-cn/aspnet/core/security/authentication/certauth?view=aspnetcore-3.1">https://docs.microsoft.com/zh-cn/aspnet/core/security/authentication/certauth?view=aspnetcore-3.1</a></p>
+</blockquote>
+<h1 id="microsoftaspnetcoreauthenticationnegotiate">Microsoft.AspNetCore.Authentication.Negotiate</h1>
+<p>这个也是新增的项目，是做Windows校验的，文档如下</p>
+<blockquote>
+<p><a href="https://docs.microsoft.com/en-us/aspnet/core/security/authentication/windowsauth?view=aspnetcore-3.1&amp;tabs=visual-studio">https://docs.microsoft.com/en-us/aspnet/core/security/authentication/windowsauth?view=aspnetcore-3.1&amp;tabs=visual-studio</a></p>
+</blockquote>
+<h1 id="microsoftaspnetcoreauthenticationwsfederation">Microsoft.AspNetCore.Authentication.WsFederation</h1>
+<p>Windows的Azure Active Directory认证</p>
+<blockquote>
+<p><a href="https://docs.microsoft.com/zh-cn/aspnet/core/security/authentication/ws-federation?view=aspnetcore-3.1">https://docs.microsoft.com/zh-cn/aspnet/core/security/authentication/ws-federation?view=aspnetcore-3.1</a></p>
+</blockquote>
+
+</div>
+
+
+    </main>
+
+    
+      
+    
+  </body>
+</html>
