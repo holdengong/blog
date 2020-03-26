@@ -11,8 +11,8 @@ draft: false
 - [AspNetCore3.1_Secutiry源码解析_5_Authentication_OAuth](https://holdengong.com/aspnetcore3.1_secutiry源码解析_5_authentication_oauth)
 - [AspNetCore3.1_Secutiry源码解析_6_Authentication_OpenIdConnect](https://holdengong.com/aspnetcore3.1_secutiry源码解析_6_authentication_openidconnect)
 - [AspNetCore3.1_Secutiry源码解析_7_Authentication_其他](https://holdengong.com/aspnetcore3.1_secutiry源码解析_7_authentication_其他)
-- AspNetCore3.1_Secutiry源码解析_8_Authorization_核心项目
-- AspNetCore3.1_Secutiry源码解析_9_Authorization_Policy
+- [AspNetCore3.1_Secutiry源码解析_8_Authorization_核心项目](https://holdengong.com/aspnetcore3.1_secutiry源码解析_8_authorization_核心项目)
+- [AspNetCore3.1_Secutiry源码解析_9_Authorization_Policy](https://holdengong.com/aspnetcore3.1_secutiry源码解析_9_authorization_policy)
 
 # 简介
 Secutiry的认证目录还有这些项目，基本都是具体的OAuth2.0服务商或者其他用的比较少的认证架构，简单看一下，了解一下。

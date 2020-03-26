@@ -11,8 +11,8 @@ draft: false
 - [AspNetCore3.1_Secutiry源码解析_5_Authentication_OAuth](https://holdengong.com/aspnetcore3.1_secutiry源码解析_5_authentication_oauth)
 - [AspNetCore3.1_Secutiry源码解析_6_Authentication_OpenIdConnect](https://holdengong.com/aspnetcore3.1_secutiry源码解析_6_authentication_openidconnect)
 - [AspNetCore3.1_Secutiry源码解析_7_Authentication_其他](https://holdengong.com/aspnetcore3.1_secutiry源码解析_7_authentication_其他)
-- AspNetCore3.1_Secutiry源码解析_8_Authorization_核心项目
-- AspNetCore3.1_Secutiry源码解析_9_Authorization_Policy
+- [AspNetCore3.1_Secutiry源码解析_8_Authorization_核心项目](https://holdengong.com/aspnetcore3.1_secutiry源码解析_8_authorization_核心项目)
+- [AspNetCore3.1_Secutiry源码解析_9_Authorization_Policy](https://holdengong.com/aspnetcore3.1_secutiry源码解析_9_authorization_policy)
 
 # oidc简介
 oidc是基于oauth2.0的上层协议。
