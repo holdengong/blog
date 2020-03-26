@@ -1,0 +1,468 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="zh-Hans" lang="zh-Hans">
+<head>
+  <link href="https://gmpg.org/xfn/11" rel="profile">
+  <meta http-equiv="content-type" content="text/html; charset=utf-8">
+  <meta name="generator" content="Hugo 0.67.0" />
+
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <title>AspNetCore3 &middot; Holden Gong</title>
+  <meta name="description" content="" />
+
+  
+  <link type="text/css" rel="stylesheet" href="https://holdengong.com/css/print.css" media="print">
+  <link type="text/css" rel="stylesheet" href="https://holdengong.com/css/poole.css">
+  <link type="text/css" rel="stylesheet" href="https://holdengong.com/css/syntax.css">
+  <link type="text/css" rel="stylesheet" href="https://holdengong.com/css/hyde.css">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Abril+Fatface|PT+Sans:400,400i,700">
+
+
+  
+  <link rel="apple-touch-icon-precomposed" sizes="144x144" href="/apple-touch-icon-144-precomposed.png">
+  <link rel="shortcut icon" href="/favicon.png">
+
+  
+  
+</head>
+
+  <body class=" ">
+  <aside class="sidebar">
+  <div class="container sidebar-sticky">
+    <div class="sidebar-about">
+      <a href="https://holdengong.com/">
+        <h1>Holden Gong</h1>
+      </a>
+      <p class="lead">
+        code & life
+      </p>
+    </div>
+
+    <nav>
+      <ul class="sidebar-nav">
+  
+      </ul>
+    </nav>
+    
+    <div>
+      <p>&copy; 2020. All rights reserved. </p>
+      <p>鄂ICP备20003133号</p>
+      <script type="text/javascript">document.write(unescape("%3Cspan id='cnzz_stat_icon_1278689390'%3E%3C/span%3E%3Cscript src='https://v1.cnzz.com/z_stat.php%3Fid%3D1278689390%26show%3Dpic' type='text/javascript'%3E%3C/script%3E"));</script>
+    </div>
+  </div>
+</aside>
+
+    <main class="content container">
+    <div class="post">
+  <h1>AspNetCore3</h1>
+  <time datetime=2020-03-26T16:23:56&#43;0800 class="post-date">Thu, Mar 26, 2020</time>
+  <h1 id="目录">目录</h1>
+<ul>
+<li><a href="https://holdengong.com/aspnetcore3.1_secutiry%E6%BA%90%E7%A0%81%E8%A7%A3%E6%9E%90_1_%E7%9B%AE%E5%BD%95">AspNetCore3.1_Secutiry源码解析_1_目录</a></li>
+<li><a href="https://holdengong.com/aspnetcore3.1_secutiry%E6%BA%90%E7%A0%81%E8%A7%A3%E6%9E%90_2_authentication_%E6%A0%B8%E5%BF%83%E6%B5%81%E7%A8%8B">AspNetCore3.1_Secutiry源码解析_2_Authentication_核心流程</a></li>
+<li><a href="https://holdengong.com/aspnetcore3.1_secutiry%E6%BA%90%E7%A0%81%E8%A7%A3%E6%9E%90_3_authentication_cookies">AspNetCore3.1_Secutiry源码解析_3_Authentication_Cookies</a></li>
+<li><a href="https://holdengong.com/aspnetcore3.1_secutiry%E6%BA%90%E7%A0%81%E8%A7%A3%E6%9E%90_4_authentication_jwtbear">AspNetCore3.1_Secutiry源码解析_4_Authentication_JwtBear</a></li>
+<li><a href="https://holdengong.com/aspnetcore3.1_secutiry%E6%BA%90%E7%A0%81%E8%A7%A3%E6%9E%90_5_authentication_oauth">AspNetCore3.1_Secutiry源码解析_5_Authentication_OAuth</a></li>
+<li><a href="https://holdengong.com/aspnetcore3.1_secutiry%E6%BA%90%E7%A0%81%E8%A7%A3%E6%9E%90_6_authentication_openidconnect">AspNetCore3.1_Secutiry源码解析_6_Authentication_OpenIdConnect</a></li>
+<li><a href="https://holdengong.com/aspnetcore3.1_secutiry%E6%BA%90%E7%A0%81%E8%A7%A3%E6%9E%90_7_authentication_%E5%85%B6%E4%BB%96">AspNetCore3.1_Secutiry源码解析_7_Authentication_其他</a></li>
+<li><a href="https://holdengong.com/aspnetcore3.1_secutiry%E6%BA%90%E7%A0%81%E8%A7%A3%E6%9E%90_8_authorization_%E6%8E%88%E6%9D%83%E6%A1%86%E6%9E%B6">AspNetCore3.1_Secutiry源码解析_8_Authorization_授权框架</a></li>
+</ul>
+<h1 id="简介">简介</h1>
+<p>开篇提到过，认证主要解决的是who are you，授权解决的是 are you allowed的问题。各种认证架构可以帮我们知道用户身份（claims），oauth等架构的scope字段能够控制api服务级别的访问权限，但是更加细化和多变的功能授权不是它们的处理范围。</p>
+<p>微软的Authorization项目提供了基于策略的灵活的授权框架。</p>
+<p>推荐看下面博客了解，我主要学习和梳理源码。</p>
+<blockquote>
+<p><a href="https://www.cnblogs.com/RainingNight/p/authorization-in-asp-net-core.html">https://www.cnblogs.com/RainingNight/p/authorization-in-asp-net-core.html</a></p>
+</blockquote>
+<h1 id="依赖注入">依赖注入</h1>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-csharp" data-lang="csharp"><span style="color:#960050;background-color:#1e0010">注入了以下接口，提供了默认实现</span>
+- IAuthorizationService <span style="color:#960050;background-color:#1e0010">：授权服务，主干服务</span>
+- IAuthorizationPolicyProvider <span style="color:#960050;background-color:#1e0010">：</span> <span style="color:#960050;background-color:#1e0010">策略提供类</span>
+- IAuthorizationHandlerProvider<span style="color:#960050;background-color:#1e0010">：处理器提供类</span>
+- IAuthorizationEvaluator<span style="color:#960050;background-color:#1e0010">：校验类</span>
+- IAuthorizationHandlerContextFactory<span style="color:#960050;background-color:#1e0010">：授权上下文工厂</span>
+- IAuthorizationHandler<span style="color:#960050;background-color:#1e0010">：授权处理器，这个是注入的集合，一个策略可以有多个授权处理器，依次执行</span>
+- <span style="color:#960050;background-color:#1e0010">配置类：</span>AuthorizationOptions
+
+<span style="color:#960050;background-color:#1e0010">微软的命名风格还是比较一致的</span>  
+Service<span style="color:#960050;background-color:#1e0010">：服务</span>  
+Provider<span style="color:#960050;background-color:#1e0010">：某类的提供者</span>
+Evaluator<span style="color:#960050;background-color:#1e0010">：校验预处理类</span>  
+Factory<span style="color:#960050;background-color:#1e0010">：工厂</span>  
+Handler<span style="color:#960050;background-color:#1e0010">：处理器</span>  
+Context<span style="color:#960050;background-color:#1e0010">：上下文</span>
+
+<span style="color:#960050;background-color:#1e0010">看源码的过程，不仅可以学习框架背后原理，还可以学习编码风格和设计模式，还是挺有用处的。</span>
+
+<span style="color:#75715e">/// &lt;summary&gt;
+</span><span style="color:#75715e">/// Adds authorization services to the specified &lt;see cref=&#34;IServiceCollection&#34; /&gt;. 
+</span><span style="color:#75715e">/// &lt;/summary&gt;
+</span><span style="color:#75715e">/// &lt;param name=&#34;services&#34;&gt;The &lt;see cref=&#34;IServiceCollection&#34; /&gt; to add services to.&lt;/param&gt;
+</span><span style="color:#75715e">/// &lt;returns&gt;The &lt;see cref=&#34;IServiceCollection&#34;/&gt; so that additional calls can be chained.&lt;/returns&gt;
+</span><span style="color:#75715e"></span><span style="color:#66d9ef">public</span> <span style="color:#66d9ef">static</span> IServiceCollection AddAuthorizationCore(<span style="color:#66d9ef">this</span> IServiceCollection services)
+{
+    <span style="color:#66d9ef">if</span> (services == <span style="color:#66d9ef">null</span>)
+    {
+        <span style="color:#66d9ef">throw</span> <span style="color:#66d9ef">new</span> ArgumentNullException(nameof(services));
+    }
+    
+    services.TryAdd(ServiceDescriptor.Transient&lt;IAuthorizationService, DefaultAuthorizationService&gt;());
+    services.TryAdd(ServiceDescriptor.Transient&lt;IAuthorizationPolicyProvider, DefaultAuthorizationPolicyProvider&gt;());
+    services.TryAdd(ServiceDescriptor.Transient&lt;IAuthorizationHandlerProvider, DefaultAuthorizationHandlerProvider&gt;());
+    services.TryAdd(ServiceDescriptor.Transient&lt;IAuthorizationEvaluator, DefaultAuthorizationEvaluator&gt;());
+    services.TryAdd(ServiceDescriptor.Transient&lt;IAuthorizationHandlerContextFactory, DefaultAuthorizationHandlerContextFactory&gt;());
+    services.TryAddEnumerable(ServiceDescriptor.Transient&lt;IAuthorizationHandler, PassThroughAuthorizationHandler&gt;());
+    <span style="color:#66d9ef">return</span> services;
+}
+
+<span style="color:#75715e">/// &lt;summary&gt;
+</span><span style="color:#75715e">/// Adds authorization services to the specified &lt;see cref=&#34;IServiceCollection&#34; /&gt;. 
+</span><span style="color:#75715e">/// &lt;/summary&gt;
+</span><span style="color:#75715e">/// &lt;param name=&#34;services&#34;&gt;The &lt;see cref=&#34;IServiceCollection&#34; /&gt; to add services to.&lt;/param&gt;
+</span><span style="color:#75715e">/// &lt;param name=&#34;configure&#34;&gt;An action delegate to configure the provided &lt;see cref=&#34;AuthorizationOptions&#34;/&gt;.&lt;/param&gt;
+</span><span style="color:#75715e">/// &lt;returns&gt;The &lt;see cref=&#34;IServiceCollection&#34;/&gt; so that additional calls can be chained.&lt;/returns&gt;
+</span><span style="color:#75715e"></span><span style="color:#66d9ef">public</span> <span style="color:#66d9ef">static</span> IServiceCollection AddAuthorizationCore(<span style="color:#66d9ef">this</span> IServiceCollection services, Action&lt;AuthorizationOptions&gt; configure)
+{
+    <span style="color:#66d9ef">if</span> (services == <span style="color:#66d9ef">null</span>)
+    {
+        <span style="color:#66d9ef">throw</span> <span style="color:#66d9ef">new</span> ArgumentNullException(nameof(services));
+    }
+
+    <span style="color:#66d9ef">if</span> (configure != <span style="color:#66d9ef">null</span>)
+    {
+        services.Configure(configure);
+    }
+
+    <span style="color:#66d9ef">return</span> services.AddAuthorizationCore();
+}
+</code></pre></div><h1 id="配置类---authorizationoptions">配置类 - AuthorizationOptions</h1>
+<ul>
+<li>PolicyMap：策略名称&amp;策略的字典数据</li>
+<li>InvokeHandlersAfterFailure： 授权处理器失败后是否触发下一个处理器，默认true</li>
+<li>DefaultPolicy：默认策略，构造了一个RequireAuthenticatedUser策略，即需要认证用户，不允许匿名访问。现在有点线索了，为什么api一加上[Authorize]，就会校验授权。</li>
+<li>FallbackPolicy：保底策略。没有任何策略的时候会使用保底策略。感觉有点多此一举，不是给了个默认策略吗？</li>
+<li>AddPolicy：添加策略</li>
+<li>GetPolicy：获取策略</li>
+</ul>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-csharp" data-lang="csharp"><span style="color:#75715e">/// &lt;summary&gt;
+</span><span style="color:#75715e">/// Provides programmatic configuration used by &lt;see cref=&#34;IAuthorizationService&#34;/&gt; and &lt;see cref=&#34;IAuthorizationPolicyProvider&#34;/&gt;.
+</span><span style="color:#75715e">/// &lt;/summary&gt;
+</span><span style="color:#75715e"></span><span style="color:#66d9ef">public</span> <span style="color:#66d9ef">class</span> <span style="color:#a6e22e">AuthorizationOptions</span>
+{
+    <span style="color:#66d9ef">private</span> IDictionary&lt;<span style="color:#66d9ef">string</span>, AuthorizationPolicy&gt; PolicyMap { <span style="color:#66d9ef">get</span>; } = <span style="color:#66d9ef">new</span> Dictionary&lt;<span style="color:#66d9ef">string</span>, AuthorizationPolicy&gt;(StringComparer.OrdinalIgnoreCase);
+
+    <span style="color:#75715e">/// &lt;summary&gt;
+</span><span style="color:#75715e"></span>    <span style="color:#75715e">/// Determines whether authentication handlers should be invoked after a failure.
+</span><span style="color:#75715e"></span>    <span style="color:#75715e">/// Defaults to true.
+</span><span style="color:#75715e"></span>    <span style="color:#75715e">/// &lt;/summary&gt;
+</span><span style="color:#75715e"></span>    <span style="color:#66d9ef">public</span> <span style="color:#66d9ef">bool</span> InvokeHandlersAfterFailure { <span style="color:#66d9ef">get</span>; <span style="color:#66d9ef">set</span>; } = <span style="color:#66d9ef">true</span>;
+
+    <span style="color:#75715e">/// &lt;summary&gt;
+</span><span style="color:#75715e"></span>    <span style="color:#75715e">/// Gets or sets the default authorization policy. Defaults to require authenticated users.
+</span><span style="color:#75715e"></span>    <span style="color:#75715e">/// &lt;/summary&gt;
+</span><span style="color:#75715e"></span>    <span style="color:#75715e">/// &lt;remarks&gt;
+</span><span style="color:#75715e"></span>    <span style="color:#75715e">/// The default policy used when evaluating &lt;see cref=&#34;IAuthorizeData&#34;/&gt; with no policy name specified.
+</span><span style="color:#75715e"></span>    <span style="color:#75715e">/// &lt;/remarks&gt;
+</span><span style="color:#75715e"></span>    <span style="color:#66d9ef">public</span> AuthorizationPolicy DefaultPolicy { <span style="color:#66d9ef">get</span>; <span style="color:#66d9ef">set</span>; } = <span style="color:#66d9ef">new</span> AuthorizationPolicyBuilder().RequireAuthenticatedUser().Build();
+
+    <span style="color:#75715e">/// &lt;summary&gt;
+</span><span style="color:#75715e"></span>    <span style="color:#75715e">/// Gets or sets the fallback authorization policy used by &lt;see cref=&#34;AuthorizationPolicy.CombineAsync(IAuthorizationPolicyProvider, IEnumerable{IAuthorizeData})&#34;/&gt;
+</span><span style="color:#75715e"></span>    <span style="color:#75715e">/// when no IAuthorizeData have been provided. As a result, the AuthorizationMiddleware uses the fallback policy
+</span><span style="color:#75715e"></span>    <span style="color:#75715e">/// if there are no &lt;see cref=&#34;IAuthorizeData&#34;/&gt; instances for a resource. If a resource has any &lt;see cref=&#34;IAuthorizeData&#34;/&gt;
+</span><span style="color:#75715e"></span>    <span style="color:#75715e">/// then they are evaluated instead of the fallback policy. By default the fallback policy is null, and usually will have no 
+</span><span style="color:#75715e"></span>    <span style="color:#75715e">/// effect unless you have the AuthorizationMiddleware in your pipeline. It is not used in any way by the 
+</span><span style="color:#75715e"></span>    <span style="color:#75715e">/// default &lt;see cref=&#34;IAuthorizationService&#34;/&gt;.
+</span><span style="color:#75715e"></span>    <span style="color:#75715e">/// &lt;/summary&gt;
+</span><span style="color:#75715e"></span>    <span style="color:#66d9ef">public</span> AuthorizationPolicy FallbackPolicy { <span style="color:#66d9ef">get</span>; <span style="color:#66d9ef">set</span>; }
+
+    <span style="color:#75715e">/// &lt;summary&gt;
+</span><span style="color:#75715e"></span>    <span style="color:#75715e">/// Add an authorization policy with the provided name.
+</span><span style="color:#75715e"></span>    <span style="color:#75715e">/// &lt;/summary&gt;
+</span><span style="color:#75715e"></span>    <span style="color:#75715e">/// &lt;param name=&#34;name&#34;&gt;The name of the policy.&lt;/param&gt;
+</span><span style="color:#75715e"></span>    <span style="color:#75715e">/// &lt;param name=&#34;policy&#34;&gt;The authorization policy.&lt;/param&gt;
+</span><span style="color:#75715e"></span>    <span style="color:#66d9ef">public</span> <span style="color:#66d9ef">void</span> AddPolicy(<span style="color:#66d9ef">string</span> name, AuthorizationPolicy policy)
+    {
+        <span style="color:#66d9ef">if</span> (name == <span style="color:#66d9ef">null</span>)
+        {
+            <span style="color:#66d9ef">throw</span> <span style="color:#66d9ef">new</span> ArgumentNullException(nameof(name));
+        }
+
+        <span style="color:#66d9ef">if</span> (policy == <span style="color:#66d9ef">null</span>)
+        {
+            <span style="color:#66d9ef">throw</span> <span style="color:#66d9ef">new</span> ArgumentNullException(nameof(policy));
+        }
+
+        PolicyMap[name] = policy;
+    }
+
+    <span style="color:#75715e">/// &lt;summary&gt;
+</span><span style="color:#75715e"></span>    <span style="color:#75715e">/// Add a policy that is built from a delegate with the provided name.
+</span><span style="color:#75715e"></span>    <span style="color:#75715e">/// &lt;/summary&gt;
+</span><span style="color:#75715e"></span>    <span style="color:#75715e">/// &lt;param name=&#34;name&#34;&gt;The name of the policy.&lt;/param&gt;
+</span><span style="color:#75715e"></span>    <span style="color:#75715e">/// &lt;param name=&#34;configurePolicy&#34;&gt;The delegate that will be used to build the policy.&lt;/param&gt;
+</span><span style="color:#75715e"></span>    <span style="color:#66d9ef">public</span> <span style="color:#66d9ef">void</span> AddPolicy(<span style="color:#66d9ef">string</span> name, Action&lt;AuthorizationPolicyBuilder&gt; configurePolicy)
+    {
+        <span style="color:#66d9ef">if</span> (name == <span style="color:#66d9ef">null</span>)
+        {
+            <span style="color:#66d9ef">throw</span> <span style="color:#66d9ef">new</span> ArgumentNullException(nameof(name));
+        }
+
+        <span style="color:#66d9ef">if</span> (configurePolicy == <span style="color:#66d9ef">null</span>)
+        {
+            <span style="color:#66d9ef">throw</span> <span style="color:#66d9ef">new</span> ArgumentNullException(nameof(configurePolicy));
+        }
+
+        <span style="color:#66d9ef">var</span> policyBuilder = <span style="color:#66d9ef">new</span> AuthorizationPolicyBuilder();
+        configurePolicy(policyBuilder);
+        PolicyMap[name] = policyBuilder.Build();
+    }
+
+    <span style="color:#75715e">/// &lt;summary&gt;
+</span><span style="color:#75715e"></span>    <span style="color:#75715e">/// Returns the policy for the specified name, or null if a policy with the name does not exist.
+</span><span style="color:#75715e"></span>    <span style="color:#75715e">/// &lt;/summary&gt;
+</span><span style="color:#75715e"></span>    <span style="color:#75715e">/// &lt;param name=&#34;name&#34;&gt;The name of the policy to return.&lt;/param&gt;
+</span><span style="color:#75715e"></span>    <span style="color:#75715e">/// &lt;returns&gt;The policy for the specified name, or null if a policy with the name does not exist.&lt;/returns&gt;
+</span><span style="color:#75715e"></span>    <span style="color:#66d9ef">public</span> AuthorizationPolicy GetPolicy(<span style="color:#66d9ef">string</span> name)
+    {
+        <span style="color:#66d9ef">if</span> (name == <span style="color:#66d9ef">null</span>)
+        {
+            <span style="color:#66d9ef">throw</span> <span style="color:#66d9ef">new</span> ArgumentNullException(nameof(name));
+        }
+
+        <span style="color:#66d9ef">return</span> PolicyMap.ContainsKey(name) ? PolicyMap[name] : <span style="color:#66d9ef">null</span>;
+    }
+}
+</code></pre></div><h1 id="iauthorizationservice---授权服务---主干逻辑">IAuthorizationService - 授权服务 - 主干逻辑</h1>
+<p>接口定义了授权方法，有两个重载，一个是基于requirements校验，一个是基于policyName校验。</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-csharp" data-lang="csharp">Task&lt;AuthorizationResult&gt; AuthorizeAsync(ClaimsPrincipal user, <span style="color:#66d9ef">object</span> resource, IEnumerable&lt;IAuthorizationRequirement&gt; requirements);
+
+Task&lt;AuthorizationResult&gt; AuthorizeAsync(ClaimsPrincipal user, <span style="color:#66d9ef">object</span> resource, <span style="color:#66d9ef">string</span> policyName);
+</code></pre></div><p>看下默认实现DefaultAuthorizationService的处理,逻辑还是比较简单</p>
+<ul>
+<li>获取策略</li>
+<li>获取策略的授权条件</li>
+<li>获取授权上下文</li>
+<li>获取处理器集合</li>
+<li>处理器依次执行，结果存入上下文</li>
+<li>校验器验证上下文</li>
+<li>返回授权结果类</li>
+</ul>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-csharp" data-lang="csharp"> <span style="color:#75715e">/// &lt;summary&gt;
+</span><span style="color:#75715e">/// The default implementation of an &lt;see cref=&#34;IAuthorizationService&#34;/&gt;.
+</span><span style="color:#75715e">/// &lt;/summary&gt;
+</span><span style="color:#75715e"></span><span style="color:#66d9ef">public</span> <span style="color:#66d9ef">class</span> <span style="color:#a6e22e">DefaultAuthorizationService</span> : IAuthorizationService
+{
+    <span style="color:#66d9ef">private</span> <span style="color:#66d9ef">readonly</span> AuthorizationOptions _options;
+    <span style="color:#66d9ef">private</span> <span style="color:#66d9ef">readonly</span> IAuthorizationHandlerContextFactory _contextFactory;
+    <span style="color:#66d9ef">private</span> <span style="color:#66d9ef">readonly</span> IAuthorizationHandlerProvider _handlers;
+    <span style="color:#66d9ef">private</span> <span style="color:#66d9ef">readonly</span> IAuthorizationEvaluator _evaluator;
+    <span style="color:#66d9ef">private</span> <span style="color:#66d9ef">readonly</span> IAuthorizationPolicyProvider _policyProvider;
+    <span style="color:#66d9ef">private</span> <span style="color:#66d9ef">readonly</span> ILogger _logger;
+
+    <span style="color:#75715e">/// &lt;summary&gt;
+</span><span style="color:#75715e"></span>    <span style="color:#75715e">/// Creates a new instance of &lt;see cref=&#34;DefaultAuthorizationService&#34;/&gt;.
+</span><span style="color:#75715e"></span>    <span style="color:#75715e">/// &lt;/summary&gt;
+</span><span style="color:#75715e"></span>    <span style="color:#75715e">/// &lt;param name=&#34;policyProvider&#34;&gt;The &lt;see cref=&#34;IAuthorizationPolicyProvider&#34;/&gt; used to provide policies.&lt;/param&gt;
+</span><span style="color:#75715e"></span>    <span style="color:#75715e">/// &lt;param name=&#34;handlers&#34;&gt;The handlers used to fulfill &lt;see cref=&#34;IAuthorizationRequirement&#34;/&gt;s.&lt;/param&gt;
+</span><span style="color:#75715e"></span>    <span style="color:#75715e">/// &lt;param name=&#34;logger&#34;&gt;The logger used to log messages, warnings and errors.&lt;/param&gt;  
+</span><span style="color:#75715e"></span>    <span style="color:#75715e">/// &lt;param name=&#34;contextFactory&#34;&gt;The &lt;see cref=&#34;IAuthorizationHandlerContextFactory&#34;/&gt; used to create the context to handle the authorization.&lt;/param&gt;  
+</span><span style="color:#75715e"></span>    <span style="color:#75715e">/// &lt;param name=&#34;evaluator&#34;&gt;The &lt;see cref=&#34;IAuthorizationEvaluator&#34;/&gt; used to determine if authorization was successful.&lt;/param&gt;  
+</span><span style="color:#75715e"></span>    <span style="color:#75715e">/// &lt;param name=&#34;options&#34;&gt;The &lt;see cref=&#34;AuthorizationOptions&#34;/&gt; used.&lt;/param&gt;  
+</span><span style="color:#75715e"></span>    <span style="color:#66d9ef">public</span> DefaultAuthorizationService(IAuthorizationPolicyProvider policyProvider, IAuthorizationHandlerProvider handlers, ILogger&lt;DefaultAuthorizationService&gt; logger, IAuthorizationHandlerContextFactory contextFactory, IAuthorizationEvaluator evaluator, IOptions&lt;AuthorizationOptions&gt; options)
+    {
+        <span style="color:#66d9ef">if</span> (options == <span style="color:#66d9ef">null</span>)
+        {
+            <span style="color:#66d9ef">throw</span> <span style="color:#66d9ef">new</span> ArgumentNullException(nameof(options));
+        }
+        <span style="color:#66d9ef">if</span> (policyProvider == <span style="color:#66d9ef">null</span>)
+        {
+            <span style="color:#66d9ef">throw</span> <span style="color:#66d9ef">new</span> ArgumentNullException(nameof(policyProvider));
+        }
+        <span style="color:#66d9ef">if</span> (handlers == <span style="color:#66d9ef">null</span>)
+        {
+            <span style="color:#66d9ef">throw</span> <span style="color:#66d9ef">new</span> ArgumentNullException(nameof(handlers));
+        }
+        <span style="color:#66d9ef">if</span> (logger == <span style="color:#66d9ef">null</span>)
+        {
+            <span style="color:#66d9ef">throw</span> <span style="color:#66d9ef">new</span> ArgumentNullException(nameof(logger));
+        }
+        <span style="color:#66d9ef">if</span> (contextFactory == <span style="color:#66d9ef">null</span>)
+        {
+            <span style="color:#66d9ef">throw</span> <span style="color:#66d9ef">new</span> ArgumentNullException(nameof(contextFactory));
+        }
+        <span style="color:#66d9ef">if</span> (evaluator == <span style="color:#66d9ef">null</span>)
+        {
+            <span style="color:#66d9ef">throw</span> <span style="color:#66d9ef">new</span> ArgumentNullException(nameof(evaluator));
+        }
+
+        _options = options.Value;
+        _handlers = handlers;
+        _policyProvider = policyProvider;
+        _logger = logger;
+        _evaluator = evaluator;
+        _contextFactory = contextFactory;
+    }
+
+    <span style="color:#75715e">/// &lt;summary&gt;
+</span><span style="color:#75715e"></span>    <span style="color:#75715e">/// Checks if a user meets a specific set of requirements for the specified resource.
+</span><span style="color:#75715e"></span>    <span style="color:#75715e">/// &lt;/summary&gt;
+</span><span style="color:#75715e"></span>    <span style="color:#75715e">/// &lt;param name=&#34;user&#34;&gt;The user to evaluate the requirements against.&lt;/param&gt;
+</span><span style="color:#75715e"></span>    <span style="color:#75715e">/// &lt;param name=&#34;resource&#34;&gt;The resource to evaluate the requirements against.&lt;/param&gt;
+</span><span style="color:#75715e"></span>    <span style="color:#75715e">/// &lt;param name=&#34;requirements&#34;&gt;The requirements to evaluate.&lt;/param&gt;
+</span><span style="color:#75715e"></span>    <span style="color:#75715e">/// &lt;returns&gt;
+</span><span style="color:#75715e"></span>    <span style="color:#75715e">/// A flag indicating whether authorization has succeeded.
+</span><span style="color:#75715e"></span>    <span style="color:#75715e">/// This value is &lt;value&gt;true&lt;/value&gt; when the user fulfills the policy otherwise &lt;value&gt;false&lt;/value&gt;.
+</span><span style="color:#75715e"></span>    <span style="color:#75715e">/// &lt;/returns&gt;
+</span><span style="color:#75715e"></span>    <span style="color:#66d9ef">public</span> <span style="color:#66d9ef">async</span> Task&lt;AuthorizationResult&gt; AuthorizeAsync(ClaimsPrincipal user, <span style="color:#66d9ef">object</span> resource, IEnumerable&lt;IAuthorizationRequirement&gt; requirements)
+    {
+        <span style="color:#66d9ef">if</span> (requirements == <span style="color:#66d9ef">null</span>)
+        {
+            <span style="color:#66d9ef">throw</span> <span style="color:#66d9ef">new</span> ArgumentNullException(nameof(requirements));
+        }
+
+        <span style="color:#66d9ef">var</span> authContext = _contextFactory.CreateContext(requirements, user, resource);
+        <span style="color:#66d9ef">var</span> handlers = <span style="color:#66d9ef">await</span> _handlers.GetHandlersAsync(authContext);
+        <span style="color:#66d9ef">foreach</span> (<span style="color:#66d9ef">var</span> handler <span style="color:#66d9ef">in</span> handlers)
+        {
+            <span style="color:#66d9ef">await</span> handler.HandleAsync(authContext);
+            <span style="color:#66d9ef">if</span> (!_options.InvokeHandlersAfterFailure &amp;&amp; authContext.HasFailed)
+            {
+                <span style="color:#66d9ef">break</span>;
+            }
+        }
+
+        <span style="color:#66d9ef">var</span> result = _evaluator.Evaluate(authContext);
+        <span style="color:#66d9ef">if</span> (result.Succeeded)
+        {
+            _logger.UserAuthorizationSucceeded();
+        }
+        <span style="color:#66d9ef">else</span>
+        {
+            _logger.UserAuthorizationFailed();
+        }
+        <span style="color:#66d9ef">return</span> result;
+    }
+
+    <span style="color:#75715e">/// &lt;summary&gt;
+</span><span style="color:#75715e"></span>    <span style="color:#75715e">/// Checks if a user meets a specific authorization policy.
+</span><span style="color:#75715e"></span>    <span style="color:#75715e">/// &lt;/summary&gt;
+</span><span style="color:#75715e"></span>    <span style="color:#75715e">/// &lt;param name=&#34;user&#34;&gt;The user to check the policy against.&lt;/param&gt;
+</span><span style="color:#75715e"></span>    <span style="color:#75715e">/// &lt;param name=&#34;resource&#34;&gt;The resource the policy should be checked with.&lt;/param&gt;
+</span><span style="color:#75715e"></span>    <span style="color:#75715e">/// &lt;param name=&#34;policyName&#34;&gt;The name of the policy to check against a specific context.&lt;/param&gt;
+</span><span style="color:#75715e"></span>    <span style="color:#75715e">/// &lt;returns&gt;
+</span><span style="color:#75715e"></span>    <span style="color:#75715e">/// A flag indicating whether authorization has succeeded.
+</span><span style="color:#75715e"></span>    <span style="color:#75715e">/// This value is &lt;value&gt;true&lt;/value&gt; when the user fulfills the policy otherwise &lt;value&gt;false&lt;/value&gt;.
+</span><span style="color:#75715e"></span>    <span style="color:#75715e">/// &lt;/returns&gt;
+</span><span style="color:#75715e"></span>    <span style="color:#66d9ef">public</span> <span style="color:#66d9ef">async</span> Task&lt;AuthorizationResult&gt; AuthorizeAsync(ClaimsPrincipal user, <span style="color:#66d9ef">object</span> resource, <span style="color:#66d9ef">string</span> policyName)
+    {
+        <span style="color:#66d9ef">if</span> (policyName == <span style="color:#66d9ef">null</span>)
+        {
+            <span style="color:#66d9ef">throw</span> <span style="color:#66d9ef">new</span> ArgumentNullException(nameof(policyName));
+        }
+
+        <span style="color:#66d9ef">var</span> policy = <span style="color:#66d9ef">await</span> _policyProvider.GetPolicyAsync(policyName);
+        <span style="color:#66d9ef">if</span> (policy == <span style="color:#66d9ef">null</span>)
+        {
+            <span style="color:#66d9ef">throw</span> <span style="color:#66d9ef">new</span> InvalidOperationException(<span style="color:#e6db74">$&#34;No policy found: {policyName}.&#34;</span>);
+        }
+        <span style="color:#66d9ef">return</span> <span style="color:#66d9ef">await</span> <span style="color:#66d9ef">this</span>.AuthorizeAsync(user, resource, policy);
+    }
+}
+</code></pre></div><h1 id="默认策略---需要认证用户">默认策略 - 需要认证用户</h1>
+<p>默认策略添加了校验条件DenyAnonymousAuthorizationRequirement</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-csharp" data-lang="csharp"><span style="color:#66d9ef">public</span> AuthorizationPolicyBuilder RequireAuthenticatedUser()
+{
+    Requirements.Add(<span style="color:#66d9ef">new</span> DenyAnonymousAuthorizationRequirement());
+    <span style="color:#66d9ef">return</span> <span style="color:#66d9ef">this</span>;
+}
+</code></pre></div><p>校验上下文中是否存在认证用户信息，验证通过则在上下文中将校验条件标记为成功。</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-csharp" data-lang="csharp"><span style="color:#66d9ef">protected</span> <span style="color:#66d9ef">override</span> Task HandleRequirementAsync(AuthorizationHandlerContext context, DenyAnonymousAuthorizationRequirement requirement)
+    {
+        <span style="color:#66d9ef">var</span> user = context.User;
+        <span style="color:#66d9ef">var</span> userIsAnonymous =
+            user?.Identity == <span style="color:#66d9ef">null</span> ||
+            !user.Identities.Any(i =&gt; i.IsAuthenticated);
+        <span style="color:#66d9ef">if</span> (!userIsAnonymous)
+        {
+            context.Succeed(requirement);
+        }
+        <span style="color:#66d9ef">return</span> Task.CompletedTask;
+    }
+</code></pre></div><h1 id="授权时序图">授权时序图</h1>
+<p>授权项目还是比较好理解的，微软提供了一个基于策略的授权模型，大部门的具体的业务代码还是需要自己去实现的。</p>
+<div class="mermaid">
+ classDiagram
+      class AuthorizationPolicy{
+          Requirements
+      }
+      class Requirement{
+      }
+      class AuthorizationHandler{
+      }
+      class IAuthorizationHandler{
+          +HandleAsync(AuthorizationHandlerContext context)
+      }
+      class IAuthorizationRequirement{
+      }
+      Requirement-->AuthorizationHandler
+      AuthorizationHandler-->IAuthorizationHandler
+      Requirement-->IAuthorizationHandler
+      Requirement-->IAuthorizationRequirement
+</div>
+<h1 id="中间件去哪了">中间件去哪了？</h1>
+<p>开发不需要编写UseAuthorization类似代码，项目中也没发现中间件，甚至找不到 使用AuthorizeAttribute的地方。那么问题来了，框架怎么知道某个方法标记了[Authorize]特性，然后执行校验的呢？</p>
+<p>答案是Mvc框架处理的，它读取了节点的[Authorize]和[AllowAnonymous]特性，并触发相应的逻辑。关于Mvc的就不细说了，感兴趣可以翻看源码。
+AspNetCore\src\Mvc\Mvc.Core\src\ApplicationModels\AuthorizationApplicationModelProvider.cs。</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-csharp" data-lang="csharp"><span style="color:#66d9ef">public</span> <span style="color:#66d9ef">void</span> OnProvidersExecuting(ApplicationModelProviderContext context)
+{
+    <span style="color:#66d9ef">if</span> (context == <span style="color:#66d9ef">null</span>)
+    {
+        <span style="color:#66d9ef">throw</span> <span style="color:#66d9ef">new</span> ArgumentNullException(nameof(context));
+    }
+
+    <span style="color:#66d9ef">if</span> (_mvcOptions.EnableEndpointRouting)
+    {
+        <span style="color:#75715e">// When using endpoint routing, the AuthorizationMiddleware does the work that Auth filters would otherwise perform.
+</span><span style="color:#75715e"></span>        <span style="color:#75715e">// Consequently we do not need to convert authorization attributes to filters.
+</span><span style="color:#75715e"></span>        <span style="color:#66d9ef">return</span>;
+    }
+
+    <span style="color:#66d9ef">foreach</span> (<span style="color:#66d9ef">var</span> controllerModel <span style="color:#66d9ef">in</span> context.Result.Controllers)
+    {
+        <span style="color:#66d9ef">var</span> controllerModelAuthData = controllerModel.Attributes.OfType&lt;IAuthorizeData&gt;().ToArray();
+        <span style="color:#66d9ef">if</span> (controllerModelAuthData.Length &gt; <span style="color:#ae81ff">0</span>)
+        {
+            controllerModel.Filters.Add(GetFilter(_policyProvider, controllerModelAuthData));
+        }
+        <span style="color:#66d9ef">foreach</span> (<span style="color:#66d9ef">var</span> attribute <span style="color:#66d9ef">in</span> controllerModel.Attributes.OfType&lt;IAllowAnonymous&gt;())
+        {
+            controllerModel.Filters.Add(<span style="color:#66d9ef">new</span> AllowAnonymousFilter());
+        }
+
+        <span style="color:#66d9ef">foreach</span> (<span style="color:#66d9ef">var</span> actionModel <span style="color:#66d9ef">in</span> controllerModel.Actions)
+        {
+            <span style="color:#66d9ef">var</span> actionModelAuthData = actionModel.Attributes.OfType&lt;IAuthorizeData&gt;().ToArray();
+            <span style="color:#66d9ef">if</span> (actionModelAuthData.Length &gt; <span style="color:#ae81ff">0</span>)
+            {
+                actionModel.Filters.Add(GetFilter(_policyProvider, actionModelAuthData));
+            }
+
+            <span style="color:#66d9ef">foreach</span> (<span style="color:#66d9ef">var</span> attribute <span style="color:#66d9ef">in</span> actionModel.Attributes.OfType&lt;IAllowAnonymous&gt;())
+            {
+                actionModel.Filters.Add(<span style="color:#66d9ef">new</span> AllowAnonymousFilter());
+            }
+        }
+    }
+}
+</code></pre></div>
+</div>
+
+
+    </main>
+
+    
+      
+    
+  </body>
+</html>
