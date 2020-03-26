@@ -1,0 +1,494 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="zh-Hans" lang="zh-Hans">
+<head>
+  <link href="https://gmpg.org/xfn/11" rel="profile">
+  <meta http-equiv="content-type" content="text/html; charset=utf-8">
+  <meta name="generator" content="Hugo 0.67.0" />
+
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <title>IdentityServer4源码解析_1_项目结构 &middot; Holden Gong</title>
+  <meta name="description" content="" />
+
+  
+  <link type="text/css" rel="stylesheet" href="https://holdengong.com/css/print.css" media="print">
+  <link type="text/css" rel="stylesheet" href="https://holdengong.com/css/poole.css">
+  <link type="text/css" rel="stylesheet" href="https://holdengong.com/css/syntax.css">
+  <link type="text/css" rel="stylesheet" href="https://holdengong.com/css/hyde.css">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Abril+Fatface|PT+Sans:400,400i,700">
+
+
+  
+  <link rel="apple-touch-icon-precomposed" sizes="144x144" href="/apple-touch-icon-144-precomposed.png">
+  <link rel="shortcut icon" href="/favicon.png">
+
+  
+  
+</head>
+
+  <body class=" ">
+  <aside class="sidebar">
+  <div class="container sidebar-sticky">
+    <div class="sidebar-about">
+      <a href="https://holdengong.com/">
+        <h1>Holden Gong</h1>
+      </a>
+      <p class="lead">
+        code & life
+      </p>
+    </div>
+
+    <nav>
+      <ul class="sidebar-nav">
+  
+      </ul>
+    </nav>
+    
+    <div>
+      <p>&copy; 2020. All rights reserved. </p>
+      <p>鄂ICP备20003133号</p>
+      <script type="text/javascript">document.write(unescape("%3Cspan id='cnzz_stat_icon_1278689390'%3E%3C/span%3E%3Cscript src='https://v1.cnzz.com/z_stat.php%3Fid%3D1278689390%26show%3Dpic' type='text/javascript'%3E%3C/script%3E"));</script>
+    </div>
+  </div>
+</aside>
+
+    <main class="content container">
+    <div class="post">
+  <h1>IdentityServer4源码解析_1_项目结构</h1>
+  <time datetime=2020-03-26T20:31:25&#43;0800 class="post-date">Thu, Mar 26, 2020</time>
+  <h1 id="简介">简介</h1>
+<p>Security源码解析系列介绍了微软提供的各种认证架构，其中OAuth2.0，OpenIdConnect属于远程认证架构，所谓远程认证，是指token的颁发是由另外的站点实现的。</p>
+<p>IdentityServer4是基于OpenIdConnect协议的认证中心框架，能够帮助我们搭建中心化的认证服务。</p>
+<p>可以将OpenIdConnect协议立即理解成需求文档，idsv4基于需求提供了一系列的api。</p>
+<p>对于idsv还不太了解的可以看下面的资料，本系列主要学习梳理idsv的源码，结合协议加深理解。</p>
+<p>晓晨姐姐系列文章</p>
+<blockquote>
+<p><a href="https://www.cnblogs.com/stulzq/p/8119928.html">https://www.cnblogs.com/stulzq/p/8119928.html</a></p>
+</blockquote>
+<p>官方文档</p>
+<blockquote>
+<p><a href="https://identityserver4.readthedocs.io/en/latest/">https://identityserver4.readthedocs.io/en/latest/</a></p>
+</blockquote>
+<h1 id="项目结构">项目结构</h1>
+<p>项目地址如下</p>
+<blockquote>
+<p><a href="https://github.com/IdentityServer/IdentityServer4">https://github.com/IdentityServer/IdentityServer4</a></p>
+</blockquote>
+<p>克隆到本地，项目结构如图</p>
+<p><img src="https://fs.31huiyi.com/da6e1cbb-4dfd-4eed-a3cc-ff629a404c63.png" alt="image"></p>
+<p>核心项目是IdentityServer4，其余的都是与微软框架集成、以及处理持久化的项目。
+项目结构如图。Endpoints文件夹就是接口文件，我们先看下依赖注入、中间件的代码，然后看下每个接口。
+<img src="https://fs.31huiyi.com/44183a92-cb3e-45f5-8100-a4cd7101e2dd.png" alt="image"></p>
+<h1 id="依赖注入">依赖注入</h1>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-csharp" data-lang="csharp"><span style="color:#66d9ef">public</span> <span style="color:#66d9ef">static</span> IIdentityServerBuilder AddIdentityServer(<span style="color:#66d9ef">this</span> IServiceCollection services)
+{
+    <span style="color:#66d9ef">var</span> builder = services.AddIdentityServerBuilder();
+
+    builder
+        .AddRequiredPlatformServices()
+        .AddCookieAuthentication()
+        .AddCoreServices()
+        .AddDefaultEndpoints()
+        .AddPluggableServices()
+        .AddValidators()
+        .AddResponseGenerators()
+        .AddDefaultSecretParsers()
+        .AddDefaultSecretValidators();
+
+    <span style="color:#75715e">// provide default in-memory implementation, not suitable for most production scenarios
+</span><span style="color:#75715e"></span>    builder.AddInMemoryPersistedGrants();
+
+    <span style="color:#66d9ef">return</span> builder;
+}
+</code></pre></div><ul>
+<li>AddRequiredPlatformServices - 注入平台服务
+<ul>
+<li>IHttpContextAccessor：HttpContext访问器</li>
+<li>IdentityServerOptions：配置类</li>
+</ul>
+</li>
+</ul>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-csharp" data-lang="csharp"> <span style="color:#66d9ef">public</span> <span style="color:#66d9ef">static</span> IIdentityServerBuilder AddRequiredPlatformServices(<span style="color:#66d9ef">this</span> IIdentityServerBuilder builder)
+{
+    builder.Services.TryAddSingleton&lt;IHttpContextAccessor, HttpContextAccessor&gt;();            
+    builder.Services.AddOptions();
+    builder.Services.AddSingleton(
+        resolver =&gt; resolver.GetRequiredService&lt;IOptions&lt;IdentityServerOptions&gt;&gt;().Value);
+    builder.Services.AddHttpClient();
+
+    <span style="color:#66d9ef">return</span> builder;
+}
+</code></pre></div><ul>
+<li>AddCookieAuthentication - 注入cookie服务
+<ul>
+<li>注入名称为idsrv的cookie认证架构</li>
+<li>注入IAuthenticationService的实现IdentityServerAuthenticationService</li>
+<li>注入IAuthenticationHandlerProvider的实现FederatedSignoutAuthenticationHandlerProvider</li>
+</ul>
+</li>
+</ul>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-csharp" data-lang="csharp"><span style="color:#66d9ef">public</span> <span style="color:#66d9ef">static</span> IIdentityServerBuilder AddCookieAuthentication(<span style="color:#66d9ef">this</span> IIdentityServerBuilder builder)
+{
+    builder.Services.AddAuthentication(IdentityServerConstants.DefaultCookieAuthenticationScheme)
+        .AddCookie(IdentityServerConstants.DefaultCookieAuthenticationScheme)
+        .AddCookie(IdentityServerConstants.ExternalCookieAuthenticationScheme);
+
+    builder.Services.AddSingleton&lt;IConfigureOptions&lt;CookieAuthenticationOptions&gt;, ConfigureInternalCookieOptions&gt;();
+    builder.Services.AddSingleton&lt;IPostConfigureOptions&lt;CookieAuthenticationOptions&gt;, PostConfigureInternalCookieOptions&gt;();
+    builder.Services.AddTransientDecorator&lt;IAuthenticationService, IdentityServerAuthenticationService&gt;();
+    builder.Services.AddTransientDecorator&lt;IAuthenticationHandlerProvider, FederatedSignoutAuthenticationHandlerProvider&gt;();
+
+    <span style="color:#66d9ef">return</span> builder;
+}
+</code></pre></div><ul>
+<li>AddCoreServices - 注入核心服务</li>
+</ul>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-csharp" data-lang="csharp"><span style="color:#75715e">/// &lt;summary&gt;
+</span><span style="color:#75715e">/// Adds the core services.
+</span><span style="color:#75715e">/// &lt;/summary&gt;
+</span><span style="color:#75715e">/// &lt;param name=&#34;builder&#34;&gt;The builder.&lt;/param&gt;
+</span><span style="color:#75715e">/// &lt;returns&gt;&lt;/returns&gt;
+</span><span style="color:#75715e"></span><span style="color:#66d9ef">public</span> <span style="color:#66d9ef">static</span> IIdentityServerBuilder AddCoreServices(<span style="color:#66d9ef">this</span> IIdentityServerBuilder builder)
+{
+    builder.Services.AddTransient&lt;SecretParser&gt;();
+    builder.Services.AddTransient&lt;SecretValidator&gt;();
+    builder.Services.AddTransient&lt;ScopeValidator&gt;();
+    builder.Services.AddTransient&lt;ExtensionGrantValidator&gt;();
+    builder.Services.AddTransient&lt;BearerTokenUsageValidator&gt;();
+    builder.Services.AddTransient&lt;JwtRequestValidator&gt;();
+
+    <span style="color:#75715e">// todo: remove in 3.0
+</span><span style="color:#75715e"></span><span style="color:#75715e">#pragma warning disable CS0618 // Type or member is obsolete
+</span><span style="color:#75715e"></span>    builder.Services.AddTransient&lt;BackChannelHttpClient&gt;();
+<span style="color:#75715e">#pragma warning restore CS0618 // Type or member is obsolete
+</span><span style="color:#75715e"></span>
+    builder.Services.AddTransient&lt;ReturnUrlParser&gt;();
+    builder.Services.AddTransient&lt;IdentityServerTools&gt;();
+
+    builder.Services.AddTransient&lt;IReturnUrlParser, OidcReturnUrlParser&gt;();
+    builder.Services.AddScoped&lt;IUserSession, DefaultUserSession&gt;();
+    builder.Services.AddTransient(<span style="color:#66d9ef">typeof</span>(MessageCookie&lt;&gt;));
+
+    builder.Services.AddCors();
+    builder.Services.AddTransientDecorator&lt;ICorsPolicyProvider, CorsPolicyProvider&gt;();
+
+    <span style="color:#66d9ef">return</span> builder;
+}
+</code></pre></div><ul>
+<li>AddDefaultEndpoints - 注入接口
+<ul>
+<li>AuthorizeCallbackEndpoint：认证回调接口</li>
+<li>AuthorizeEndpoint：认证接口</li>
+<li>CheckSessionEndpoint：检查会话接口</li>
+<li>DeviceAuthorizationEndpoint：设备认证接口</li>
+<li>DiscoveryEndpoint：元数据键接口</li>
+<li>DiscoveryEndpoint：元数据接口</li>
+<li>EndSessionCallbackEndpoint：结束会话回调接口</li>
+<li>EndSessionEndpoint：结束会话接口</li>
+<li>IntrospectionEndpoint：查询令牌信息接口</li>
+<li>TokenRevocationEndpoint：撤销令牌接口</li>
+<li>TokenEndpoint：发放令牌接口</li>
+<li>UserInfoEndpoint：查询用户信息接口</li>
+</ul>
+</li>
+</ul>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-csharp" data-lang="csharp"> <span style="color:#66d9ef">public</span> <span style="color:#66d9ef">static</span> IIdentityServerBuilder AddDefaultEndpoints(<span style="color:#66d9ef">this</span> IIdentityServerBuilder builder)
+{
+    builder.Services.AddTransient&lt;IEndpointRouter, EndpointRouter&gt;();
+
+    builder.AddEndpoint&lt;AuthorizeCallbackEndpoint&gt;(EndpointNames.Authorize, ProtocolRoutePaths.AuthorizeCallback.EnsureLeadingSlash());
+    builder.AddEndpoint&lt;AuthorizeEndpoint&gt;(EndpointNames.Authorize, ProtocolRoutePaths.Authorize.EnsureLeadingSlash());
+    builder.AddEndpoint&lt;CheckSessionEndpoint&gt;(EndpointNames.CheckSession, ProtocolRoutePaths.CheckSession.EnsureLeadingSlash());
+    builder.AddEndpoint&lt;DeviceAuthorizationEndpoint&gt;(EndpointNames.DeviceAuthorization, ProtocolRoutePaths.DeviceAuthorization.EnsureLeadingSlash());
+    builder.AddEndpoint&lt;DiscoveryKeyEndpoint&gt;(EndpointNames.Discovery, ProtocolRoutePaths.DiscoveryWebKeys.EnsureLeadingSlash());
+    builder.AddEndpoint&lt;DiscoveryEndpoint&gt;(EndpointNames.Discovery, ProtocolRoutePaths.DiscoveryConfiguration.EnsureLeadingSlash());
+    builder.AddEndpoint&lt;EndSessionCallbackEndpoint&gt;(EndpointNames.EndSession, ProtocolRoutePaths.EndSessionCallback.EnsureLeadingSlash());
+    builder.AddEndpoint&lt;EndSessionEndpoint&gt;(EndpointNames.EndSession, ProtocolRoutePaths.EndSession.EnsureLeadingSlash());
+    builder.AddEndpoint&lt;IntrospectionEndpoint&gt;(EndpointNames.Introspection, ProtocolRoutePaths.Introspection.EnsureLeadingSlash());
+    builder.AddEndpoint&lt;TokenRevocationEndpoint&gt;(EndpointNames.Revocation, ProtocolRoutePaths.Revocation.EnsureLeadingSlash());
+    builder.AddEndpoint&lt;TokenEndpoint&gt;(EndpointNames.Token, ProtocolRoutePaths.Token.EnsureLeadingSlash());
+    builder.AddEndpoint&lt;UserInfoEndpoint&gt;(EndpointNames.UserInfo, ProtocolRoutePaths.UserInfo.EnsureLeadingSlash());
+
+    <span style="color:#66d9ef">return</span> builder;
+}
+</code></pre></div><ul>
+<li>AddPluggableServices - 注入可插拔服务</li>
+</ul>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-csharp" data-lang="csharp"><span style="color:#66d9ef">public</span> <span style="color:#66d9ef">static</span> IIdentityServerBuilder AddPluggableServices(<span style="color:#66d9ef">this</span> IIdentityServerBuilder builder)
+{
+    builder.Services.TryAddTransient&lt;IPersistedGrantService, DefaultPersistedGrantService&gt;();
+    builder.Services.TryAddTransient&lt;IKeyMaterialService, DefaultKeyMaterialService&gt;();
+    builder.Services.TryAddTransient&lt;ITokenService, DefaultTokenService&gt;();
+    builder.Services.TryAddTransient&lt;ITokenCreationService, DefaultTokenCreationService&gt;();
+    builder.Services.TryAddTransient&lt;IClaimsService, DefaultClaimsService&gt;();
+    builder.Services.TryAddTransient&lt;IRefreshTokenService, DefaultRefreshTokenService&gt;();
+    builder.Services.TryAddTransient&lt;IDeviceFlowCodeService, DefaultDeviceFlowCodeService&gt;();
+    builder.Services.TryAddTransient&lt;IConsentService, DefaultConsentService&gt;();
+    builder.Services.TryAddTransient&lt;ICorsPolicyService, DefaultCorsPolicyService&gt;();
+    builder.Services.TryAddTransient&lt;IProfileService, DefaultProfileService&gt;();
+    builder.Services.TryAddTransient&lt;IConsentMessageStore, ConsentMessageStore&gt;();
+    builder.Services.TryAddTransient&lt;IMessageStore&lt;LogoutMessage&gt;, ProtectedDataMessageStore&lt;LogoutMessage&gt;&gt;();
+    builder.Services.TryAddTransient&lt;IMessageStore&lt;EndSession&gt;, ProtectedDataMessageStore&lt;EndSession&gt;&gt;();
+    builder.Services.TryAddTransient&lt;IMessageStore&lt;ErrorMessage&gt;, ProtectedDataMessageStore&lt;ErrorMessage&gt;&gt;();
+    builder.Services.TryAddTransient&lt;IIdentityServerInteractionService, DefaultIdentityServerInteractionService&gt;();
+    builder.Services.TryAddTransient&lt;IDeviceFlowInteractionService, DefaultDeviceFlowInteractionService&gt;();
+    builder.Services.TryAddTransient&lt;IAuthorizationCodeStore, DefaultAuthorizationCodeStore&gt;();
+    builder.Services.TryAddTransient&lt;IRefreshTokenStore, DefaultRefreshTokenStore&gt;();
+    builder.Services.TryAddTransient&lt;IReferenceTokenStore, DefaultReferenceTokenStore&gt;();
+    builder.Services.TryAddTransient&lt;IUserConsentStore, DefaultUserConsentStore&gt;();
+    builder.Services.TryAddTransient&lt;IHandleGenerationService, DefaultHandleGenerationService&gt;();
+    builder.Services.TryAddTransient&lt;IPersistentGrantSerializer, PersistentGrantSerializer&gt;();
+    builder.Services.TryAddTransient&lt;IEventService, DefaultEventService&gt;();
+    builder.Services.TryAddTransient&lt;IEventSink, DefaultEventSink&gt;();
+    builder.Services.TryAddTransient&lt;IUserCodeService, DefaultUserCodeService&gt;();
+    builder.Services.TryAddTransient&lt;IUserCodeGenerator, NumericUserCodeGenerator&gt;();
+    builder.Services.TryAddTransient&lt;IBackChannelLogoutService, DefaultBackChannelLogoutService&gt;();
+
+    builder.AddJwtRequestUriHttpClient();
+    builder.AddBackChannelLogoutHttpClient();
+    <span style="color:#75715e">//builder.Services.AddHttpClient&lt;BackChannelLogoutHttpClient&gt;();
+</span><span style="color:#75715e"></span>    <span style="color:#75715e">//builder.Services.AddHttpClient&lt;JwtRequestUriHttpClient&gt;();
+</span><span style="color:#75715e"></span>
+    builder.Services.AddTransient&lt;IClientSecretValidator, ClientSecretValidator&gt;();
+    builder.Services.AddTransient&lt;IApiSecretValidator, ApiSecretValidator&gt;();
+
+    builder.Services.TryAddTransient&lt;IDeviceFlowThrottlingService, DistributedDeviceFlowThrottlingService&gt;();
+    builder.Services.AddDistributedMemoryCache();
+
+    <span style="color:#66d9ef">return</span> builder;
+}
+</code></pre></div><ul>
+<li>AddValidators - 注入校验类</li>
+</ul>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-csharp" data-lang="csharp"><span style="color:#66d9ef">public</span> <span style="color:#66d9ef">static</span> IIdentityServerBuilder AddValidators(<span style="color:#66d9ef">this</span> IIdentityServerBuilder builder)
+{
+    <span style="color:#75715e">// core
+</span><span style="color:#75715e"></span>    builder.Services.TryAddTransient&lt;IEndSessionRequestValidator, EndSessionRequestValidator&gt;();
+    builder.Services.TryAddTransient&lt;ITokenRevocationRequestValidator, TokenRevocationRequestValidator&gt;();
+    builder.Services.TryAddTransient&lt;IAuthorizeRequestValidator, AuthorizeRequestValidator&gt;();
+    builder.Services.TryAddTransient&lt;ITokenRequestValidator, TokenRequestValidator&gt;();
+    builder.Services.TryAddTransient&lt;IRedirectUriValidator, StrictRedirectUriValidator&gt;();
+    builder.Services.TryAddTransient&lt;ITokenValidator, TokenValidator&gt;();
+    builder.Services.TryAddTransient&lt;IIntrospectionRequestValidator, IntrospectionRequestValidator&gt;();
+    builder.Services.TryAddTransient&lt;IResourceOwnerPasswordValidator, NotSupportedResourceOwnerPasswordValidator&gt;();
+    builder.Services.TryAddTransient&lt;ICustomTokenRequestValidator, DefaultCustomTokenRequestValidator&gt;();
+    builder.Services.TryAddTransient&lt;IUserInfoRequestValidator, UserInfoRequestValidator&gt;();
+    builder.Services.TryAddTransient&lt;IClientConfigurationValidator, DefaultClientConfigurationValidator&gt;();
+    builder.Services.TryAddTransient&lt;IDeviceAuthorizationRequestValidator, DeviceAuthorizationRequestValidator&gt;();
+    builder.Services.TryAddTransient&lt;IDeviceCodeValidator, DeviceCodeValidator&gt;();
+
+    <span style="color:#75715e">// optional
+</span><span style="color:#75715e"></span>    builder.Services.TryAddTransient&lt;ICustomTokenValidator, DefaultCustomTokenValidator&gt;();
+    builder.Services.TryAddTransient&lt;ICustomAuthorizeRequestValidator, DefaultCustomAuthorizeRequestValidator&gt;();
+    
+    <span style="color:#66d9ef">return</span> builder;
+}
+</code></pre></div><ul>
+<li>AddResponseGenerators - 注入响应生成类</li>
+</ul>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-csharp" data-lang="csharp"><span style="color:#66d9ef">public</span> <span style="color:#66d9ef">static</span> IIdentityServerBuilder AddResponseGenerators(<span style="color:#66d9ef">this</span> IIdentityServerBuilder builder)
+{
+    builder.Services.TryAddTransient&lt;ITokenResponseGenerator, TokenResponseGenerator&gt;();
+    builder.Services.TryAddTransient&lt;IUserInfoResponseGenerator, UserInfoResponseGenerator&gt;();
+    builder.Services.TryAddTransient&lt;IIntrospectionResponseGenerator, IntrospectionResponseGenerator&gt;();
+    builder.Services.TryAddTransient&lt;IAuthorizeInteractionResponseGenerator, AuthorizeInteractionResponseGenerator&gt;();
+    builder.Services.TryAddTransient&lt;IAuthorizeResponseGenerator, AuthorizeResponseGenerator&gt;();
+    builder.Services.TryAddTransient&lt;IDiscoveryResponseGenerator, DiscoveryResponseGenerator&gt;();
+    builder.Services.TryAddTransient&lt;ITokenRevocationResponseGenerator, TokenRevocationResponseGenerator&gt;();
+    builder.Services.TryAddTransient&lt;IDeviceAuthorizationResponseGenerator, DeviceAuthorizationResponseGenerator&gt;();
+
+    <span style="color:#66d9ef">return</span> builder;
+}
+</code></pre></div><ul>
+<li>AddDefaultSecretParsers &amp; AddDefaultSecretValidators</li>
+</ul>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-csharp" data-lang="csharp"><span style="color:#75715e">/// &lt;summary&gt;
+</span><span style="color:#75715e">/// Adds the default secret parsers.
+</span><span style="color:#75715e">/// &lt;/summary&gt;
+</span><span style="color:#75715e">/// &lt;param name=&#34;builder&#34;&gt;The builder.&lt;/param&gt;
+</span><span style="color:#75715e">/// &lt;returns&gt;&lt;/returns&gt;
+</span><span style="color:#75715e"></span><span style="color:#66d9ef">public</span> <span style="color:#66d9ef">static</span> IIdentityServerBuilder AddDefaultSecretParsers(<span style="color:#66d9ef">this</span> IIdentityServerBuilder builder)
+{
+    builder.Services.AddTransient&lt;ISecretParser, BasicAuthenticationSecretParser&gt;();
+    builder.Services.AddTransient&lt;ISecretParser, PostBodySecretParser&gt;();
+
+    <span style="color:#66d9ef">return</span> builder;
+}
+
+<span style="color:#75715e">/// &lt;summary&gt;
+</span><span style="color:#75715e">/// Adds the default secret validators.
+</span><span style="color:#75715e">/// &lt;/summary&gt;
+</span><span style="color:#75715e">/// &lt;param name=&#34;builder&#34;&gt;The builder.&lt;/param&gt;
+</span><span style="color:#75715e">/// &lt;returns&gt;&lt;/returns&gt;
+</span><span style="color:#75715e"></span><span style="color:#66d9ef">public</span> <span style="color:#66d9ef">static</span> IIdentityServerBuilder AddDefaultSecretValidators(<span style="color:#66d9ef">this</span> IIdentityServerBuilder builder)
+{
+    builder.Services.AddTransient&lt;ISecretValidator, HashedSharedSecretValidator&gt;();
+
+    <span style="color:#66d9ef">return</span> builder;
+}
+</code></pre></div><h1 id="identityserveroptions---配置类">IdentityServerOptions - 配置类</h1>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-csharp" data-lang="csharp"> <span style="color:#75715e">/// &lt;summary&gt;
+</span><span style="color:#75715e">/// The IdentityServerOptions class is the top level container for all configuration settings of IdentityServer.
+</span><span style="color:#75715e">/// &lt;/summary&gt;
+</span><span style="color:#75715e"></span><span style="color:#66d9ef">public</span> <span style="color:#66d9ef">class</span> <span style="color:#a6e22e">IdentityServerOptions</span>
+{
+    <span style="color:#75715e">/// &lt;summary&gt;
+</span><span style="color:#75715e"></span>    <span style="color:#75715e">/// Gets or sets the unique name of this server instance, e.g. https://myissuer.com.
+</span><span style="color:#75715e"></span>    <span style="color:#75715e">/// If not set, the issuer name is inferred from the request
+</span><span style="color:#75715e"></span>    <span style="color:#75715e">/// &lt;/summary&gt;
+</span><span style="color:#75715e"></span>    <span style="color:#75715e">/// &lt;value&gt;
+</span><span style="color:#75715e"></span>    <span style="color:#75715e">/// Unique name of this server instance, e.g. https://myissuer.com
+</span><span style="color:#75715e"></span>    <span style="color:#75715e">/// &lt;/value&gt;
+</span><span style="color:#75715e"></span>    <span style="color:#66d9ef">public</span> <span style="color:#66d9ef">string</span> IssuerUri { <span style="color:#66d9ef">get</span>; <span style="color:#66d9ef">set</span>; }
+
+    <span style="color:#75715e">/// &lt;summary&gt;
+</span><span style="color:#75715e"></span>    <span style="color:#75715e">/// Gets or sets the origin of this server instance, e.g. https://myorigin.com.
+</span><span style="color:#75715e"></span>    <span style="color:#75715e">/// If not set, the origin name is inferred from the request
+</span><span style="color:#75715e"></span>    <span style="color:#75715e">/// Note: Do not set a URL or include a path.
+</span><span style="color:#75715e"></span>    <span style="color:#75715e">/// &lt;/summary&gt;
+</span><span style="color:#75715e"></span>    <span style="color:#75715e">/// &lt;value&gt;
+</span><span style="color:#75715e"></span>    <span style="color:#75715e">/// Origin of this server instance, e.g. https://myorigin.com
+</span><span style="color:#75715e"></span>    <span style="color:#75715e">/// &lt;/value&gt;
+</span><span style="color:#75715e"></span>    <span style="color:#66d9ef">public</span> <span style="color:#66d9ef">string</span> PublicOrigin { <span style="color:#66d9ef">get</span>; <span style="color:#66d9ef">set</span>; }
+
+    <span style="color:#75715e">/// &lt;summary&gt;
+</span><span style="color:#75715e"></span>    <span style="color:#75715e">/// Gets or sets the value for the JWT typ header for access tokens.
+</span><span style="color:#75715e"></span>    <span style="color:#75715e">/// &lt;/summary&gt;
+</span><span style="color:#75715e"></span>    <span style="color:#75715e">/// &lt;value&gt;
+</span><span style="color:#75715e"></span>    <span style="color:#75715e">/// The JWT typ value.
+</span><span style="color:#75715e"></span>    <span style="color:#75715e">/// &lt;/value&gt;
+</span><span style="color:#75715e"></span>    <span style="color:#66d9ef">public</span> <span style="color:#66d9ef">string</span> AccessTokenJwtType { <span style="color:#66d9ef">get</span>; <span style="color:#66d9ef">set</span>; } = <span style="color:#e6db74">&#34;at+jwt&#34;</span>;
+
+    <span style="color:#75715e">/// &lt;summary&gt;
+</span><span style="color:#75715e"></span>    <span style="color:#75715e">/// Emits an aud claim with the format issuer/resources. That&#39;s needed for some older access token validation plumbing. Defaults to false.
+</span><span style="color:#75715e"></span>    <span style="color:#75715e">/// &lt;/summary&gt;
+</span><span style="color:#75715e"></span>    <span style="color:#66d9ef">public</span> <span style="color:#66d9ef">bool</span> EmitLegacyResourceAudienceClaim { <span style="color:#66d9ef">get</span>; <span style="color:#66d9ef">set</span>; } = <span style="color:#66d9ef">false</span>;
+
+    <span style="color:#75715e">/// &lt;summary&gt;
+</span><span style="color:#75715e"></span>    <span style="color:#75715e">/// Gets or sets the endpoint configuration.
+</span><span style="color:#75715e"></span>    <span style="color:#75715e">/// &lt;/summary&gt;
+</span><span style="color:#75715e"></span>    <span style="color:#75715e">/// &lt;value&gt;
+</span><span style="color:#75715e"></span>    <span style="color:#75715e">/// The endpoints configuration.
+</span><span style="color:#75715e"></span>    <span style="color:#75715e">/// &lt;/value&gt;
+</span><span style="color:#75715e"></span>    <span style="color:#66d9ef">public</span> EndpointsOptions Endpoints { <span style="color:#66d9ef">get</span>; <span style="color:#66d9ef">set</span>; } = <span style="color:#66d9ef">new</span> EndpointsOptions();
+
+    <span style="color:#75715e">/// &lt;summary&gt;
+</span><span style="color:#75715e"></span>    <span style="color:#75715e">/// Gets or sets the discovery endpoint configuration.
+</span><span style="color:#75715e"></span>    <span style="color:#75715e">/// &lt;/summary&gt;
+</span><span style="color:#75715e"></span>    <span style="color:#75715e">/// &lt;value&gt;
+</span><span style="color:#75715e"></span>    <span style="color:#75715e">/// The discovery endpoint configuration.
+</span><span style="color:#75715e"></span>    <span style="color:#75715e">/// &lt;/value&gt;
+</span><span style="color:#75715e"></span>    <span style="color:#66d9ef">public</span> DiscoveryOptions Discovery { <span style="color:#66d9ef">get</span>; <span style="color:#66d9ef">set</span>; } = <span style="color:#66d9ef">new</span> DiscoveryOptions();
+
+    <span style="color:#75715e">/// &lt;summary&gt;
+</span><span style="color:#75715e"></span>    <span style="color:#75715e">/// Gets or sets the authentication options.
+</span><span style="color:#75715e"></span>    <span style="color:#75715e">/// &lt;/summary&gt;
+</span><span style="color:#75715e"></span>    <span style="color:#75715e">/// &lt;value&gt;
+</span><span style="color:#75715e"></span>    <span style="color:#75715e">/// The authentication options.
+</span><span style="color:#75715e"></span>    <span style="color:#75715e">/// &lt;/value&gt;
+</span><span style="color:#75715e"></span>    <span style="color:#66d9ef">public</span> AuthenticationOptions Authentication { <span style="color:#66d9ef">get</span>; <span style="color:#66d9ef">set</span>; } = <span style="color:#66d9ef">new</span> AuthenticationOptions();
+
+    <span style="color:#75715e">/// &lt;summary&gt;
+</span><span style="color:#75715e"></span>    <span style="color:#75715e">/// Gets or sets the events options.
+</span><span style="color:#75715e"></span>    <span style="color:#75715e">/// &lt;/summary&gt;
+</span><span style="color:#75715e"></span>    <span style="color:#75715e">/// &lt;value&gt;
+</span><span style="color:#75715e"></span>    <span style="color:#75715e">/// The events options.
+</span><span style="color:#75715e"></span>    <span style="color:#75715e">/// &lt;/value&gt;
+</span><span style="color:#75715e"></span>    <span style="color:#66d9ef">public</span> EventsOptions Events { <span style="color:#66d9ef">get</span>; <span style="color:#66d9ef">set</span>; } = <span style="color:#66d9ef">new</span> EventsOptions();
+
+    <span style="color:#75715e">/// &lt;summary&gt;
+</span><span style="color:#75715e"></span>    <span style="color:#75715e">/// Gets or sets the max input length restrictions.
+</span><span style="color:#75715e"></span>    <span style="color:#75715e">/// &lt;/summary&gt;
+</span><span style="color:#75715e"></span>    <span style="color:#75715e">/// &lt;value&gt;
+</span><span style="color:#75715e"></span>    <span style="color:#75715e">/// The length restrictions.
+</span><span style="color:#75715e"></span>    <span style="color:#75715e">/// &lt;/value&gt;
+</span><span style="color:#75715e"></span>    <span style="color:#66d9ef">public</span> InputLengthRestrictions InputLengthRestrictions { <span style="color:#66d9ef">get</span>; <span style="color:#66d9ef">set</span>; } = <span style="color:#66d9ef">new</span> InputLengthRestrictions();
+
+    <span style="color:#75715e">/// &lt;summary&gt;
+</span><span style="color:#75715e"></span>    <span style="color:#75715e">/// Gets or sets the options for the user interaction.
+</span><span style="color:#75715e"></span>    <span style="color:#75715e">/// &lt;/summary&gt;
+</span><span style="color:#75715e"></span>    <span style="color:#75715e">/// &lt;value&gt;
+</span><span style="color:#75715e"></span>    <span style="color:#75715e">/// The user interaction options.
+</span><span style="color:#75715e"></span>    <span style="color:#75715e">/// &lt;/value&gt;
+</span><span style="color:#75715e"></span>    <span style="color:#66d9ef">public</span> UserInteractionOptions UserInteraction { <span style="color:#66d9ef">get</span>; <span style="color:#66d9ef">set</span>; } = <span style="color:#66d9ef">new</span> UserInteractionOptions();
+
+    <span style="color:#75715e">/// &lt;summary&gt;
+</span><span style="color:#75715e"></span>    <span style="color:#75715e">/// Gets or sets the caching options.
+</span><span style="color:#75715e"></span>    <span style="color:#75715e">/// &lt;/summary&gt;
+</span><span style="color:#75715e"></span>    <span style="color:#75715e">/// &lt;value&gt;
+</span><span style="color:#75715e"></span>    <span style="color:#75715e">/// The caching options.
+</span><span style="color:#75715e"></span>    <span style="color:#75715e">/// &lt;/value&gt;
+</span><span style="color:#75715e"></span>    <span style="color:#66d9ef">public</span> CachingOptions Caching { <span style="color:#66d9ef">get</span>; <span style="color:#66d9ef">set</span>; } = <span style="color:#66d9ef">new</span> CachingOptions();
+
+    <span style="color:#75715e">/// &lt;summary&gt;
+</span><span style="color:#75715e"></span>    <span style="color:#75715e">/// Gets or sets the cors options.
+</span><span style="color:#75715e"></span>    <span style="color:#75715e">/// &lt;/summary&gt;
+</span><span style="color:#75715e"></span>    <span style="color:#75715e">/// &lt;value&gt;
+</span><span style="color:#75715e"></span>    <span style="color:#75715e">/// The cors options.
+</span><span style="color:#75715e"></span>    <span style="color:#75715e">/// &lt;/value&gt;
+</span><span style="color:#75715e"></span>    <span style="color:#66d9ef">public</span> CorsOptions Cors { <span style="color:#66d9ef">get</span>; <span style="color:#66d9ef">set</span>; } = <span style="color:#66d9ef">new</span> CorsOptions();
+
+    <span style="color:#75715e">/// &lt;summary&gt;
+</span><span style="color:#75715e"></span>    <span style="color:#75715e">/// Gets or sets the Content Security Policy options.
+</span><span style="color:#75715e"></span>    <span style="color:#75715e">/// &lt;/summary&gt;
+</span><span style="color:#75715e"></span>    <span style="color:#66d9ef">public</span> CspOptions Csp { <span style="color:#66d9ef">get</span>; <span style="color:#66d9ef">set</span>; } = <span style="color:#66d9ef">new</span> CspOptions();
+
+    <span style="color:#75715e">/// &lt;summary&gt;
+</span><span style="color:#75715e"></span>    <span style="color:#75715e">/// Gets or sets the validation options.
+</span><span style="color:#75715e"></span>    <span style="color:#75715e">/// &lt;/summary&gt;
+</span><span style="color:#75715e"></span>    <span style="color:#66d9ef">public</span> ValidationOptions Validation { <span style="color:#66d9ef">get</span>; <span style="color:#66d9ef">set</span>; } = <span style="color:#66d9ef">new</span> ValidationOptions();
+
+    <span style="color:#75715e">/// &lt;summary&gt;
+</span><span style="color:#75715e"></span>    <span style="color:#75715e">/// Gets or sets the device flow options.
+</span><span style="color:#75715e"></span>    <span style="color:#75715e">/// &lt;/summary&gt;
+</span><span style="color:#75715e"></span>    <span style="color:#66d9ef">public</span> DeviceFlowOptions DeviceFlow { <span style="color:#66d9ef">get</span>; <span style="color:#66d9ef">set</span>; } = <span style="color:#66d9ef">new</span> DeviceFlowOptions();
+
+    <span style="color:#75715e">/// &lt;summary&gt;
+</span><span style="color:#75715e"></span>    <span style="color:#75715e">/// Gets or sets the mutual TLS options.
+</span><span style="color:#75715e"></span>    <span style="color:#75715e">/// &lt;/summary&gt;
+</span><span style="color:#75715e"></span>    <span style="color:#66d9ef">public</span> MutualTlsOptions MutualTls { <span style="color:#66d9ef">get</span>; <span style="color:#66d9ef">set</span>; } = <span style="color:#66d9ef">new</span> MutualTlsOptions();
+}
+</code></pre></div><h1 id="useridentityserver---中间件逻辑">UserIdentityServer - 中间件逻辑</h1>
+<ul>
+<li>执行校验</li>
+<li>BaseUrlMiddleware中间件：设置BaseUrl</li>
+<li>配置CORS跨域：CorsPolicyProvider根据client信息生成动态策略</li>
+<li>IdentityServerMiddlewareOptions默认调用了UseAuthentication，所以如果使用IdentityServer不用重复注册Authentication中间件</li>
+<li>使用MutualTlsTokenEndpointMiddleware中间件：要求客户端、服务端都使用https，默认不开启</li>
+<li>使用IdentityServerMiddleware中间件：IEndpointRouter根据请求寻找匹配的IEndpointHandler，如果找到的话则由EndPointHandler处理请求。</li>
+</ul>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-csharp" data-lang="csharp"><span style="color:#66d9ef">public</span> <span style="color:#66d9ef">static</span> IApplicationBuilder UseIdentityServer(<span style="color:#66d9ef">this</span> IApplicationBuilder app, IdentityServerMiddlewareOptions options = <span style="color:#66d9ef">null</span>)
+{
+    app.Validate();
+
+    app.UseMiddleware&lt;BaseUrlMiddleware&gt;();
+
+    app.ConfigureCors();
+
+    <span style="color:#75715e">// it seems ok if we have UseAuthentication more than once in the pipeline --
+</span><span style="color:#75715e"></span>    <span style="color:#75715e">// this will just re-run the various callback handlers and the default authN 
+</span><span style="color:#75715e"></span>    <span style="color:#75715e">// handler, which just re-assigns the user on the context. claims transformation
+</span><span style="color:#75715e"></span>    <span style="color:#75715e">// will run twice, since that&#39;s not cached (whereas the authN handler result is)
+</span><span style="color:#75715e"></span>    <span style="color:#75715e">// related: https://github.com/aspnet/Security/issues/1399
+</span><span style="color:#75715e"></span>    <span style="color:#66d9ef">if</span> (options == <span style="color:#66d9ef">null</span>) options = <span style="color:#66d9ef">new</span> IdentityServerMiddlewareOptions();
+    options.AuthenticationMiddleware(app);
+
+    app.UseMiddleware&lt;MutualTlsTokenEndpointMiddleware&gt;();
+    app.UseMiddleware&lt;IdentityServerMiddleware&gt;();
+
+    <span style="color:#66d9ef">return</span> app;
+}
+</code></pre></div><h1 id="结语">结语</h1>
+<p>idsv的代码量还是比较大的，注入了大量的类。但是代码风格比较规范，脉络还是很清晰的。</p>
+
+</div>
+
+
+    </main>
+
+    
+      
+    
+  </body>
+</html>
