@@ -1,6 +1,6 @@
 # 目录
 - [identityserver4源码解析_1_项目结构](https://holdengong.com/identityserver4源码解析_1_项目结构)
-- [identityserver4源码解析_2_元数据接口](https://holdengong.com/identityserver4源码解析_2_元数据结构)
+- [identityserver4源码解析_2_元数据接口](https://holdengong.com/identityserver4源码解析_2_元数据接口)
 - [identityserver4源码解析_3_认证接口](https://holdengong.com/identityserver4源码解析_3_认证接口)
 - [identityserver4源码解析_4_令牌发放接口](https://holdengong.com/identityserver4源码解析_4_令牌发放接口)
 - [identityserver4源码解析_5_查询用户信息接口](https://holdengong.com/identityserver4源码解析_5_查询用户信息接口)
