@@ -68,7 +68,562 @@
 <li><a href="https://holdengong.com/identityserver4%E6%BA%90%E7%A0%81%E8%A7%A3%E6%9E%90_7_%E6%9F%A5%E8%AF%A2%E4%BB%A4%E7%89%8C%E4%BF%A1%E6%81%AF%E6%8E%A5%E5%8F%A3">identityserver4源码解析_7_查询令牌信息接口</a></li>
 <li><a href="https://holdengong.com/identityserver4%E6%BA%90%E7%A0%81%E8%A7%A3%E6%9E%90_8_%E6%92%A4%E9%94%80%E4%BB%A4%E7%89%8C%E6%8E%A5%E5%8F%A3">identityserver4源码解析_8_撤销令牌接口</a></li>
 </ul>
-<h1 id="to-be-updated">TO BE UPDATED</h1>
+<h1 id="协议">协议</h1>
+<p>这一系列我们都采用这样的方式，先大概看下协议，也就是需求描述，然后看idsv4怎么实现的，这样可以加深理解。<br>
+元数据接口的协议地址如下：</p>
+<blockquote>
+<p><a href="https://openid.net/specs/openid-connect-discovery-1_0.html">https://openid.net/specs/openid-connect-discovery-1_0.html</a></p>
+</blockquote>
+<h2 id="摘要">摘要</h2>
+<p>该协议定义了一套标准，用户能够获取到oidc服务的基本信息，包括OAuth2.0相关接口地址。</p>
+<h2 id="webfinger---网络指纹">Webfinger - 网络指纹</h2>
+<p>先了解一下Webfinger这个概念。</p>
+<p>WebFinger可以翻译成网络指纹，它定义了一套标准，描述如何通过标准的HTTP方法去获取网络实体的资料信息。WebFinger使用JSON来描述实体信息。</p>
+<blockquote>
+<p><a href="https://tools.ietf.org/html/rfc7033">https://tools.ietf.org/html/rfc7033</a></p>
+</blockquote>
+<h2 id="查询oidc服务元数据---openid-provider-issuer-discovery">查询oidc服务元数据 - OpenID Provider Issuer Discovery</h2>
+<p>可选协议。<br>
+定义了如何获取oidc服务元数据。如果客户端明确知道oidc服务的地址，可以跳过此部分。<br>
+个人理解是存在多个oidc服务的情况，可以部署一个webfinger服务，根据资源请求，路由到不同的oidc服务。<br>
+通常来说，我们只有一个oidc服务，我看了一下idsv4也没有实现这一部分协议，这里了解一下就可以了。</p>
+<h2 id="查询oidc服务配置信息---openid-provider-configuration-request">查询oidc服务配置信息 - OpenID Provider Configuration Request</h2>
+<p>必选协议。<br>
+用于描述oidc服务各接口地址及其他配置信息。</p>
+<pre><code>  GET /.well-known/openid-configuration HTTP/1.1
+  Host: example.com
+</code></pre><p>必须校验issuer与请求地址是否一致</p>
+<p>启个idsrv服务调用试一下，返回结果如图
+<img src="https://fs.31huiyi.com/fa49063e-b83b-49ce-ba50-c57a1830e3c9.png" alt="image"></p>
+<p>详细信息如下。</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-json" data-lang="json">{
+    <span style="color:#f92672">&#34;issuer&#34;</span>: <span style="color:#e6db74">&#34;https://localhost:10000&#34;</span>, <span style="color:#960050;background-color:#1e0010">//颁发者地址</span>
+    <span style="color:#f92672">&#34;jwks_uri&#34;</span>: <span style="color:#e6db74">&#34;https://localhost:10000/.well-known/openid-configuration/jwks&#34;</span>, <span style="color:#960050;background-color:#1e0010">//jwks接口地址，查询密钥</span>
+    <span style="color:#f92672">&#34;authorization_endpoint&#34;</span>: <span style="color:#e6db74">&#34;https://localhost:10000/connect/authorize&#34;</span>, <span style="color:#960050;background-color:#1e0010">//认证接口地址</span>
+    <span style="color:#f92672">&#34;token_endpoint&#34;</span>: <span style="color:#e6db74">&#34;https://localhost:10000/connect/token&#34;</span>, <span style="color:#960050;background-color:#1e0010">//令牌发放接口</span>
+    <span style="color:#f92672">&#34;userinfo_endpoint&#34;</span>: <span style="color:#e6db74">&#34;https://localhost:10000/connect/userinfo&#34;</span>, <span style="color:#960050;background-color:#1e0010">//查询用户信息接口</span>
+    <span style="color:#f92672">&#34;end_session_endpoint&#34;</span>: <span style="color:#e6db74">&#34;https://localhost:10000/connect/endsession&#34;</span>, <span style="color:#960050;background-color:#1e0010">//结束会话接口</span>
+    <span style="color:#f92672">&#34;check_session_iframe&#34;</span>: <span style="color:#e6db74">&#34;https://localhost:10000/connect/checksession&#34;</span>, <span style="color:#960050;background-color:#1e0010">//检查会话接口</span>
+    <span style="color:#f92672">&#34;revocation_endpoint&#34;</span>: <span style="color:#e6db74">&#34;https://localhost:10000/connect/revocation&#34;</span>, <span style="color:#960050;background-color:#1e0010">//撤销令牌接口</span>
+    <span style="color:#f92672">&#34;introspection_endpoint&#34;</span>: <span style="color:#e6db74">&#34;https://localhost:10000/connect/introspect&#34;</span>, <span style="color:#960050;background-color:#1e0010">//查询令牌详情接口</span>
+    <span style="color:#f92672">&#34;device_authorization_endpoint&#34;</span>: <span style="color:#e6db74">&#34;https://localhost:10000/connect/deviceauthorization&#34;</span>, <span style="color:#960050;background-color:#1e0010">//设备认证接口</span>
+    <span style="color:#f92672">&#34;frontchannel_logout_supported&#34;</span>: <span style="color:#66d9ef">true</span>, <span style="color:#960050;background-color:#1e0010">//是否支持前端登出</span>
+    <span style="color:#f92672">&#34;frontchannel_logout_session_supported&#34;</span>: <span style="color:#66d9ef">true</span>, <span style="color:#960050;background-color:#1e0010">//是否支持前端结束会话</span>
+    <span style="color:#f92672">&#34;backchannel_logout_supported&#34;</span>: <span style="color:#66d9ef">true</span>, <span style="color:#960050;background-color:#1e0010">//是否支持后端登出</span>
+    <span style="color:#f92672">&#34;backchannel_logout_session_supported&#34;</span>: <span style="color:#66d9ef">true</span>, <span style="color:#960050;background-color:#1e0010">//是否支持后端结束会话</span>
+    <span style="color:#f92672">&#34;scopes_supported&#34;</span>: [ <span style="color:#960050;background-color:#1e0010">//支持的授权范围</span>,<span style="color:#960050;background-color:#1e0010">scope</span>
+        <span style="color:#e6db74">&#34;openid&#34;</span>,
+        <span style="color:#e6db74">&#34;profile&#34;</span>,
+        <span style="color:#e6db74">&#34;userid&#34;</span>,
+        <span style="color:#e6db74">&#34;username&#34;</span>,
+        <span style="color:#e6db74">&#34;email&#34;</span>,
+        <span style="color:#e6db74">&#34;mobile&#34;</span>,
+        <span style="color:#e6db74">&#34;api&#34;</span>,
+        <span style="color:#e6db74">&#34;offline_access&#34;</span> <span style="color:#960050;background-color:#1e0010">//token过期可用refresh_token刷新换取新token</span>
+    ],
+    <span style="color:#f92672">&#34;claims_supported&#34;</span>: [ <span style="color:#960050;background-color:#1e0010">//支持的声明</span>
+        <span style="color:#e6db74">&#34;sub&#34;</span>,
+        <span style="color:#e6db74">&#34;updated_at&#34;</span>,
+        <span style="color:#e6db74">&#34;locale&#34;</span>,
+        <span style="color:#e6db74">&#34;zoneinfo&#34;</span>,
+        <span style="color:#e6db74">&#34;birthdate&#34;</span>,
+        <span style="color:#e6db74">&#34;gender&#34;</span>,
+        <span style="color:#e6db74">&#34;preferred_username&#34;</span>,
+        <span style="color:#e6db74">&#34;picture&#34;</span>,
+        <span style="color:#e6db74">&#34;profile&#34;</span>,
+        <span style="color:#e6db74">&#34;nickname&#34;</span>,
+        <span style="color:#e6db74">&#34;middle_name&#34;</span>,
+        <span style="color:#e6db74">&#34;given_name&#34;</span>,
+        <span style="color:#e6db74">&#34;family_name&#34;</span>,
+        <span style="color:#e6db74">&#34;website&#34;</span>,
+        <span style="color:#e6db74">&#34;name&#34;</span>,
+        <span style="color:#e6db74">&#34;userid&#34;</span>,
+        <span style="color:#e6db74">&#34;username&#34;</span>,
+        <span style="color:#e6db74">&#34;email&#34;</span>,
+        <span style="color:#e6db74">&#34;mobile&#34;</span>
+    ],
+    <span style="color:#f92672">&#34;grant_types_supported&#34;</span>: [ <span style="color:#960050;background-color:#1e0010">//支持的认证类型</span>
+        <span style="color:#e6db74">&#34;authorization_code&#34;</span>, <span style="color:#960050;background-color:#1e0010">//授权码模式</span>
+        <span style="color:#e6db74">&#34;client_credentials&#34;</span>, <span style="color:#960050;background-color:#1e0010">//客户端密钥模式</span>
+        <span style="color:#e6db74">&#34;refresh_token&#34;</span>, <span style="color:#960050;background-color:#1e0010">//刷新token</span>
+        <span style="color:#e6db74">&#34;implicit&#34;</span>, <span style="color:#960050;background-color:#1e0010">//隐式流程</span>, <span style="color:#960050;background-color:#1e0010">一般用于单页应用javascript客户端</span>
+        <span style="color:#e6db74">&#34;password&#34;</span>, <span style="color:#960050;background-color:#1e0010">//用户名密码模式</span>
+        <span style="color:#e6db74">&#34;urn:ietf:params:oauth:grant-type:device_code&#34;</span> <span style="color:#960050;background-color:#1e0010">//设备授权码</span>
+    ],
+    <span style="color:#f92672">&#34;response_types_supported&#34;</span>: [ <span style="color:#960050;background-color:#1e0010">//支持的返回类型</span>
+        <span style="color:#e6db74">&#34;code&#34;</span>, <span style="color:#960050;background-color:#1e0010">//授权码</span> 
+        <span style="color:#e6db74">&#34;token&#34;</span>, <span style="color:#960050;background-color:#1e0010">//通行令牌</span>
+        <span style="color:#e6db74">&#34;id_token&#34;</span>, <span style="color:#960050;background-color:#1e0010">//身份令牌</span>
+        <span style="color:#e6db74">&#34;id_token token&#34;</span>, <span style="color:#960050;background-color:#1e0010">//身份令牌+统通行令牌</span>
+        <span style="color:#e6db74">&#34;code id_token&#34;</span>, <span style="color:#960050;background-color:#1e0010">//授权码+身份令牌</span>
+        <span style="color:#e6db74">&#34;code token&#34;</span>, <span style="color:#960050;background-color:#1e0010">//授权码+通行令牌</span>
+        <span style="color:#e6db74">&#34;code id_token token&#34;</span> <span style="color:#960050;background-color:#1e0010">//授权码+身份令牌+通行令牌</span>
+    ],
+    <span style="color:#f92672">&#34;response_modes_supported&#34;</span>: [ <span style="color:#960050;background-color:#1e0010">//支持的响应方法</span>
+        <span style="color:#e6db74">&#34;form_post&#34;</span>, <span style="color:#960050;background-color:#1e0010">//form-post提交</span>
+        <span style="color:#e6db74">&#34;query&#34;</span>, <span style="color:#960050;background-color:#1e0010">//get提交</span>
+        <span style="color:#e6db74">&#34;fragment&#34;</span> <span style="color:#960050;background-color:#1e0010">//fragment提交</span>
+    ],
+    <span style="color:#f92672">&#34;token_endpoint_auth_methods_supported&#34;</span>: [ <span style="color:#960050;background-color:#1e0010">//发放令牌接口支持的认证方式</span>
+        <span style="color:#e6db74">&#34;client_secret_basic&#34;</span>, <span style="color:#960050;background-color:#1e0010">//basic</span>
+        <span style="color:#e6db74">&#34;client_secret_post&#34;</span> <span style="color:#960050;background-color:#1e0010">//post</span>
+    ],
+    <span style="color:#f92672">&#34;id_token_signing_alg_values_supported&#34;</span>: [ <span style="color:#960050;background-color:#1e0010">//身份令牌加密算法</span>
+        <span style="color:#e6db74">&#34;RS256&#34;</span>
+    ],
+    <span style="color:#f92672">&#34;subject_types_supported&#34;</span>: [
+        <span style="color:#e6db74">&#34;public&#34;</span>
+    ],
+    <span style="color:#f92672">&#34;code_challenge_methods_supported&#34;</span>: [
+        <span style="color:#e6db74">&#34;plain&#34;</span>,
+        <span style="color:#e6db74">&#34;S256&#34;</span>
+    ],
+    <span style="color:#f92672">&#34;request_parameter_supported&#34;</span>: <span style="color:#66d9ef">true</span>
+}
+</code></pre></div><h2 id="jwk---json-web-keys">JWK - Json Web Keys</h2>
+<p>idsv还注入这样一个接口：DiscoveryKeyEndpoint，尝试发现返回了一组密钥。协议内容如下。</p>
+<blockquote>
+<p><a href="https://tools.ietf.org/html/draft-ietf-jose-json-web-key-41">https://tools.ietf.org/html/draft-ietf-jose-json-web-key-41</a></p>
+</blockquote>
+<p>GET /.well-known/openid-configuration/jwks，返回结果如下</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-json" data-lang="json">{
+    <span style="color:#f92672">&#34;keys&#34;</span>: [
+        {
+            <span style="color:#f92672">&#34;kty&#34;</span>: <span style="color:#e6db74">&#34;RSA&#34;</span>,
+            <span style="color:#f92672">&#34;use&#34;</span>: <span style="color:#e6db74">&#34;sig&#34;</span>,
+            <span style="color:#f92672">&#34;kid&#34;</span>: <span style="color:#e6db74">&#34;LS-EQOr-3BkalkkUVh8q7Q&#34;</span>,
+            <span style="color:#f92672">&#34;e&#34;</span>: <span style="color:#e6db74">&#34;AQAB&#34;</span>,
+            <span style="color:#f92672">&#34;n&#34;</span>: <span style="color:#e6db74">&#34;08BLLaTz4JrTYmE4bZ9c7oKVrZKLy3KfGT5mmnslhl41nk_EV_8OUdL8wMXunC2KERdnsy5XYk4aw3LlvxZDIvjxO9PEblPsoap-WErdi9GVyAv-NJ6eJQy3S7FRSkvzQYBsLnCKm5wu0kjdQBVUCFJ7wfiZ9ayY7pH7K10qN2Utvt-qsCLUy0cJ0StuP_rquefp7_XhUw3A8IIA8P6DjfZIbpwrVjOeVWoI_ZKIwfxShghOAKBDLyQuC2PhozsqZ7HvGEeAPm06YPMWQVbE9_LBn2j_Ul_VBUWc9KfBNOzk_BMQHyF2NUlwMtqMUEcwK_hpjEeo62O_aFT8EDkgcQ&#34;</span>,
+            <span style="color:#f92672">&#34;alg&#34;</span>: <span style="color:#e6db74">&#34;RS256&#34;</span>
+        },
+        {
+            <span style="color:#f92672">&#34;kty&#34;</span>: <span style="color:#e6db74">&#34;RSA&#34;</span>,
+            <span style="color:#f92672">&#34;use&#34;</span>: <span style="color:#e6db74">&#34;sig&#34;</span>,
+            <span style="color:#f92672">&#34;kid&#34;</span>: <span style="color:#e6db74">&#34;LS-EQOr-3BkalkkUVh8q7Q&#34;</span>,
+            <span style="color:#f92672">&#34;e&#34;</span>: <span style="color:#e6db74">&#34;AQAB&#34;</span>,
+            <span style="color:#f92672">&#34;n&#34;</span>: <span style="color:#e6db74">&#34;08BLLaTz4JrTYmE4bZ9c7oKVrZKLy3KfGT5mmnslhl41nk_EV_8OUdL8wMXunC2KERdnsy5XYk4aw3LlvxZDIvjxO9PEblPsoap-WErdi9GVyAv-NJ6eJQy3S7FRSkvzQYBsLnCKm5wu0kjdQBVUCFJ7wfiZ9ayY7pH7K10qN2Utvt-qsCLUy0cJ0StuP_rquefp7_XhUw3A8IIA8P6DjfZIbpwrVjOeVWoI_ZKIwfxShghOAKBDLyQuC2PhozsqZ7HvGEeAPm06YPMWQVbE9_LBn2j_Ul_VBUWc9KfBNOzk_BMQHyF2NUlwMtqMUEcwK_hpjEeo62O_aFT8EDkgcQ&#34;</span>,
+            <span style="color:#f92672">&#34;alg&#34;</span>: <span style="color:#e6db74">&#34;RS256&#34;</span>
+        }
+    ]
+}
+</code></pre></div><h1 id="源码解析">源码解析</h1>
+<p>接口地址都在Constants.cs这个文件，ProtocalRoutePaths这个类里面定义的。现在知道为什么接口地址是.well-known/openid-configuration这样奇怪的一个路由了，这是oidc协议定的（对，都是产品的锅）。</p>
+<p><img src="https://fs.31huiyi.com/216902f6-f65c-48dc-99ce-4119cf0301fb.png" alt="image"></p>
+<h2 id="oidc服务配置信息接口---discoveryendpoint">oidc服务配置信息接口 - DiscoveryEndpoint</h2>
+<p>代码很长，但是逻辑很简单，就是组装协议规定的所有地址和信息。<br>
+需要注意的支持的claims、支持的scope等信息是遍历所有IdentityResource、ApiResource动态获取的。<br>
+基本上每个接口都可以配置是否显示在元数据文档中。</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-csharp" data-lang="csharp"><span style="color:#66d9ef">public</span> <span style="color:#66d9ef">async</span> Task&lt;IEndpointResult&gt; ProcessAsync(HttpContext context)
+{
+    _logger.LogTrace(<span style="color:#e6db74">&#34;Processing discovery request.&#34;</span>);
+
+    <span style="color:#75715e">// validate HTTP
+</span><span style="color:#75715e"></span>    <span style="color:#66d9ef">if</span> (!HttpMethods.IsGet(context.Request.Method))
+    {
+        _logger.LogWarning(<span style="color:#e6db74">&#34;Discovery endpoint only supports GET requests&#34;</span>);
+        <span style="color:#66d9ef">return</span> <span style="color:#66d9ef">new</span> StatusCodeResult(HttpStatusCode.MethodNotAllowed);
+    }
+
+    _logger.LogDebug(<span style="color:#e6db74">&#34;Start discovery request&#34;</span>);
+
+    <span style="color:#66d9ef">if</span> (!_options.Endpoints.EnableDiscoveryEndpoint)
+    {
+        _logger.LogInformation(<span style="color:#e6db74">&#34;Discovery endpoint disabled. 404.&#34;</span>);
+        <span style="color:#66d9ef">return</span> <span style="color:#66d9ef">new</span> StatusCodeResult(HttpStatusCode.NotFound);
+    }
+
+    <span style="color:#66d9ef">var</span> baseUrl = context.GetIdentityServerBaseUrl().EnsureTrailingSlash();
+    <span style="color:#66d9ef">var</span> issuerUri = context.GetIdentityServerIssuerUri();
+
+    <span style="color:#75715e">// generate response
+</span><span style="color:#75715e"></span>    _logger.LogTrace(<span style="color:#e6db74">&#34;Calling into discovery response generator: {type}&#34;</span>, _responseGenerator.GetType().FullName);
+    <span style="color:#66d9ef">var</span> response = <span style="color:#66d9ef">await</span> _responseGenerator.CreateDiscoveryDocumentAsync(baseUrl, issuerUri);
+
+    <span style="color:#66d9ef">return</span> <span style="color:#66d9ef">new</span> DiscoveryDocumentResult(response, _options.Discovery.ResponseCacheInterval);
+}
+
+<span style="color:#75715e">/// &lt;summary&gt;
+</span><span style="color:#75715e">/// Creates the discovery document.
+</span><span style="color:#75715e">/// &lt;/summary&gt;
+</span><span style="color:#75715e">/// &lt;param name=&#34;baseUrl&#34;&gt;The base URL.&lt;/param&gt;
+</span><span style="color:#75715e">/// &lt;param name=&#34;issuerUri&#34;&gt;The issuer URI.&lt;/param&gt;
+</span><span style="color:#75715e"></span><span style="color:#66d9ef">public</span> <span style="color:#66d9ef">virtual</span> <span style="color:#66d9ef">async</span> Task&lt;Dictionary&lt;<span style="color:#66d9ef">string</span>, <span style="color:#66d9ef">object</span>&gt;&gt; CreateDiscoveryDocumentAsync(<span style="color:#66d9ef">string</span> baseUrl, <span style="color:#66d9ef">string</span> issuerUri)
+{
+    <span style="color:#66d9ef">var</span> entries = <span style="color:#66d9ef">new</span> Dictionary&lt;<span style="color:#66d9ef">string</span>, <span style="color:#66d9ef">object</span>&gt;
+    {
+        { OidcConstants.Discovery.Issuer, issuerUri }
+    };
+
+    <span style="color:#75715e">// jwks
+</span><span style="color:#75715e"></span>    <span style="color:#66d9ef">if</span> (Options.Discovery.ShowKeySet)
+    {
+        <span style="color:#66d9ef">if</span> ((<span style="color:#66d9ef">await</span> Keys.GetValidationKeysAsync()).Any())
+        {
+            entries.Add(OidcConstants.Discovery.JwksUri, baseUrl + Constants.ProtocolRoutePaths.DiscoveryWebKeys);
+        }
+    }
+
+    <span style="color:#75715e">// endpoints
+</span><span style="color:#75715e"></span>    <span style="color:#66d9ef">if</span> (Options.Discovery.ShowEndpoints)
+    {
+        <span style="color:#66d9ef">if</span> (Options.Endpoints.EnableAuthorizeEndpoint)
+        {
+            entries.Add(OidcConstants.Discovery.AuthorizationEndpoint, baseUrl + Constants.ProtocolRoutePaths.Authorize);
+        }
+
+        <span style="color:#66d9ef">if</span> (Options.Endpoints.EnableTokenEndpoint)
+        {
+            entries.Add(OidcConstants.Discovery.TokenEndpoint, baseUrl + Constants.ProtocolRoutePaths.Token);
+        }
+
+        <span style="color:#66d9ef">if</span> (Options.Endpoints.EnableUserInfoEndpoint)
+        {
+            entries.Add(OidcConstants.Discovery.UserInfoEndpoint, baseUrl + Constants.ProtocolRoutePaths.UserInfo);
+        }
+
+        <span style="color:#66d9ef">if</span> (Options.Endpoints.EnableEndSessionEndpoint)
+        {
+            entries.Add(OidcConstants.Discovery.EndSessionEndpoint, baseUrl + Constants.ProtocolRoutePaths.EndSession);
+        }
+
+        <span style="color:#66d9ef">if</span> (Options.Endpoints.EnableCheckSessionEndpoint)
+        {
+            entries.Add(OidcConstants.Discovery.CheckSessionIframe, baseUrl + Constants.ProtocolRoutePaths.CheckSession);
+        }
+
+        <span style="color:#66d9ef">if</span> (Options.Endpoints.EnableTokenRevocationEndpoint)
+        {
+            entries.Add(OidcConstants.Discovery.RevocationEndpoint, baseUrl + Constants.ProtocolRoutePaths.Revocation);
+        }
+
+        <span style="color:#66d9ef">if</span> (Options.Endpoints.EnableIntrospectionEndpoint)
+        {
+            entries.Add(OidcConstants.Discovery.IntrospectionEndpoint, baseUrl + Constants.ProtocolRoutePaths.Introspection);
+        }
+
+        <span style="color:#66d9ef">if</span> (Options.Endpoints.EnableDeviceAuthorizationEndpoint)
+        {
+            entries.Add(OidcConstants.Discovery.DeviceAuthorizationEndpoint, baseUrl + Constants.ProtocolRoutePaths.DeviceAuthorization);
+        }
+
+        <span style="color:#66d9ef">if</span> (Options.MutualTls.Enabled)
+        {
+            <span style="color:#66d9ef">var</span> mtlsEndpoints = <span style="color:#66d9ef">new</span> Dictionary&lt;<span style="color:#66d9ef">string</span>, <span style="color:#66d9ef">string</span>&gt;();
+
+            <span style="color:#66d9ef">if</span> (Options.Endpoints.EnableTokenEndpoint)
+            {
+                mtlsEndpoints.Add(OidcConstants.Discovery.TokenEndpoint, baseUrl + Constants.ProtocolRoutePaths.MtlsToken);
+            }
+            <span style="color:#66d9ef">if</span> (Options.Endpoints.EnableTokenRevocationEndpoint)
+            {
+                mtlsEndpoints.Add(OidcConstants.Discovery.RevocationEndpoint, baseUrl + Constants.ProtocolRoutePaths.MtlsRevocation);
+            }
+            <span style="color:#66d9ef">if</span> (Options.Endpoints.EnableIntrospectionEndpoint)
+            {
+                mtlsEndpoints.Add(OidcConstants.Discovery.IntrospectionEndpoint, baseUrl + Constants.ProtocolRoutePaths.MtlsIntrospection);
+            }
+            <span style="color:#66d9ef">if</span> (Options.Endpoints.EnableDeviceAuthorizationEndpoint)
+            {
+                mtlsEndpoints.Add(OidcConstants.Discovery.DeviceAuthorizationEndpoint, baseUrl + Constants.ProtocolRoutePaths.MtlsDeviceAuthorization);
+            }
+
+            <span style="color:#66d9ef">if</span> (mtlsEndpoints.Any())
+            {
+                entries.Add(OidcConstants.Discovery.MtlsEndpointAliases, mtlsEndpoints);
+            }
+        }
+    }
+
+    <span style="color:#75715e">// logout
+</span><span style="color:#75715e"></span>    <span style="color:#66d9ef">if</span> (Options.Endpoints.EnableEndSessionEndpoint)
+    {
+        entries.Add(OidcConstants.Discovery.FrontChannelLogoutSupported, <span style="color:#66d9ef">true</span>);
+        entries.Add(OidcConstants.Discovery.FrontChannelLogoutSessionSupported, <span style="color:#66d9ef">true</span>);
+        entries.Add(OidcConstants.Discovery.BackChannelLogoutSupported, <span style="color:#66d9ef">true</span>);
+        entries.Add(OidcConstants.Discovery.BackChannelLogoutSessionSupported, <span style="color:#66d9ef">true</span>);
+    }
+
+    <span style="color:#75715e">// scopes and claims
+</span><span style="color:#75715e"></span>    <span style="color:#66d9ef">if</span> (Options.Discovery.ShowIdentityScopes ||
+        Options.Discovery.ShowApiScopes ||
+        Options.Discovery.ShowClaims)
+    {
+        <span style="color:#66d9ef">var</span> resources = <span style="color:#66d9ef">await</span> ResourceStore.GetAllEnabledResourcesAsync();
+        <span style="color:#66d9ef">var</span> scopes = <span style="color:#66d9ef">new</span> List&lt;<span style="color:#66d9ef">string</span>&gt;();
+
+        <span style="color:#75715e">// scopes
+</span><span style="color:#75715e"></span>        <span style="color:#66d9ef">if</span> (Options.Discovery.ShowIdentityScopes)
+        {
+            scopes.AddRange(resources.IdentityResources.Where(x =&gt; x.ShowInDiscoveryDocument).Select(x =&gt; x.Name));
+        }
+
+        <span style="color:#66d9ef">if</span> (Options.Discovery.ShowApiScopes)
+        {
+            <span style="color:#66d9ef">var</span> apiScopes = <span style="color:#66d9ef">from</span> api <span style="color:#66d9ef">in</span> resources.ApiResources
+                            <span style="color:#66d9ef">from</span> scope <span style="color:#66d9ef">in</span> api.Scopes
+                            <span style="color:#66d9ef">where</span> scope.ShowInDiscoveryDocument
+                            <span style="color:#66d9ef">select</span> scope.Name;
+
+            scopes.AddRange(apiScopes);
+            scopes.Add(IdentityServerConstants.StandardScopes.OfflineAccess);
+        }
+
+        <span style="color:#66d9ef">if</span> (scopes.Any())
+        {
+            entries.Add(OidcConstants.Discovery.ScopesSupported, scopes.ToArray());
+        }
+
+        <span style="color:#75715e">// claims
+</span><span style="color:#75715e"></span>        <span style="color:#66d9ef">if</span> (Options.Discovery.ShowClaims)
+        {
+            <span style="color:#66d9ef">var</span> claims = <span style="color:#66d9ef">new</span> List&lt;<span style="color:#66d9ef">string</span>&gt;();
+
+            <span style="color:#75715e">// add non-hidden identity scopes related claims
+</span><span style="color:#75715e"></span>            claims.AddRange(resources.IdentityResources.Where(x =&gt; x.ShowInDiscoveryDocument).SelectMany(x =&gt; x.UserClaims));
+
+            <span style="color:#75715e">// add non-hidden api scopes related claims
+</span><span style="color:#75715e"></span>            <span style="color:#66d9ef">foreach</span> (<span style="color:#66d9ef">var</span> resource <span style="color:#66d9ef">in</span> resources.ApiResources)
+            {
+                claims.AddRange(resource.UserClaims);
+
+                <span style="color:#66d9ef">foreach</span> (<span style="color:#66d9ef">var</span> scope <span style="color:#66d9ef">in</span> resource.Scopes)
+                {
+                    <span style="color:#66d9ef">if</span> (scope.ShowInDiscoveryDocument)
+                    {
+                        claims.AddRange(scope.UserClaims);
+                    }
+                }
+            }
+
+            entries.Add(OidcConstants.Discovery.ClaimsSupported, claims.Distinct().ToArray());
+        }
+    }
+
+    <span style="color:#75715e">// grant types
+</span><span style="color:#75715e"></span>    <span style="color:#66d9ef">if</span> (Options.Discovery.ShowGrantTypes)
+    {
+        <span style="color:#66d9ef">var</span> standardGrantTypes = <span style="color:#66d9ef">new</span> List&lt;<span style="color:#66d9ef">string</span>&gt;
+        {
+            OidcConstants.GrantTypes.AuthorizationCode,
+            OidcConstants.GrantTypes.ClientCredentials,
+            OidcConstants.GrantTypes.RefreshToken,
+            OidcConstants.GrantTypes.Implicit
+        };
+
+        <span style="color:#66d9ef">if</span> (!(ResourceOwnerValidator <span style="color:#66d9ef">is</span> NotSupportedResourceOwnerPasswordValidator))
+        {
+            standardGrantTypes.Add(OidcConstants.GrantTypes.Password);
+        }
+
+        <span style="color:#66d9ef">if</span> (Options.Endpoints.EnableDeviceAuthorizationEndpoint)
+        {
+            standardGrantTypes.Add(OidcConstants.GrantTypes.DeviceCode);
+        }
+
+        <span style="color:#66d9ef">var</span> showGrantTypes = <span style="color:#66d9ef">new</span> List&lt;<span style="color:#66d9ef">string</span>&gt;(standardGrantTypes);
+
+        <span style="color:#66d9ef">if</span> (Options.Discovery.ShowExtensionGrantTypes)
+        {
+            showGrantTypes.AddRange(ExtensionGrants.GetAvailableGrantTypes());
+        }
+
+        entries.Add(OidcConstants.Discovery.GrantTypesSupported, showGrantTypes.ToArray());
+    }
+
+    <span style="color:#75715e">// response types
+</span><span style="color:#75715e"></span>    <span style="color:#66d9ef">if</span> (Options.Discovery.ShowResponseTypes)
+    {
+        entries.Add(OidcConstants.Discovery.ResponseTypesSupported, Constants.SupportedResponseTypes.ToArray());
+    }
+
+    <span style="color:#75715e">// response modes
+</span><span style="color:#75715e"></span>    <span style="color:#66d9ef">if</span> (Options.Discovery.ShowResponseModes)
+    {
+        entries.Add(OidcConstants.Discovery.ResponseModesSupported, Constants.SupportedResponseModes.ToArray());
+    }
+
+    <span style="color:#75715e">// misc
+</span><span style="color:#75715e"></span>    <span style="color:#66d9ef">if</span> (Options.Discovery.ShowTokenEndpointAuthenticationMethods)
+    {
+        <span style="color:#66d9ef">var</span> types = SecretParsers.GetAvailableAuthenticationMethods().ToList();
+        <span style="color:#66d9ef">if</span> (Options.MutualTls.Enabled)
+        {
+            types.Add(OidcConstants.EndpointAuthenticationMethods.TlsClientAuth);
+            types.Add(OidcConstants.EndpointAuthenticationMethods.SelfSignedTlsClientAuth);
+        }
+
+        entries.Add(OidcConstants.Discovery.TokenEndpointAuthenticationMethodsSupported, types);
+    }
+    
+    <span style="color:#66d9ef">var</span> signingCredentials = <span style="color:#66d9ef">await</span> Keys.GetSigningCredentialsAsync();
+    <span style="color:#66d9ef">if</span> (signingCredentials != <span style="color:#66d9ef">null</span>)
+    {
+        <span style="color:#66d9ef">var</span> algorithm = signingCredentials.Algorithm;
+        entries.Add(OidcConstants.Discovery.IdTokenSigningAlgorithmsSupported, <span style="color:#66d9ef">new</span>[] { algorithm });
+    }
+
+    entries.Add(OidcConstants.Discovery.SubjectTypesSupported, <span style="color:#66d9ef">new</span>[] { <span style="color:#e6db74">&#34;public&#34;</span> });
+    entries.Add(OidcConstants.Discovery.CodeChallengeMethodsSupported, <span style="color:#66d9ef">new</span>[] { OidcConstants.CodeChallengeMethods.Plain, OidcConstants.CodeChallengeMethods.Sha256 });
+
+    <span style="color:#66d9ef">if</span> (Options.Endpoints.EnableAuthorizeEndpoint)
+    {
+        entries.Add(OidcConstants.Discovery.RequestParameterSupported, <span style="color:#66d9ef">true</span>);
+
+        <span style="color:#66d9ef">if</span> (Options.Endpoints.EnableJwtRequestUri)
+        {
+            entries.Add(OidcConstants.Discovery.RequestUriParameterSupported, <span style="color:#66d9ef">true</span>);
+        }
+    }
+
+    <span style="color:#66d9ef">if</span> (Options.MutualTls.Enabled)
+    {
+        entries.Add(OidcConstants.Discovery.TlsClientCertificateBoundAccessTokens, <span style="color:#66d9ef">true</span>);
+    }
+
+    <span style="color:#75715e">// custom entries
+</span><span style="color:#75715e"></span>    <span style="color:#66d9ef">if</span> (!Options.Discovery.CustomEntries.IsNullOrEmpty())
+    {
+        <span style="color:#66d9ef">foreach</span> (<span style="color:#66d9ef">var</span> customEntry <span style="color:#66d9ef">in</span> Options.Discovery.CustomEntries)
+        {
+            <span style="color:#66d9ef">if</span> (entries.ContainsKey(customEntry.Key))
+            {
+                Logger.LogError(<span style="color:#e6db74">&#34;Discovery custom entry {key} cannot be added, because it already exists.&#34;</span>, customEntry.Key);
+            }
+            <span style="color:#66d9ef">else</span>
+            {
+                <span style="color:#66d9ef">if</span> (customEntry.Value <span style="color:#66d9ef">is</span> <span style="color:#66d9ef">string</span> customValueString)
+                {
+                    <span style="color:#66d9ef">if</span> (customValueString.StartsWith(<span style="color:#e6db74">&#34;~/&#34;</span>) &amp;&amp; Options.Discovery.ExpandRelativePathsInCustomEntries)
+                    {
+                        entries.Add(customEntry.Key, baseUrl + customValueString.Substring(<span style="color:#ae81ff">2</span>));
+                        <span style="color:#66d9ef">continue</span>;
+                    }
+                }
+
+                entries.Add(customEntry.Key, customEntry.Value);
+            }
+        }
+    }
+
+    <span style="color:#66d9ef">return</span> entries;
+}
+</code></pre></div><p>然后是jwks描述信息的代码。关于加密的信息也是根据配置的SecuritKey去动态返回的。</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-csharp" data-lang="csharp"><span style="color:#66d9ef">public</span> <span style="color:#66d9ef">virtual</span> <span style="color:#66d9ef">async</span> Task&lt;IEnumerable&lt;Models.JsonWebKey&gt;&gt; CreateJwkDocumentAsync()
+    {
+        <span style="color:#66d9ef">var</span> webKeys = <span style="color:#66d9ef">new</span> List&lt;Models.JsonWebKey&gt;();
+        
+        <span style="color:#66d9ef">foreach</span> (<span style="color:#66d9ef">var</span> key <span style="color:#66d9ef">in</span> <span style="color:#66d9ef">await</span> Keys.GetValidationKeysAsync())
+        {
+            <span style="color:#66d9ef">if</span> (key.Key <span style="color:#66d9ef">is</span> X509SecurityKey x509Key)
+            {
+                <span style="color:#66d9ef">var</span> cert64 = Convert.ToBase64String(x509Key.Certificate.RawData);
+                <span style="color:#66d9ef">var</span> thumbprint = Base64Url.Encode(x509Key.Certificate.GetCertHash());
+
+                <span style="color:#66d9ef">if</span> (x509Key.PublicKey <span style="color:#66d9ef">is</span> RSA rsa)
+                {
+                    <span style="color:#66d9ef">var</span> parameters = rsa.ExportParameters(<span style="color:#66d9ef">false</span>);
+                    <span style="color:#66d9ef">var</span> exponent = Base64Url.Encode(parameters.Exponent);
+                    <span style="color:#66d9ef">var</span> modulus = Base64Url.Encode(parameters.Modulus);
+
+                    <span style="color:#66d9ef">var</span> rsaJsonWebKey = <span style="color:#66d9ef">new</span> Models.JsonWebKey
+                    {
+                        kty = <span style="color:#e6db74">&#34;RSA&#34;</span>,
+                        use = <span style="color:#e6db74">&#34;sig&#34;</span>,
+                        kid = x509Key.KeyId,
+                        x5t = thumbprint,
+                        e = exponent,
+                        n = modulus,
+                        x5c = <span style="color:#66d9ef">new</span>[] { cert64 },
+                        alg = key.SigningAlgorithm
+                    };
+                    webKeys.Add(rsaJsonWebKey);
+                }
+                <span style="color:#66d9ef">else</span> <span style="color:#66d9ef">if</span> (x509Key.PublicKey <span style="color:#66d9ef">is</span> ECDsa ecdsa)
+                {
+                    <span style="color:#66d9ef">var</span> parameters = ecdsa.ExportParameters(<span style="color:#66d9ef">false</span>);
+                    <span style="color:#66d9ef">var</span> x = Base64Url.Encode(parameters.Q.X);
+                    <span style="color:#66d9ef">var</span> y = Base64Url.Encode(parameters.Q.Y);
+
+                    <span style="color:#66d9ef">var</span> ecdsaJsonWebKey = <span style="color:#66d9ef">new</span> Models.JsonWebKey
+                    {
+                        kty = <span style="color:#e6db74">&#34;EC&#34;</span>,
+                        use = <span style="color:#e6db74">&#34;sig&#34;</span>,
+                        kid = x509Key.KeyId,
+                        x5t = thumbprint,
+                        x = x,
+                        y = y,
+                        crv = CryptoHelper.GetCrvValueFromCurve(parameters.Curve),
+                        x5c = <span style="color:#66d9ef">new</span>[] { cert64 },
+                        alg = key.SigningAlgorithm
+                    };
+                    webKeys.Add(ecdsaJsonWebKey);
+                }
+                <span style="color:#66d9ef">else</span>
+                {
+                    <span style="color:#66d9ef">throw</span> <span style="color:#66d9ef">new</span> InvalidOperationException(<span style="color:#e6db74">$&#34;key type: {x509Key.PublicKey.GetType().Name} not supported.&#34;</span>);
+                }
+            }
+            <span style="color:#66d9ef">else</span> <span style="color:#66d9ef">if</span> (key.Key <span style="color:#66d9ef">is</span> RsaSecurityKey rsaKey)
+            {
+                <span style="color:#66d9ef">var</span> parameters = rsaKey.Rsa?.ExportParameters(<span style="color:#66d9ef">false</span>) ?? rsaKey.Parameters;
+                <span style="color:#66d9ef">var</span> exponent = Base64Url.Encode(parameters.Exponent);
+                <span style="color:#66d9ef">var</span> modulus = Base64Url.Encode(parameters.Modulus);
+
+                <span style="color:#66d9ef">var</span> webKey = <span style="color:#66d9ef">new</span> Models.JsonWebKey
+                {
+                    kty = <span style="color:#e6db74">&#34;RSA&#34;</span>,
+                    use = <span style="color:#e6db74">&#34;sig&#34;</span>,
+                    kid = rsaKey.KeyId,
+                    e = exponent,
+                    n = modulus,
+                    alg = key.SigningAlgorithm
+                };
+
+                webKeys.Add(webKey);
+            }
+            <span style="color:#66d9ef">else</span> <span style="color:#66d9ef">if</span> (key.Key <span style="color:#66d9ef">is</span> ECDsaSecurityKey ecdsaKey)
+            {
+                <span style="color:#66d9ef">var</span> parameters = ecdsaKey.ECDsa.ExportParameters(<span style="color:#66d9ef">false</span>);
+                <span style="color:#66d9ef">var</span> x = Base64Url.Encode(parameters.Q.X);
+                <span style="color:#66d9ef">var</span> y = Base64Url.Encode(parameters.Q.Y);
+
+                <span style="color:#66d9ef">var</span> ecdsaJsonWebKey = <span style="color:#66d9ef">new</span> Models.JsonWebKey
+                {
+                    kty = <span style="color:#e6db74">&#34;EC&#34;</span>,
+                    use = <span style="color:#e6db74">&#34;sig&#34;</span>,
+                    kid = ecdsaKey.KeyId,
+                    x = x,
+                    y = y,
+                    crv = CryptoHelper.GetCrvValueFromCurve(parameters.Curve),
+                    alg = key.SigningAlgorithm
+                };
+                webKeys.Add(ecdsaJsonWebKey);
+            }
+            <span style="color:#66d9ef">else</span> <span style="color:#66d9ef">if</span> (key.Key <span style="color:#66d9ef">is</span> JsonWebKey jsonWebKey)
+            {
+                <span style="color:#66d9ef">var</span> webKey = <span style="color:#66d9ef">new</span> Models.JsonWebKey
+                {
+                    kty = jsonWebKey.Kty,
+                    use = jsonWebKey.Use ?? <span style="color:#e6db74">&#34;sig&#34;</span>,
+                    kid = jsonWebKey.Kid,
+                    x5t = jsonWebKey.X5t,
+                    e = jsonWebKey.E,
+                    n = jsonWebKey.N,
+                    x5c = jsonWebKey.X5c?.Count == <span style="color:#ae81ff">0</span> ? <span style="color:#66d9ef">null</span> : jsonWebKey.X5c.ToArray(),
+                    alg = jsonWebKey.Alg,
+
+                    x = jsonWebKey.X,
+                    y = jsonWebKey.Y
+                };
+
+                webKeys.Add(webKey);
+            }
+        }
+
+        <span style="color:#66d9ef">return</span> webKeys;
+    }
+</code></pre></div><h1 id="结语">结语</h1>
+<p>这一节还是比较好理解的。总而言之就是oidc协议规定了，需要提供GET接口，返回所有接口的地址，以及相关配置信息。idsv4的实现方式就是接口地址根据协议规定的去拼接，其他配置项信息根据开发的配置去动态获取，然后以协议约定的JSON格式返回。</p>
 
 </div>
 

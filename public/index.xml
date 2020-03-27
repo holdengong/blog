@@ -71,7 +71,22 @@
       <pubDate>Thu, 26 Mar 2020 23:49:07 +0800</pubDate>
       
       <guid>https://holdengong.com/identityserver4%E6%BA%90%E7%A0%81%E8%A7%A3%E6%9E%90_2_%E5%85%83%E6%95%B0%E6%8D%AE%E6%8E%A5%E5%8F%A3/</guid>
-      <description>目录  identityserver4源码解析_1_项目结构 identityserver4源码解析_2_元数据接口 identityserver4源码解析_3_认证接口 identityserver4源码解析_4_令牌发放接口 identityserver4源码解析_5_查询用户信息接口 identityserver4源码解析_6_结束会话接口 identityserver4源码解析_7_查询令牌信息接口 identityserver4源码解析_8_撤销令牌接口  TO BE UPDATED </description>
+      <description>目录  identityserver4源码解析_1_项目结构 identityserver4源码解析_2_元数据接口 identityserver4源码解析_3_认证接口 identityserver4源码解析_4_令牌发放接口 identityserver4源码解析_5_查询用户信息接口 identityserver4源码解析_6_结束会话接口 identityserver4源码解析_7_查询令牌信息接口 identityserver4源码解析_8_撤销令牌接口  协议 这一系列我们都采用这样的方式，先大概看下协议，也就是需求描述，然后看idsv4怎么实现的，这样可以加深理解。
+元数据接口的协议地址如下：
+ https://openid.net/specs/openid-connect-discovery-1_0.html
+ 摘要 该协议定义了一套标准，用户能够获取到oidc服务的基本信息，包括OAuth2.0相关接口地址。
+Webfinger - 网络指纹 先了解一下Webfinger这个概念。
+WebFinger可以翻译成网络指纹，它定义了一套标准，描述如何通过标准的HTTP方法去获取网络实体的资料信息。WebFinger使用JSON来描述实体信息。
+ https://tools.ietf.org/html/rfc7033
+ 查询oidc服务元数据 - OpenID Provider Issuer Discovery 可选协议。
+定义了如何获取oidc服务元数据。如果客户端明确知道oidc服务的地址，可以跳过此部分。
+个人理解是存在多个oidc服务的情况，可以部署一个webfinger服务，根据资源请求，路由到不同的oidc服务。
+通常来说，我们只有一个oidc服务，我看了一下idsv4也没有实现这一部分协议，这里了解一下就可以了。
+查询oidc服务配置信息 - OpenID Provider Configuration Request 必选协议。
+用于描述oidc服务各接口地址及其他配置信息。
+ GET /.well-known/openid-configuration HTTP/1.1 Host: example.com 必须校验issuer与请求地址是否一致
+启个idsrv服务调用试一下，返回结果如图 详细信息如下。
+{ &amp;#34;issuer&amp;#34;: &amp;#34;https://localhost:10000&amp;#34;, //颁发者地址 &amp;#34;jwks_uri&amp;#34;: &amp;#34;https://localhost:10000/.well-known/openid-configuration/jwks&amp;#34;, //jwks接口地址，查询密钥 &amp;#34;authorization_endpoint&amp;#34;: &amp;#34;https://localhost:10000/connect/authorize&amp;#34;, //认证接口地址 &amp;#34;token_endpoint&amp;#34;: &amp;#34;https://localhost:10000/connect/token&amp;#34;, //令牌发放接口 &amp;#34;userinfo_endpoint&amp;#34;: &amp;#34;https://localhost:10000/connect/userinfo&amp;#34;, //查询用户信息接口 &amp;#34;end_session_endpoint&amp;#34;: &amp;#34;https://localhost:10000/connect/endsession&amp;#34;, //结束会话接口 &amp;#34;check_session_iframe&amp;#34;: &amp;#34;https://localhost:10000/connect/checksession&amp;#34;, //检查会话接口 &amp;#34;revocation_endpoint&amp;#34;: &amp;#34;https://localhost:10000/connect/revocation&amp;#34;, //撤销令牌接口 &amp;#34;introspection_endpoint&amp;#34;: &amp;#34;https://localhost:10000/connect/introspect&amp;#34;, //查询令牌详情接口 &amp;#34;device_authorization_endpoint&amp;#34;: &amp;#34;https://localhost:10000/connect/deviceauthorization&amp;#34;, //设备认证接口 &amp;#34;frontchannel_logout_supported&amp;#34;: true, //是否支持前端登出 &amp;#34;frontchannel_logout_session_supported&amp;#34;: true, //是否支持前端结束会话 &amp;#34;backchannel_logout_supported&amp;#34;: true, //是否支持后端登出 &amp;#34;backchannel_logout_session_supported&amp;#34;: true, //是否支持后端结束会话 &amp;#34;scopes_supported&amp;#34;: [ //支持的授权范围,scope &amp;#34;openid&amp;#34;, &amp;#34;profile&amp;#34;, &amp;#34;userid&amp;#34;, &amp;#34;username&amp;#34;, &amp;#34;email&amp;#34;, &amp;#34;mobile&amp;#34;, &amp;#34;api&amp;#34;, &amp;#34;offline_access&amp;#34; //token过期可用refresh_token刷新换取新token ], &amp;#34;claims_supported&amp;#34;: [ //支持的声明 &amp;#34;sub&amp;#34;, &amp;#34;updated_at&amp;#34;, &amp;#34;locale&amp;#34;, &amp;#34;zoneinfo&amp;#34;, &amp;#34;birthdate&amp;#34;, &amp;#34;gender&amp;#34;, &amp;#34;preferred_username&amp;#34;, &amp;#34;picture&amp;#34;, &amp;#34;profile&amp;#34;, &amp;#34;nickname&amp;#34;, &amp;#34;middle_name&amp;#34;, &amp;#34;given_name&amp;#34;, &amp;#34;family_name&amp;#34;, &amp;#34;website&amp;#34;, &amp;#34;name&amp;#34;, &amp;#34;userid&amp;#34;, &amp;#34;username&amp;#34;, &amp;#34;email&amp;#34;, &amp;#34;mobile&amp;#34; ], &amp;#34;grant_types_supported&amp;#34;: [ //支持的认证类型 &amp;#34;authorization_code&amp;#34;, //授权码模式 &amp;#34;client_credentials&amp;#34;, //客户端密钥模式 &amp;#34;refresh_token&amp;#34;, //刷新token &amp;#34;implicit&amp;#34;, //隐式流程, 一般用于单页应用javascript客户端 &amp;#34;password&amp;#34;, //用户名密码模式 &amp;#34;urn:ietf:params:oauth:grant-type:device_code&amp;#34; //设备授权码 ], &amp;#34;response_types_supported&amp;#34;: [ //支持的返回类型 &amp;#34;code&amp;#34;, //授权码 &amp;#34;token&amp;#34;, //通行令牌 &amp;#34;id_token&amp;#34;, //身份令牌 &amp;#34;id_token token&amp;#34;, //身份令牌+统通行令牌 &amp;#34;code id_token&amp;#34;, //授权码+身份令牌 &amp;#34;code token&amp;#34;, //授权码+通行令牌 &amp;#34;code id_token token&amp;#34; //授权码+身份令牌+通行令牌 ], &amp;#34;response_modes_supported&amp;#34;: [ //支持的响应方法 &amp;#34;form_post&amp;#34;, //form-post提交 &amp;#34;query&amp;#34;, //get提交 &amp;#34;fragment&amp;#34; //fragment提交 ], &amp;#34;token_endpoint_auth_methods_supported&amp;#34;: [ //发放令牌接口支持的认证方式 &amp;#34;client_secret_basic&amp;#34;, //basic &amp;#34;client_secret_post&amp;#34; //post ], &amp;#34;id_token_signing_alg_values_supported&amp;#34;: [ //身份令牌加密算法 &amp;#34;RS256&amp;#34; ], &amp;#34;subject_types_supported&amp;#34;: [ &amp;#34;public&amp;#34; ], &amp;#34;code_challenge_methods_supported&amp;#34;: [ &amp;#34;plain&amp;#34;, &amp;#34;S256&amp;#34; ], &amp;#34;request_parameter_supported&amp;#34;: true } JWK - Json Web Keys idsv还注入这样一个接口：DiscoveryKeyEndpoint，尝试发现返回了一组密钥。协议内容如下。</description>
     </item>
     
     <item>
@@ -80,10 +95,10 @@
       <pubDate>Thu, 26 Mar 2020 20:31:25 +0800</pubDate>
       
       <guid>https://holdengong.com/identityserver4%E6%BA%90%E7%A0%81%E8%A7%A3%E6%9E%90_1_%E9%A1%B9%E7%9B%AE%E7%BB%93%E6%9E%84/</guid>
-      <description>目录  identityserver4源码解析_1_项目结构 identityserver4源码解析_2_元数据接口 identityserver4源码解析_3_认证接口 identityserver4源码解析_4_令牌发放接口 identityserver4源码解析_5_查询用户信息接口 identityserver4源码解析_6_结束会话接口 identityserver4源码解析_7_查询令牌信息接口 identityserver4源码解析_8_撤销令牌接口  简介 Security源码解析系列介绍了微软提供的各种认证架构，其中OAuth2.0，OpenIdConnect属于远程认证架构，所谓远程认证，是指token的颁发是由另外的站点实现的。
-IdentityServer4是基于OpenIdConnect协议的认证中心框架，能够帮助我们搭建中心化的认证服务。
-可以将OpenIdConnect协议立即理解成需求文档，idsv4基于需求提供了一系列的api。
-对于idsv还不太了解的可以看下面的资料，本系列主要学习梳理idsv的源码，结合协议加深理解。
+      <description>目录  identityserver4源码解析_1_项目结构 identityserver4源码解析_2_元数据接口 identityserver4源码解析_3_认证接口 identityserver4源码解析_4_令牌发放接口 identityserver4源码解析_5_查询用户信息接口 identityserver4源码解析_6_结束会话接口 identityserver4源码解析_7_查询令牌信息接口 identityserver4源码解析_8_撤销令牌接口  简介 Security源码解析系列介绍了微软提供的各种认证架构，其中OAuth2.0，OpenIdConnect属于远程认证架构，所谓远程认证，是指token的颁发是由其他站点完成的。
+IdentityServer4是基于OpenIdConnect协议的认证中心框架，可以帮助我们快速搭建微服务认证中心。
+初学者可能看到生涩的概念比较头疼，可以将OAuth, OpenIdConnect协议简单理解成需求文档，idsv4基于需求提供了一系列的api实现。
+对于idsv还不太了解的可以看下面的资料，本系列主要学习梳理idsv4的源码，结合协议加深理解。
 晓晨姐姐系列文章
  https://www.cnblogs.com/stulzq/p/8119928.html
  官方文档

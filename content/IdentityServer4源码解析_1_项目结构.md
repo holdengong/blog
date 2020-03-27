@@ -6,13 +6,13 @@ draft: false
 {{%idsv_menu%}}
 
 # 简介
-Security源码解析系列介绍了微软提供的各种认证架构，其中OAuth2.0，OpenIdConnect属于远程认证架构，所谓远程认证，是指token的颁发是由另外的站点实现的。
+Security源码解析系列介绍了微软提供的各种认证架构，其中OAuth2.0，OpenIdConnect属于远程认证架构，所谓远程认证，是指token的颁发是由其他站点完成的。
 
-IdentityServer4是基于OpenIdConnect协议的认证中心框架，能够帮助我们搭建中心化的认证服务。
+IdentityServer4是基于OpenIdConnect协议的认证中心框架，可以帮助我们快速搭建微服务认证中心。
 
-可以将OpenIdConnect协议立即理解成需求文档，idsv4基于需求提供了一系列的api。
+初学者可能看到生涩的概念比较头疼，可以将OAuth, OpenIdConnect协议简单理解成需求文档，idsv4基于需求提供了一系列的api实现。
 
-对于idsv还不太了解的可以看下面的资料，本系列主要学习梳理idsv的源码，结合协议加深理解。
+对于idsv还不太了解的可以看下面的资料，本系列主要学习梳理idsv4的源码，结合协议加深理解。
 
 晓晨姐姐系列文章
 > https://www.cnblogs.com/stulzq/p/8119928.html  
@@ -140,6 +140,9 @@ public static IIdentityServerBuilder AddCoreServices(this IIdentityServerBuilder
     - TokenRevocationEndpoint：撤销令牌接口
     - TokenEndpoint：发放令牌接口
     - UserInfoEndpoint：查询用户信息接口
+
+注入所有默认接口，包括接口名称和地址。请求进来之后，路由类EndPointRouter通过路由来寻找匹配的处理器。
+
 ```csharp
  public static IIdentityServerBuilder AddDefaultEndpoints(this IIdentityServerBuilder builder)
 {
@@ -437,5 +440,111 @@ public static IApplicationBuilder UseIdentityServer(this IApplicationBuilder app
 }
 ```
 
-# 结语
-idsv的代码量还是比较大的，注入了大量的类。但是代码风格比较规范，脉络还是很清晰的。
+核心中间件IdentityServerMiddleware的代码，逻辑比较清晰
+- IEndpointRouter路由类旬斋匹配接口
+- 匹配接口处理请求返回结果IEndpointResult
+- IEndpointResult执行结果，写入上下文，返回报文
+```csharp
+ public async Task Invoke(HttpContext context, IEndpointRouter router, IUserSession session, IEventService events)
+{
+    // this will check the authentication session and from it emit the check session
+    // cookie needed from JS-based signout clients.
+    await session.EnsureSessionIdCookieAsync();
+
+    try
+    {
+        var endpoint = router.Find(context);
+        if (endpoint != null)
+        {
+            _logger.LogInformation("Invoking IdentityServer endpoint: {endpointType} for {url}", endpoint.GetType().FullName, context.Request.Path.ToString());
+
+            var result = await endpoint.ProcessAsync(context);
+
+            if (result != null)
+            {
+                _logger.LogTrace("Invoking result: {type}", result.GetType().FullName);
+                await result.ExecuteAsync(context);
+            }
+
+            return;
+        }
+    }
+    catch (Exception ex)
+    {
+        await events.RaiseAsync(new UnhandledExceptionEvent(ex));
+        _logger.LogCritical(ex, "Unhandled exception: {exception}", ex.Message);
+        throw;
+    }
+
+    await _next(context);
+}
+```
+
+看一下路由类的处理逻辑  
+之前AddDefaultEndpoints注入了所有默认接口，路由类可以通过依赖注入拿到所有接口信息，将请求地址与接口地址对比得到匹配的接口，然后从容器拿到对应的接口处理器。
+```csharp
+public EndpointRouter(IEnumerable<Endpoint> endpoints, IdentityServerOptions options, ILogger<EndpointRouter> logger)
+{
+    _endpoints = endpoints;
+    _options = options;
+    _logger = logger;
+}
+
+public IEndpointHandler Find(HttpContext context)
+{
+    if (context == null) throw new ArgumentNullException(nameof(context));
+
+    foreach(var endpoint in _endpoints)
+    {
+        var path = endpoint.Path;
+        if (context.Request.Path.Equals(path, StringComparison.OrdinalIgnoreCase))
+        {
+            var endpointName = endpoint.Name;
+            _logger.LogDebug("Request path {path} matched to endpoint type {endpoint}", context.Request.Path, endpointName);
+
+            return GetEndpointHandler(endpoint, context);
+        }
+    }
+
+    _logger.LogTrace("No endpoint entry found for request path: {path}", context.Request.Path);
+
+    return null;
+}
+
+ private IEndpointHandler GetEndpointHandler(Endpoint endpoint, HttpContext context)
+{
+    if (_options.Endpoints.IsEndpointEnabled(endpoint))
+    {
+        var handler = context.RequestServices.GetService(endpoint.Handler) as IEndpointHandler;
+        if (handler != null)
+        {
+            _logger.LogDebug("Endpoint enabled: {endpoint}, successfully created handler: {endpointHandler}", endpoint.Name, endpoint.Handler.FullName);
+            return handler;
+        }
+        else
+        {
+            _logger.LogDebug("Endpoint enabled: {endpoint}, failed to create handler: {endpointHandler}", endpoint.Name, endpoint.Handler.FullName);
+        }
+    }
+    else
+    {
+        _logger.LogWarning("Endpoint disabled: {endpoint}", endpoint.Name);
+    }
+
+    return null;
+}
+```
+
+# 总结
+主干流程大致如图
+<div class="mermaid">
+graph TD;
+    A([注入EndPoints]);
+    B(客户端https请求)-->C(EndPointRouter寻找匹配接口);
+    C-->D(从容器中得到接口对应的处理器类IEndPointHandler)
+    D-->E(IEndPointHandler处理完毕返回IEndPointResult)
+    E-->F([IEndPointResult执行完毕返回报文])
+</div>
+<script src="https://unpkg.com/mermaid/dist/mermaid.min.js"></script>
+
+idsv的代码量还是比较大的，有很多的类，但是代码还是要写的挺规范清晰，梳理下来脉络还是很明了的。
