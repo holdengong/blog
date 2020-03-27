@@ -62,7 +62,12 @@
       <pubDate>Thu, 26 Mar 2020 23:49:28 +0800</pubDate>
       
       <guid>https://holdengong.com/identityserver4%E6%BA%90%E7%A0%81%E8%A7%A3%E6%9E%90_3_%E8%AE%A4%E8%AF%81%E6%8E%A5%E5%8F%A3/</guid>
-      <description>目录  identityserver4源码解析_1_项目结构 identityserver4源码解析_2_元数据接口 identityserver4源码解析_3_认证接口 identityserver4源码解析_4_令牌发放接口 identityserver4源码解析_5_查询用户信息接口 identityserver4源码解析_6_结束会话接口 identityserver4源码解析_7_查询令牌信息接口 identityserver4源码解析_8_撤销令牌接口  协议 </description>
+      <description>目录  identityserver4源码解析_1_项目结构 identityserver4源码解析_2_元数据接口 identityserver4源码解析_3_认证接口 identityserver4源码解析_4_令牌发放接口 identityserver4源码解析_5_查询用户信息接口 identityserver4源码解析_6_结束会话接口 identityserver4源码解析_7_查询令牌信息接口 identityserver4源码解析_8_撤销令牌接口  协议 五种认证方式   Authorization Code 授权码模式：认证服务器首先返回授权码，后端用clientid和密钥向认证服务证明身份，使用授权码换取id token 和/或 access token。本模式的好处是由后端请求token，不会将敏感信息暴露在浏览器。本模式允许使用refreshToken去维持长时间的登录状态。使用此模式的客户端必须有后端参与，能够保障客户端密钥的安全性。此模式从authorization接口获取授权码，从token接口获取令牌。
+  Implict 简化模式：校验跳转URI验证客户端身份之后，直接发放accessToken。通常用于纯客户端应用，如单页应用javascript客户端。因为没有后端参与，密钥存放在前端是不安全的。由于安全校验较宽松，本模式不允许使用refreshToken来长时间维持登录状态。本模式的所有token从authorization接口获取。
+  Hybrid 混合流程：混合流程顾名思义组合使用了授权码模式+简化模式。第一次前端请求授权服务器返回授权码+id_token，这样前端立刻可以使用用户的基本信息；第二次后端使用授权码+客户端密钥获取accessToken。本模式能够使用refreshToken来长时间维持登录状态。使用本模式必须有后端参与保证客户端密钥的安全性。混合模式比较想不到现实应用场景，之前看b站课程老外的说法是除非是安全性要求极高的金融领域，一般还是授权码模式最常用。
+  Resource Owner Password Credential 用户名密码模式：一般用于无用户交互场景，或者第三方对接（如对接微信登录，实际登录界面就变成了微信的界面，如果不希望让客户扫了微信之后再跑你们系统登录一遍，就可以在后端用此模式静默登录接上自家的sso即可）
+  Client Credential 客户端密钥模式：仅需要约定密钥，仅用于完全信任的内部系统
+  认证方式特点对比    特点 授权码模式 简化模式 混合模式     所有token从Authorization接口返回 No Yes Yes   所有token从Token接口返回 Yes No No   所有tokens不暴露在浏览器 Yes No No   能够验证客户端密钥 Yes No Yes   能够使用刷新令牌 Yes No Yes   仅需一次请求 No Yes No   大部分请求由后端进行 Yes No 可变    支持返回类型对比    返回类型 认证模式 说明     code Authorization Code Flow 仅返回授权码   id_token Implicit Flow 返回身份令牌   id_token token Implicit Flow 返回身份令牌、通行令牌   code id_token Hybrid Flow 返回授权码、身份令牌   code token Hybrid Flow 返回授权码、通行令牌   code id_token token Hybrid Flow 返回授权码、身份令牌、通行令牌    授权码模式解析 相对来说，授权码模式还是用的最多的，我们详细解读一下本模式的协议内容。</description>
     </item>
     
     <item>
