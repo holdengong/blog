@@ -58,6 +58,31 @@
     <div class="posts">
 <article class="post">
   <h1 class="post-title">
+    <a href="https://holdengong.com/chrome80%E8%B0%83%E6%95%B4samesite%E7%AD%96%E7%95%A5%E5%AF%B9identityserver4%E7%9A%84%E5%BD%B1%E5%93%8D%E4%BB%A5%E5%8F%8A%E5%A4%84%E7%90%86%E6%96%B9%E6%A1%88/">Chrome80调整SameSite策略对IdentityServer4的影响以及处理方案（翻译）</a>
+  </h1>
+  <time datetime="2020-03-28T23:43:19&#43;0800" class="post-date">Sat, Mar 28, 2020</time>
+  首先，好消息是Goole将于2020年2月份发布Chrome 80版本。本次发布将推行Google的“渐进改良Cookie”策略，努力打造一个更为安全和保障用户隐私的网络环境。
+坏消息是，本次更新可能使浏览器无法向服务端发送Cookies。首先，如果你有多个应用，它们各自拥有不同的域名，部分用户很有可能出现会话时常被打断的情况。其次，部分用户可能无法正常登出系统。
+本篇博客将处理第一个问题（无法发送cookie到服务端）。至于第二个问题（cookie无法被删除），请参考另一篇博客。
+首先，SameSite是什么 互联网是十分开放的平台：Cookie诞生于二十多年前，于2011年修订(RFC 6265)。当时跨站访问攻击（CSRF）没有如此猖獗，侵犯用户隐私的行为也不像现在这样泛滥。
+简而言之，Cookie标准规范约定，如果某域名下设置了Cookie，不管你是直接跳转到该域名，或是加载了该域名的某些资源（例如图片），或是向该域名发送POST请求，亦或将其嵌入iframe，浏览器访问该域名的每次请求，都将带上这个Cookie。
+对于iframe嵌入这种场景，你可能不希望浏览器将用户会话cookie自动发送到服务端，因为这样任何其他网站都可以在用户不知情的情况下，用他的会话上下文，跟你的服务端发送请求。
+为了避免这种情况，SameSite cookie规范于2016年起草。对于发送cookie我们有了更多的控制权：现在可以明确指定每个cookie是否被发送。规范引入了同站/跨站cookie的概念，如果浏览器访问A域名，请求服务端也是A域名，这些cookie就叫同站cookies（same-site cookies），如果浏览器访问A域名，请求服务端是B域名，这些cookie就叫跨站cookies（cross-site cookies）。
+为了向后兼容，same-site的默认设置并未改变之前的行为。你必须手动指定SameSite=Lax或者SameSite=Strict，来能使用这项特性加固安全。所有的.NET框架和常见的浏览器都已支持这一特性。设置为Lax，大多数情况不允许发送第三方Cookie，导航到目标网址的Get请求除外。设置为Strict，完全禁止第三方Cookie，除非你之前访问过该域名而Cookie已经存在于浏览器。
+悲哀的是，这项新特性的采用率低的可怜（基于Chrome2019年3月份统计显示，在所有的cookie中，只有0.1%使用了SameSite标志）。
+Google决定推进这项特性的使用。他们决定修改世界上最多人使用的浏览器——Chrome的默认设置：如果想保持之前处理cookie的方式，Chrome 80要求显示指定SameSite=None。如果像以前一样忽略SameSite属性，Chrome将视作SameSite=Lax。
+请注意：SameSite=None只有在Cookie同时被标记为Secure并且使用https连接时才会生效。
+Update: If you want more background information about SameSite cookies, there is a new article with all the nitty gritty details.
+更新：如果你想知道关于SameSite cookies的更多背景知识，请扩展阅读这篇文章。
+这会影响我吗？什么影响？ If you have a single-page web application (SPA) that authenticates against an Identity Provider (IdP, for example IdentityServer 4) that is hosted on a different domain, and that application uses the so-called silent token refresh, you are affected.
+  
+  
+  <div class="read-more-link">
+    <a href="/chrome80%E8%B0%83%E6%95%B4samesite%E7%AD%96%E7%95%A5%E5%AF%B9identityserver4%E7%9A%84%E5%BD%B1%E5%93%8D%E4%BB%A5%E5%8F%8A%E5%A4%84%E7%90%86%E6%96%B9%E6%A1%88/">Read More…</a>
+  </div>
+  
+</article><article class="post">
+  <h1 class="post-title">
     <a href="https://holdengong.com/identityserver4%E6%BA%90%E7%A0%81%E8%A7%A3%E6%9E%90_8_%E6%92%A4%E9%94%80%E4%BB%A4%E7%89%8C%E6%8E%A5%E5%8F%A3/">IdentityServer4源码解析_8_撤销令牌接口</a>
   </h1>
   <time datetime="2020-03-26T23:50:03&#43;0800" class="post-date">Thu, Mar 26, 2020</time>
