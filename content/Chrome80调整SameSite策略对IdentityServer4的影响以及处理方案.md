@@ -249,4 +249,9 @@ Chrome于2020年2月发布的新版本修改了cookie的默认行为。新版本
 To make sure all browsers are happy, you set all of the affected cookies to Secure and SameSite=None, and then you add a cookie policy (code shown above) that can override these settings and remove the SameSite flag again for browsers that don't interpret the None value correctly.
 为了确保应用在所有浏览器运行正常，我们将所有受影响的cookie设置为Secure，SameSite=None，然后新增一个Cookie策略，根据浏览器版本动态处理SameSite设置。
 
+# 译者注
+文中提到的方案需要设置SameSiteMode=-1，这个需要更新微软相关包提供支持，详情见下面的博客。
+https://devblogs.microsoft.com/aspnet/upcoming-samesite-cookie-changes-in-asp-net-and-asp-net-core/
+
+
 > 原文地址：https://www.thinktecture.com/en/identity/samesite/prepare-your-identityserver/
