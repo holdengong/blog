@@ -36,7 +36,6 @@ If you have a single-page web application (SPA) that authenticates against an Id
 如果你有一个单页应用（SPA），使用另一域名的认证服务（比如IdentityServer4）进行身份认证，并且使用了所谓的静默令牌刷新的话，你将受影响。  
 *译者注：使用refresh_token刷新access_token,用户无感知*
 
-When logging into the IdP, it will set a session cookie for your user, and that cookie comes from the IdP domain. At the end of the authentication flow your application, which comes from a different domain, receives some sort of access tokens, which are usually not very long-lived. When that token expires the application can't access the resource server (API) anymore, and it would be a very bad user experience if the user had to log in again every time that happens.
 登录到认证服务的时候，它会为当前用户设置会话cookie，这个cookie属于认证服务域名。认证流程结束之后，另一域名会收到认证服务颁发的access token，有效期通常不会太长。当access token过期之后，应用无法访问api，用户需要频繁的登录，体验十分差。
 
 为了避免这一情况，我们可以使用refresh_token实现静默刷新。应用创建一个用户不可见的iframe，在iframe中进行新的认证流程。iframe中加载了认证服务站点，当浏览器发送会话cookie的时候，认证服务识别出当前用户然后颁发新的token。

@@ -75,8 +75,7 @@
 <p>If you have a single-page web application (SPA) that authenticates against an Identity Provider (IdP, for example IdentityServer 4) that is hosted on a different domain, and that application uses the so-called silent token refresh, you are affected.</p>
 <p>如果你有一个单页应用（SPA），使用另一域名的认证服务（比如IdentityServer4）进行身份认证，并且使用了所谓的静默令牌刷新的话，你将受影响。<br>
 <em>译者注：使用refresh_token刷新access_token,用户无感知</em></p>
-<p>When logging into the IdP, it will set a session cookie for your user, and that cookie comes from the IdP domain. At the end of the authentication flow your application, which comes from a different domain, receives some sort of access tokens, which are usually not very long-lived. When that token expires the application can&rsquo;t access the resource server (API) anymore, and it would be a very bad user experience if the user had to log in again every time that happens.
-登录到认证服务的时候，它会为当前用户设置会话cookie，这个cookie属于认证服务域名。认证流程结束之后，另一域名会收到认证服务颁发的access token，有效期通常不会太长。当access token过期之后，应用无法访问api，用户需要频繁的登录，体验十分差。</p>
+<p>登录到认证服务的时候，它会为当前用户设置会话cookie，这个cookie属于认证服务域名。认证流程结束之后，另一域名会收到认证服务颁发的access token，有效期通常不会太长。当access token过期之后，应用无法访问api，用户需要频繁的登录，体验十分差。</p>
 <p>为了避免这一情况，我们可以使用refresh_token实现静默刷新。应用创建一个用户不可见的iframe，在iframe中进行新的认证流程。iframe中加载了认证服务站点，当浏览器发送会话cookie的时候，认证服务识别出当前用户然后颁发新的token。</p>
 <p>SPA网站使用iframe嵌入了认证服务站点的内容，这就是一个跨站请求，只有将iframe中属于认证服务站点的cookie设置为SameSite=None，Chrome 80才会将iframe中的cookie发送到认证服务。否则，token静默刷新将无法正常运行。</p>
 <p>可能还会导致一些其他的问题：如果应用中嵌入了其他域名的资源，比如视频自动播放设置，它们需要cookie才能正常运行。某些依赖cookie认证来访问第三方API的应用也会出现问题。</p>
