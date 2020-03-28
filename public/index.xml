@@ -53,7 +53,13 @@
       <pubDate>Thu, 26 Mar 2020 23:49:34 +0800</pubDate>
       
       <guid>https://holdengong.com/identityserver4%E6%BA%90%E7%A0%81%E8%A7%A3%E6%9E%90_4_%E4%BB%A4%E7%89%8C%E5%8F%91%E6%94%BE%E6%8E%A5%E5%8F%A3/</guid>
-      <description>目录  identityserver4源码解析_1_项目结构 identityserver4源码解析_2_元数据接口 identityserver4源码解析_3_认证接口 identityserver4源码解析_4_令牌发放接口 identityserver4源码解析_5_查询用户信息接口 identityserver4源码解析_6_结束会话接口 identityserver4源码解析_7_查询令牌信息接口 identityserver4源码解析_8_撤销令牌接口  TO BE UPDATED </description>
+      <description>目录  identityserver4源码解析_1_项目结构 identityserver4源码解析_2_元数据接口 identityserver4源码解析_3_认证接口 identityserver4源码解析_4_令牌发放接口 identityserver4源码解析_5_查询用户信息接口 identityserver4源码解析_6_结束会话接口 identityserver4源码解析_7_查询令牌信息接口 identityserver4源码解析_8_撤销令牌接口  协议 Token接口 oidc服务需要提供token接口，提供AccessToken,IdToken,以及RefreshToken（可选）。在授权码模式下，token接口必须使用https。
+请求 必须使用POST方法，使用x-www-form-urlencoded序列化参数，clientId:clientSecret使用Basic加密放在Authorization头中
+POST /token HTTP/1.1 Host: server.example.com Content-Type: application/x-www-form-urlencoded Authorization: Basic czZCaGRSa3F0MzpnWDFmQmF0M2JW grant_type=authorization_code&amp;amp;code=SplxlOBeZQQYbYS6WxSbIA &amp;amp;redirect_uri=https%3A%2F%2Fclient.example.org%2Fcb 请求校验 认证服务必须校验下列内容：
+ 验证client是否颁发了秘钥 验证为该客户端颁发了授权码 验证授权码有效性 如果可能的话，验证授权码是否被使用过 验证redirect_uri 与发起认证请求时的值一致  成功响应 在收到token请求，并校验通过之后，认证服务返回成功报文，报文包含了身份令牌和通行令牌。数据格式使用application/json。token_type必须返回Bearer，其他类型token不在本协议范围内。在OAuth2.0响应报文基础上，oidc增加了id_tken。所有token包含了token或者其他敏感信息的响应报文，必须包含以下响应头。
+Cache-Control no-store Pragma no-cache 失败响应 如果认证失败返回application/json格式错误消息，状态码400
+HTTP/1.1 400 Bad Request Content-Type: application/json Cache-Control: no-store Pragma: no-cache { &amp;#34;error&amp;#34;: &amp;#34;invalid_request&amp;#34; } id token校验 客户端必须校验返回的id token, 校验条件如下。对照这些条件，就可以更懂Microsoft.Authentication.OpenIdConnect里面的代码了，要做的事情很多。
+ 如果id token被加密，使用客户端注册时候约定的秘钥和算法解密。如果约定了加密方式，id token未被加密，客户端应该拒绝。 签发方标识必须与iss声明一致 客户端必须校验aud声明包含了它的客户端id，如果id token未返回正确的audience或者反悔了不被新人的audience，应该拒绝 如果id token包含多个audience，需要校验是否有azp声明。azp即Authorized party，标识被授权的client。 如果包含azp声明，客户端需要校验其值是否为自己的客户端id 如果id token由token接口直接颁发给客户端（授权码模式就是如此），客户端必须根据alg参数值的算法验证签名。客户端必须使用签发方提供的秘钥。 alg值默认为RS256，客户端可以在注册的时候使用id_token_signed_response_alg参数指定配置。 如果jwt的alg头使用了基于mac地址的加密算法，如HS256, HS384,HS512，aud声明中的字节会用作验签。（意思是会把mac地址相关信息写在aud声明上？） The current time MUST be before the time represented by the exp Claim.</description>
     </item>
     
     <item>
