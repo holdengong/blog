@@ -26,12 +26,9 @@ Google决定推进这项特性的使用。他们决定修改世界上最多人�
 
 请注意：SameSite=None只有在Cookie同时被标记为Secure并且使用https连接时才会生效。
 
-Update: If you want more background information about SameSite cookies, there is a new article with all the nitty gritty details.
-
 更新：如果你想知道关于SameSite cookies的更多背景知识，请扩展阅读这篇[文章](https://www.thinktecture.com/en/identity/samesite/samesite-in-a-nutshell/)。
 
 # 这会影响我吗？什么影响？
-If you have a single-page web application (SPA) that authenticates against an Identity Provider (IdP, for example IdentityServer 4) that is hosted on a different domain, and that application uses the so-called silent token refresh, you are affected.
 
 如果你有一个单页应用（SPA），使用另一域名的认证服务（比如IdentityServer4）进行身份认证，并且使用了所谓的静默令牌刷新的话，你将受影响。  
 *译者注：使用refresh_token刷新access_token,用户无感知*
@@ -76,7 +73,6 @@ see more details at https://www.chromestatus.com/feature/5633521622188032.
 
 然后我们需要将下面的类和代码段加到项目中。这段代码在ASP.NET Core应用中配置了一个cookie策略。这个策略会检查cookie是否应该被设置位SameSite=None。
 
-Please note: The solution presented here is for .NET Core. For full .NET Framework-based projects you need one of the versions that is specified in Barry Dorran's post.
 请注意：这个解决方案是.NET Core使用的。至于.NET Framework项目，请查看Barry Dorran的这篇[博客](https://devblogs.microsoft.com/aspnet/upcoming-samesite-cookie-changes-in-asp-net-and-asp-net-core/)。
 
 # 将这个类加到项目中
@@ -246,7 +242,6 @@ public void Configure(IApplicationBuilder app)
 # 总结
 Chrome于2020年2月发布的新版本修改了cookie的默认行为。新版本需要SameSite明确设置为None，同时有Secure标识，才会将该cookie发送到跨站请求。如果你这么做的话，很多版本的Safari会出现问题。
 
-To make sure all browsers are happy, you set all of the affected cookies to Secure and SameSite=None, and then you add a cookie policy (code shown above) that can override these settings and remove the SameSite flag again for browsers that don't interpret the None value correctly.
 为了确保应用在所有浏览器运行正常，我们将所有受影响的cookie设置为Secure，SameSite=None，然后新增一个Cookie策略，根据浏览器版本动态处理SameSite设置。
 
 # 译者注

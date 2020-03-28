@@ -69,10 +69,8 @@
 <p>悲哀的是，这项新特性的采用率低的可怜（基于Chrome2019年3月份<a href="https://tools.ietf.org/html/draft-west-http-state-tokens-00#section-1.2/">统计</a>显示，在所有的cookie中，只有0.1%使用了SameSite标志）。</p>
 <p>Google决定推进这项特性的使用。他们决定修改世界上最多人使用的浏览器——Chrome的默认设置：如果想保持之前处理cookie的方式，Chrome 80要求显示指定SameSite=None。如果像以前一样忽略SameSite属性，Chrome将视作SameSite=Lax。</p>
 <p>请注意：SameSite=None只有在Cookie同时被标记为Secure并且使用https连接时才会生效。</p>
-<p>Update: If you want more background information about SameSite cookies, there is a new article with all the nitty gritty details.</p>
 <p>更新：如果你想知道关于SameSite cookies的更多背景知识，请扩展阅读这篇<a href="https://www.thinktecture.com/en/identity/samesite/samesite-in-a-nutshell/">文章</a>。</p>
 <h1 id="这会影响我吗什么影响">这会影响我吗？什么影响？</h1>
-<p>If you have a single-page web application (SPA) that authenticates against an Identity Provider (IdP, for example IdentityServer 4) that is hosted on a different domain, and that application uses the so-called silent token refresh, you are affected.</p>
 <p>如果你有一个单页应用（SPA），使用另一域名的认证服务（比如IdentityServer4）进行身份认证，并且使用了所谓的静默令牌刷新的话，你将受影响。<br>
 <em>译者注：使用refresh_token刷新access_token,用户无感知</em></p>
 <p>登录到认证服务的时候，它会为当前用户设置会话cookie，这个cookie属于认证服务域名。认证流程结束之后，另一域名会收到认证服务颁发的access token，有效期通常不会太长。当access token过期之后，应用无法访问api，用户需要频繁的登录，体验十分差。</p>
@@ -100,8 +98,7 @@ see more details at https://www.chromestatus.com/feature/5633521622188032.
 <p>我和我的同事Boris Wilhelms做了一些研究和验证，找到了一个解决方案。微软的Barry Dorrans写了一篇很不错的<a href="https://devblogs.microsoft.com/aspnet/upcoming-samesite-cookie-changes-in-asp-net-and-asp-net-core/">博客</a>可以参考。这个解决方案并不是完美之策，它需要在服务端嗅探浏览器类型，但是它很简单，在过去几周，我们已经用这个方案修复了数个项目。</p>
 <p>首先我们需要确保需要通过跨站请求发送的cookie - 比如会话cookie - 被设置为SameSite=None并且标识为Secure。我们需要在项目中找到Cookie选项配置代码，然后做出调整。这样Chrome的问题修复了，然后Safari会出现问题。</p>
 <p>然后我们需要将下面的类和代码段加到项目中。这段代码在ASP.NET Core应用中配置了一个cookie策略。这个策略会检查cookie是否应该被设置位SameSite=None。</p>
-<p>Please note: The solution presented here is for .NET Core. For full .NET Framework-based projects you need one of the versions that is specified in Barry Dorran&rsquo;s post.
-请注意：这个解决方案是.NET Core使用的。至于.NET Framework项目，请查看Barry Dorran的这篇<a href="https://devblogs.microsoft.com/aspnet/upcoming-samesite-cookie-changes-in-asp-net-and-asp-net-core/">博客</a>。</p>
+<p>请注意：这个解决方案是.NET Core使用的。至于.NET Framework项目，请查看Barry Dorran的这篇<a href="https://devblogs.microsoft.com/aspnet/upcoming-samesite-cookie-changes-in-asp-net-and-asp-net-core/">博客</a>。</p>
 <h1 id="将这个类加到项目中">将这个类加到项目中</h1>
 <div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-csharp" data-lang="csharp"><span style="color:#66d9ef">using</span> Microsoft.AspNetCore.Builder;
 <span style="color:#66d9ef">using</span> Microsoft.AspNetCore.Http;
@@ -262,8 +259,7 @@ see more details at https://www.chromestatus.com/feature/5633521622188032.
 <p>不太可能。并不是IdentityServer在管理这些cookie。IdentityServer依赖于ASP.NET Core框架内置的认证系统，它们在管理会话cookie。然而微软表示它们不能使用在ASP.NET Core直接嗅探浏览器版本的方案。所以基本上短期内只能靠自己了。</p>
 <h1 id="总结">总结</h1>
 <p>Chrome于2020年2月发布的新版本修改了cookie的默认行为。新版本需要SameSite明确设置为None，同时有Secure标识，才会将该cookie发送到跨站请求。如果你这么做的话，很多版本的Safari会出现问题。</p>
-<p>To make sure all browsers are happy, you set all of the affected cookies to Secure and SameSite=None, and then you add a cookie policy (code shown above) that can override these settings and remove the SameSite flag again for browsers that don&rsquo;t interpret the None value correctly.
-为了确保应用在所有浏览器运行正常，我们将所有受影响的cookie设置为Secure，SameSite=None，然后新增一个Cookie策略，根据浏览器版本动态处理SameSite设置。</p>
+<p>为了确保应用在所有浏览器运行正常，我们将所有受影响的cookie设置为Secure，SameSite=None，然后新增一个Cookie策略，根据浏览器版本动态处理SameSite设置。</p>
 <h1 id="译者注">译者注</h1>
 <p>文中提到的方案需要设置SameSiteMode=-1，这个需要更新微软相关包提供支持，详情见下面的博客。
 <a href="https://devblogs.microsoft.com/aspnet/upcoming-samesite-cookie-changes-in-asp-net-and-asp-net-core/">https://devblogs.microsoft.com/aspnet/upcoming-samesite-cookie-changes-in-asp-net-and-asp-net-core/</a></p>

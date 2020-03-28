@@ -28,9 +28,19 @@
 悲哀的是，这项新特性的采用率低的可怜（基于Chrome2019年3月份统计显示，在所有的cookie中，只有0.1%使用了SameSite标志）。
 Google决定推进这项特性的使用。他们决定修改世界上最多人使用的浏览器——Chrome的默认设置：如果想保持之前处理cookie的方式，Chrome 80要求显示指定SameSite=None。如果像以前一样忽略SameSite属性，Chrome将视作SameSite=Lax。
 请注意：SameSite=None只有在Cookie同时被标记为Secure并且使用https连接时才会生效。
-Update: If you want more background information about SameSite cookies, there is a new article with all the nitty gritty details.
 更新：如果你想知道关于SameSite cookies的更多背景知识，请扩展阅读这篇文章。
-这会影响我吗？什么影响？ If you have a single-page web application (SPA) that authenticates against an Identity Provider (IdP, for example IdentityServer 4) that is hosted on a different domain, and that application uses the so-called silent token refresh, you are affected.</description>
+这会影响我吗？什么影响？ 如果你有一个单页应用（SPA），使用另一域名的认证服务（比如IdentityServer4）进行身份认证，并且使用了所谓的静默令牌刷新的话，你将受影响。
+译者注：使用refresh_token刷新access_token,用户无感知
+登录到认证服务的时候，它会为当前用户设置会话cookie，这个cookie属于认证服务域名。认证流程结束之后，另一域名会收到认证服务颁发的access token，有效期通常不会太长。当access token过期之后，应用无法访问api，用户需要频繁的登录，体验十分差。
+为了避免这一情况，我们可以使用refresh_token实现静默刷新。应用创建一个用户不可见的iframe，在iframe中进行新的认证流程。iframe中加载了认证服务站点，当浏览器发送会话cookie的时候，认证服务识别出当前用户然后颁发新的token。
+SPA网站使用iframe嵌入了认证服务站点的内容，这就是一个跨站请求，只有将iframe中属于认证服务站点的cookie设置为SameSite=None，Chrome 80才会将iframe中的cookie发送到认证服务。否则，token静默刷新将无法正常运行。
+可能还会导致一些其他的问题：如果应用中嵌入了其他域名的资源，比如视频自动播放设置，它们需要cookie才能正常运行。某些依赖cookie认证来访问第三方API的应用也会出现问题。
+注意：很显然你只能修改自己服务的cookie设置。如果使用了其他域名的资源，这些不在你的控制范围之内，你需要联系第三方修改他们的cookie设置。
+好的，我会修改代码将SameSite设置为None的，这样就万事大吉了，是吗？ 很不幸，并不是：Safari存在一个&amp;quot;bug&amp;rdquo;。这个bug导致Safari不会将None识别为SameSite的合法值。当Safari遇到非法参数值的时候，它会将其视作SameSite=Strict，不会向认证服务发送会话cookie。IOS13和macOS 10.15 Catalina系统上的Safari 13已修复此bug，macOS 10.14 Mojave和iOS 12将不会修复，而这几个版本依旧存在大量用户群。
+现在我们进退两难：要么忽略此次更新，Chrome用户无法使用静默刷新，要么设置SameSite=None，那么无法更新到最新系统的iPhone,iPad和Mac用户的应用将出现异常。
+有没有方法明确知道自己受影响？ 幸运的是，你可以。如果你已经设置了SameSite=None，应该注意到应用在iOS 12,macOS 10.4的Safari上运行异常。如果还没有设置的话，确保要在上面版本系统的Safari上做一下测试。
+如果还没有设置的话，可以打开Chrome的开发者工具。可以看到这些警告：
+A cookie associated with a cross-site resource at {cookie domain} was set without the `SameSite` attribute. A future release of Chrome will only deliver cookies with cross-site requests if they are set with `SameSite=None` and `Secure`.</description>
     </item>
     
     <item>
