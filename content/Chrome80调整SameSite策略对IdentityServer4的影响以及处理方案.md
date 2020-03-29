@@ -3,18 +3,18 @@ title: "Chrome80调整SameSite策略对IdentityServer4的影响以及处理方�
 date: 2020-03-28T23:43:19+08:00
 draft: false
 ---
-首先，好消息是Goole将于2020年2月份发布Chrome 80版本。本次发布将推行Google的“渐进改良Cookie”策略，努力打造一个更为安全和保障用户隐私的网络环境。
+首先，好消息是Google将于2020年2月份发布Chrome 80版本。本次发布将推进Google的“渐进改良Cookie”策略，打造一个更为安全和保障用户隐私的网络环境。
 
-坏消息是，本次更新可能使浏览器无法向服务端发送Cookies。首先，如果你有多个应用，它们各自拥有不同的域名，部分用户很有可能出现会话时常被打断的情况。其次，部分用户可能无法正常登出系统。
+坏消息是，本次更新可能导致浏览器无法向服务端发送Cookie。如果你有多个不同域名的应用，部分用户很有可能出现会话时常被打断的情况，还有部分用户可能无法正常登出系统。
 
 本篇博客将处理第一个问题（无法发送cookie到服务端）。至于第二个问题（cookie无法被删除），请参考另一篇[博客](https://www.thinktecture.com/identity/samesite/how-to-delete-samesite-cookies/)。
 
 # 首先，SameSite是什么
-互联网是十分开放的平台：Cookie诞生于二十多年前，于2011年修订([RFC 6265](https://tools.ietf.org/html/rfc6265))。当时跨站访问攻击（CSRF）没有如此猖獗，侵犯用户隐私的行为也不像现在这样泛滥。
+互联网是十分开放的平台：Cookie诞生于二十多年前，于2011年修订([RFC 6265](https://tools.ietf.org/html/rfc6265))。当时跨站访问攻击（CSRF）没有现在这么猖獗，侵犯用户隐私的行为也不像现在这样泛滥。
 
-简而言之，Cookie标准规范约定，如果某域名下设置了Cookie，不管你是直接跳转到该域名，或是加载了该域名的某些资源（例如图片），或是向该域名发送POST请求，亦或将其嵌入iframe，浏览器访问该域名的每次请求，都将带上这个Cookie。
+简而言之，Cookie标准规范规定，如果某域名下设置了Cookie，不管你是直接跳转到该域名，或是加载了该域名的某些资源（例如图片），或是向该域名发送POST请求，亦或将其嵌入iframe，浏览器访问该域名的每次请求，都将带上这个Cookie。
 
-对于iframe嵌入这种场景，你可能不希望浏览器将用户会话cookie自动发送到服务端，因为这样任何其他网站都可以在用户不知情的情况下，用他的会话上下文，跟你的服务端发送请求。
+对于iframe嵌入的场景，你可能不希望浏览器将用户会话cookie自动发送到服务器，因为这样任何其他网站都可以在用户不知情的情况下，用他的会话上下文，跟你的服务器发送请求。
 
 为了避免这种情况，SameSite cookie[规范](https://tools.ietf.org/html/draft-west-first-party-cookies-07/)于2016年起草。对于发送cookie我们有了更多的控制权：现在可以明确指定每个cookie是否被发送。规范引入了同站/跨站cookie的概念，如果浏览器访问A域名，请求服务端也是A域名，这些cookie就叫同站cookies（same-site cookies），如果浏览器访问A域名，请求服务端是B域名，这些cookie就叫跨站cookies（cross-site cookies）。
 
@@ -245,7 +245,7 @@ Chrome于2020年2月发布的新版本修改了cookie的默认行为。新版本
 为了确保应用在所有浏览器运行正常，我们将所有受影响的cookie设置为Secure，SameSite=None，然后新增一个Cookie策略，根据浏览器版本动态处理SameSite设置。
 
 # 译者注
-文中提到的方案需要设置SameSiteMode=-1，这个需要更新微软相关包提供支持，详情见下面的博客。
+文中提到的方案需要设置SameSiteMode=-1，这个新增加的枚举，需要更新微软相补丁包，.net core2.1由于是长期维护版本微软提供了补丁包，.net core 3.x也已经支持。如果是2.2或者其他不再维护的版本，可能需要升级到3.x。详情见下面的博客。
 https://devblogs.microsoft.com/aspnet/upcoming-samesite-cookie-changes-in-asp-net-and-asp-net-core/
 
 

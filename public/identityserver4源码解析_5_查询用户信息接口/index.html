@@ -68,8 +68,199 @@
 <li><a href="https://holdengong.com/identityserver4%E6%BA%90%E7%A0%81%E8%A7%A3%E6%9E%90_7_%E6%9F%A5%E8%AF%A2%E4%BB%A4%E7%89%8C%E4%BF%A1%E6%81%AF%E6%8E%A5%E5%8F%A3">identityserver4源码解析_7_查询令牌信息接口</a></li>
 <li><a href="https://holdengong.com/identityserver4%E6%BA%90%E7%A0%81%E8%A7%A3%E6%9E%90_8_%E6%92%A4%E9%94%80%E4%BB%A4%E7%89%8C%E6%8E%A5%E5%8F%A3">identityserver4源码解析_8_撤销令牌接口</a></li>
 </ul>
-<h1 id="to-be-updated">TO BE UPDATED</h1>
+<h1 id="协议简析">协议简析</h1>
+<p>UserInfo接口是OAuth2.0中规定的需要认证访问的接口，可以返回认证用户的声明信息。请求UserInfo接口需要使用通行令牌。响应报文通常是json数据格式，包含了一组claim键值对集合。与UserInfo接口通讯必须使用https。</p>
+<p>根据RFC2616协议，UserInfo必须支持GET和POST方法。</p>
+<p>UserInfo接口必须接受Bearer令牌。</p>
+<p>UserInfo接口应该支持javascript客户端跨域访问，可以使用CORS协议或者其他方案。</p>
+<h2 id="userinfo请求">UserInfo请求</h2>
+<p>推荐使用GET方法，使用Authorization头承载Bearer令牌来请求UserInfo接口。</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-http" data-lang="http"><span style="color:#a6e22e">GET</span> /userinfo <span style="color:#66d9ef">HTTP</span><span style="color:#f92672">/</span><span style="color:#ae81ff">1.1</span>
+Host<span style="color:#f92672">:</span> <span style="color:#ae81ff">server.example.com</span>
+Authorization<span style="color:#f92672">:</span> <span style="color:#ae81ff">Bearer SlAV32hkKG</span>
+</code></pre></div><h2 id="成功响应">成功响应</h2>
+<p>如果某个claim为空或者null，不返回该键。<br>
+必须返回sub（subject）声明。<br>
+必须校验UserInfo返回的sub与id_token中的sub是否一致<br>
+content-type必须是application/json，必须使用utf-8编码<br>
+如果加密位jwt返回，content-type必须位application/jwt</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-http" data-lang="http"><span style="color:#66d9ef">HTTP</span><span style="color:#f92672">/</span><span style="color:#ae81ff">1.1</span> <span style="color:#ae81ff">200</span> <span style="color:#a6e22e">OK</span>
+Content-Type<span style="color:#f92672">:</span> <span style="color:#ae81ff">application/json</span>
 
+{
+<span style="color:#f92672">&#34;sub&#34;</span>: <span style="color:#e6db74">&#34;248289761001&#34;</span>,
+<span style="color:#f92672">&#34;name&#34;</span>: <span style="color:#e6db74">&#34;Jane Doe&#34;</span>,
+<span style="color:#f92672">&#34;given_name&#34;</span>: <span style="color:#e6db74">&#34;Jane&#34;</span>,
+<span style="color:#f92672">&#34;family_name&#34;</span>: <span style="color:#e6db74">&#34;Doe&#34;</span>,
+<span style="color:#f92672">&#34;preferred_username&#34;</span>: <span style="color:#e6db74">&#34;j.doe&#34;</span>,
+<span style="color:#f92672">&#34;email&#34;</span>: <span style="color:#e6db74">&#34;janedoe@example.com&#34;</span>,
+<span style="color:#f92672">&#34;picture&#34;</span>: <span style="color:#e6db74">&#34;http://example.com/janedoe/me.jpg&#34;</span>
+}
+</code></pre></div><h2 id="失败响应">失败响应</h2>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-http" data-lang="http"><span style="color:#66d9ef">HTTP</span><span style="color:#f92672">/</span><span style="color:#ae81ff">1.1</span> <span style="color:#ae81ff">401</span> <span style="color:#a6e22e">Unauthorized</span>
+WWW-Authenticate<span style="color:#f92672">:</span> <span style="color:#ae81ff">error=&#34;invalid_token&#34;,</span>
+<span style="color:#960050;background-color:#1e0010">error_description=&#34;The</span> <span style="color:#ae81ff">Access Token expired&#34;</span>
+</code></pre></div><h2 id="响应校验">响应校验</h2>
+<p>客户端必须校验如下内容</p>
+<ul>
+<li>校验认证服务身份(https)</li>
+<li>如果客户端注册时设置了userinfo_encrypted_response_alg ，收到响应时用对应算法解密</li>
+<li>如果响应有签名，客户端需要验签</li>
+</ul>
+<h1 id="源码解析">源码解析</h1>
+<h2 id="校验通行令牌">校验通行令牌</h2>
+<ul>
+<li>首先会尝试从<code>Authorizaton</code>头中获取<code>Bearer Token</code>的值，找到的话则返回</li>
+<li>如果content-type为表单类型，尝试从表单中获取<code>access_token</code>参数值</li>
+<li>两处都没有获取到<code>Beaer Token</code>的话则返回校验失败结果</li>
+</ul>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-csharp" data-lang="csharp"><span style="color:#66d9ef">public</span> <span style="color:#66d9ef">async</span> Task&lt;BearerTokenUsageValidationResult&gt; ValidateAsync(HttpContext context)
+    {
+        <span style="color:#66d9ef">var</span> result = ValidateAuthorizationHeader(context);
+        <span style="color:#66d9ef">if</span> (result.TokenFound)
+        {
+            _logger.LogDebug(<span style="color:#e6db74">&#34;Bearer token found in header&#34;</span>);
+            <span style="color:#66d9ef">return</span> result;
+        }
+
+        <span style="color:#66d9ef">if</span> (context.Request.HasFormContentType)
+        {
+            result = <span style="color:#66d9ef">await</span> ValidatePostBodyAsync(context);
+            <span style="color:#66d9ef">if</span> (result.TokenFound)
+            {
+                _logger.LogDebug(<span style="color:#e6db74">&#34;Bearer token found in body&#34;</span>);
+                <span style="color:#66d9ef">return</span> result;
+            }
+        }
+
+        _logger.LogDebug(<span style="color:#e6db74">&#34;Bearer token not found&#34;</span>);
+        <span style="color:#66d9ef">return</span> <span style="color:#66d9ef">new</span> BearerTokenUsageValidationResult();
+    }
+</code></pre></div><h2 id="校验请求参数">校验请求参数</h2>
+<p>由<code>IUserInfoRequestValidator</code>的默认实现<code>UserInfoRequestValidator</code>对入参进行校验。</p>
+<ol>
+<li><code>accessToken</code>，必须包括<code>openid</code>声明的权限</li>
+<li>必须有<code>sub</code>声明,<code>sub</code>是<code>subject</code>的缩写，代表用户唯一标识</li>
+<li>收集<code>accessToken</code>所有<code>claim</code>，移除以下与用户信息无关的<code>claim</code>。<br>
+at_hash,aud,azp,c_hash,client_id,exp,iat,iss,jti,nonce,nbf,reference_token_id,sid,scope<br>
+用筛选后的<code>claim</code>创建名称为<code>UserInfo</code>的<code>Principal</code></li>
+<li>调用<code>IProfileService</code>的<code>IsAcriveAsync</code>方法判断用户是否启用，不是启动状态的话返回<code>invalid_token</code>错误</li>
+<li>返回校验成功结果对象，包括步骤3构建的<code>Principal</code></li>
+</ol>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-csharp" data-lang="csharp">
+<span style="color:#66d9ef">public</span> <span style="color:#66d9ef">async</span> Task&lt;UserInfoRequestValidationResult&gt; ValidateRequestAsync(<span style="color:#66d9ef">string</span> accessToken)
+{
+    <span style="color:#75715e">// the access token needs to be valid and have at least the openid scope
+</span><span style="color:#75715e"></span>    <span style="color:#66d9ef">var</span> tokenResult = <span style="color:#66d9ef">await</span> _tokenValidator.ValidateAccessTokenAsync(
+        accessToken,
+        IdentityServerConstants.StandardScopes.OpenId);
+
+    <span style="color:#66d9ef">if</span> (tokenResult.IsError)
+    {
+        <span style="color:#66d9ef">return</span> <span style="color:#66d9ef">new</span> UserInfoRequestValidationResult
+        {
+            IsError = <span style="color:#66d9ef">true</span>,
+            Error = tokenResult.Error
+        };
+    }
+
+    <span style="color:#75715e">// the token must have a one sub claim
+</span><span style="color:#75715e"></span>    <span style="color:#66d9ef">var</span> subClaim = tokenResult.Claims.SingleOrDefault(c =&gt; c.Type == JwtClaimTypes.Subject);
+    <span style="color:#66d9ef">if</span> (subClaim == <span style="color:#66d9ef">null</span>)
+    {
+        _logger.LogError(<span style="color:#e6db74">&#34;Token contains no sub claim&#34;</span>);
+
+        <span style="color:#66d9ef">return</span> <span style="color:#66d9ef">new</span> UserInfoRequestValidationResult
+        {
+            IsError = <span style="color:#66d9ef">true</span>,
+            Error = OidcConstants.ProtectedResourceErrors.InvalidToken
+        };
+    }
+
+    <span style="color:#75715e">// create subject from incoming access token
+</span><span style="color:#75715e"></span>    <span style="color:#66d9ef">var</span> claims = tokenResult.Claims.Where(x =&gt; !Constants.Filters.ProtocolClaimsFilter.Contains(x.Type));
+    <span style="color:#66d9ef">var</span> subject = Principal.Create(<span style="color:#e6db74">&#34;UserInfo&#34;</span>, claims.ToArray());
+
+    <span style="color:#75715e">// make sure user is still active
+</span><span style="color:#75715e"></span>    <span style="color:#66d9ef">var</span> isActiveContext = <span style="color:#66d9ef">new</span> IsActiveContext(subject, tokenResult.Client, IdentityServerConstants.ProfileIsActiveCallers.UserInfoRequestValidation);
+    <span style="color:#66d9ef">await</span> _profile.IsActiveAsync(isActiveContext);
+
+    <span style="color:#66d9ef">if</span> (isActiveContext.IsActive == <span style="color:#66d9ef">false</span>)
+    {
+        _logger.LogError(<span style="color:#e6db74">&#34;User is not active: {sub}&#34;</span>, subject.GetSubjectId());
+
+        <span style="color:#66d9ef">return</span> <span style="color:#66d9ef">new</span> UserInfoRequestValidationResult
+        {
+            IsError = <span style="color:#66d9ef">true</span>,
+            Error = OidcConstants.ProtectedResourceErrors.InvalidToken
+        };
+    }
+
+    <span style="color:#66d9ef">return</span> <span style="color:#66d9ef">new</span> UserInfoRequestValidationResult
+    {
+        IsError = <span style="color:#66d9ef">false</span>,
+        TokenValidationResult = tokenResult,
+        Subject = subject
+    };
+}
+</code></pre></div><h2 id="生成响应报文">生成响应报文</h2>
+<p>调用<code>IUserInfoResponseGenerator</code>接口的默认实现<code>UserInfoResponseGenerator</code>的<code>ProcessAsync</code>方法生成响应报文。</p>
+<ol>
+<li>从校验结果中获取<code>scope</code>声明值，查询<code>scope</code>值关联的<code>IdentityResource</code>(身份资源)及其关联的所有<code>claim</code>。得到的结果就是用户请求的所有<code>claim</code></li>
+<li>调用<code>DefaultProfileService</code>的<code>GetProfileDataAsync</code>方法，返回校验结果<code>claim</code>与用户请求<code>claim</code>的交集。</li>
+<li>如果<code>claim</code>集合中没有<code>sub</code>，取校验结果中的<code>sub</code>值。如果<code>IProfileService</code>返回的<code>sub</code>声明值与校验结果的<code>sub</code>值不一致抛出异常。</li>
+<li>返回<code>claim</code>集合。</li>
+<li>响应头写入<code>Cache-Control:no-store, no-cache, max-age=0</code>,<code>Pragma:no-cache</code></li>
+<li><code>claim</code>集合用json格式写入响应内容</li>
+</ol>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-csharp" data-lang="csharp"> <span style="color:#66d9ef">public</span> <span style="color:#66d9ef">virtual</span> <span style="color:#66d9ef">async</span> Task&lt;Dictionary&lt;<span style="color:#66d9ef">string</span>, <span style="color:#66d9ef">object</span>&gt;&gt; ProcessAsync(UserInfoRequestValidationResult validationResult)
+{
+    Logger.LogDebug(<span style="color:#e6db74">&#34;Creating userinfo response&#34;</span>);
+
+    <span style="color:#75715e">// extract scopes and turn into requested claim types
+</span><span style="color:#75715e"></span>    <span style="color:#66d9ef">var</span> scopes = validationResult.TokenValidationResult.Claims.Where(c =&gt; c.Type == JwtClaimTypes.Scope).Select(c =&gt; c.Value);
+    <span style="color:#66d9ef">var</span> requestedClaimTypes = <span style="color:#66d9ef">await</span> GetRequestedClaimTypesAsync(scopes);
+
+    Logger.LogDebug(<span style="color:#e6db74">&#34;Requested claim types: {claimTypes}&#34;</span>, requestedClaimTypes.ToSpaceSeparatedString());
+
+    <span style="color:#75715e">// call profile service
+</span><span style="color:#75715e"></span>    <span style="color:#66d9ef">var</span> context = <span style="color:#66d9ef">new</span> ProfileDataRequestContext(
+        validationResult.Subject,
+        validationResult.TokenValidationResult.Client,
+        IdentityServerConstants.ProfileDataCallers.UserInfoEndpoint,
+        requestedClaimTypes);
+    context.RequestedResources = <span style="color:#66d9ef">await</span> GetRequestedResourcesAsync(scopes);
+
+    <span style="color:#66d9ef">await</span> Profile.GetProfileDataAsync(context);
+    <span style="color:#66d9ef">var</span> profileClaims = context.IssuedClaims;
+
+    <span style="color:#75715e">// construct outgoing claims
+</span><span style="color:#75715e"></span>    <span style="color:#66d9ef">var</span> outgoingClaims = <span style="color:#66d9ef">new</span> List&lt;Claim&gt;();
+
+    <span style="color:#66d9ef">if</span> (profileClaims == <span style="color:#66d9ef">null</span>)
+    {
+        Logger.LogInformation(<span style="color:#e6db74">&#34;Profile service returned no claims (null)&#34;</span>);
+    }
+    <span style="color:#66d9ef">else</span>
+    {
+        outgoingClaims.AddRange(profileClaims);
+        Logger.LogInformation(<span style="color:#e6db74">&#34;Profile service returned the following claim types: {types}&#34;</span>, profileClaims.Select(c =&gt; c.Type).ToSpaceSeparatedString());
+    }
+
+    <span style="color:#66d9ef">var</span> subClaim = outgoingClaims.SingleOrDefault(x =&gt; x.Type == JwtClaimTypes.Subject);
+    <span style="color:#66d9ef">if</span> (subClaim == <span style="color:#66d9ef">null</span>)
+    {
+        outgoingClaims.Add(<span style="color:#66d9ef">new</span> Claim(JwtClaimTypes.Subject, validationResult.Subject.GetSubjectId()));
+    }
+    <span style="color:#66d9ef">else</span> <span style="color:#66d9ef">if</span> (subClaim.Value != validationResult.Subject.GetSubjectId())
+    {
+        Logger.LogError(<span style="color:#e6db74">&#34;Profile service returned incorrect subject value: {sub}&#34;</span>, subClaim);
+        <span style="color:#66d9ef">throw</span> <span style="color:#66d9ef">new</span> InvalidOperationException(<span style="color:#e6db74">&#34;Profile service returned incorrect subject value&#34;</span>);
+    }
+
+    <span style="color:#66d9ef">return</span> outgoingClaims.ToClaimsDictionary();
+}
+</code></pre></div>
 </div>
 
 

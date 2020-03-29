@@ -17,12 +17,12 @@
       <pubDate>Sat, 28 Mar 2020 23:43:19 +0800</pubDate>
       
       <guid>https://holdengong.com/chrome80%E8%B0%83%E6%95%B4samesite%E7%AD%96%E7%95%A5%E5%AF%B9identityserver4%E7%9A%84%E5%BD%B1%E5%93%8D%E4%BB%A5%E5%8F%8A%E5%A4%84%E7%90%86%E6%96%B9%E6%A1%88/</guid>
-      <description>首先，好消息是Goole将于2020年2月份发布Chrome 80版本。本次发布将推行Google的“渐进改良Cookie”策略，努力打造一个更为安全和保障用户隐私的网络环境。
-坏消息是，本次更新可能使浏览器无法向服务端发送Cookies。首先，如果你有多个应用，它们各自拥有不同的域名，部分用户很有可能出现会话时常被打断的情况。其次，部分用户可能无法正常登出系统。
+      <description>首先，好消息是Google将于2020年2月份发布Chrome 80版本。本次发布将推进Google的“渐进改良Cookie”策略，打造一个更为安全和保障用户隐私的网络环境。
+坏消息是，本次更新可能导致浏览器无法向服务端发送Cookie。如果你有多个不同域名的应用，部分用户很有可能出现会话时常被打断的情况，还有部分用户可能无法正常登出系统。
 本篇博客将处理第一个问题（无法发送cookie到服务端）。至于第二个问题（cookie无法被删除），请参考另一篇博客。
-首先，SameSite是什么 互联网是十分开放的平台：Cookie诞生于二十多年前，于2011年修订(RFC 6265)。当时跨站访问攻击（CSRF）没有如此猖獗，侵犯用户隐私的行为也不像现在这样泛滥。
-简而言之，Cookie标准规范约定，如果某域名下设置了Cookie，不管你是直接跳转到该域名，或是加载了该域名的某些资源（例如图片），或是向该域名发送POST请求，亦或将其嵌入iframe，浏览器访问该域名的每次请求，都将带上这个Cookie。
-对于iframe嵌入这种场景，你可能不希望浏览器将用户会话cookie自动发送到服务端，因为这样任何其他网站都可以在用户不知情的情况下，用他的会话上下文，跟你的服务端发送请求。
+首先，SameSite是什么 互联网是十分开放的平台：Cookie诞生于二十多年前，于2011年修订(RFC 6265)。当时跨站访问攻击（CSRF）没有现在这么猖獗，侵犯用户隐私的行为也不像现在这样泛滥。
+简而言之，Cookie标准规范规定，如果某域名下设置了Cookie，不管你是直接跳转到该域名，或是加载了该域名的某些资源（例如图片），或是向该域名发送POST请求，亦或将其嵌入iframe，浏览器访问该域名的每次请求，都将带上这个Cookie。
+对于iframe嵌入的场景，你可能不希望浏览器将用户会话cookie自动发送到服务器，因为这样任何其他网站都可以在用户不知情的情况下，用他的会话上下文，跟你的服务器发送请求。
 为了避免这种情况，SameSite cookie规范于2016年起草。对于发送cookie我们有了更多的控制权：现在可以明确指定每个cookie是否被发送。规范引入了同站/跨站cookie的概念，如果浏览器访问A域名，请求服务端也是A域名，这些cookie就叫同站cookies（same-site cookies），如果浏览器访问A域名，请求服务端是B域名，这些cookie就叫跨站cookies（cross-site cookies）。
 为了向后兼容，same-site的默认设置并未改变之前的行为。你必须手动指定SameSite=Lax或者SameSite=Strict，来能使用这项特性加固安全。所有的.NET框架和常见的浏览器都已支持这一特性。设置为Lax，大多数情况不允许发送第三方Cookie，导航到目标网址的Get请求除外。设置为Strict，完全禁止第三方Cookie，除非你之前访问过该域名而Cookie已经存在于浏览器。
 悲哀的是，这项新特性的采用率低的可怜（基于Chrome2019年3月份统计显示，在所有的cookie中，只有0.1%使用了SameSite标志）。
@@ -76,7 +76,18 @@ A cookie associated with a cross-site resource at {cookie domain} was set withou
       <pubDate>Thu, 26 Mar 2020 23:49:40 +0800</pubDate>
       
       <guid>https://holdengong.com/identityserver4%E6%BA%90%E7%A0%81%E8%A7%A3%E6%9E%90_5_%E6%9F%A5%E8%AF%A2%E7%94%A8%E6%88%B7%E4%BF%A1%E6%81%AF%E6%8E%A5%E5%8F%A3/</guid>
-      <description>目录  identityserver4源码解析_1_项目结构 identityserver4源码解析_2_元数据接口 identityserver4源码解析_3_认证接口 identityserver4源码解析_4_令牌发放接口 identityserver4源码解析_5_查询用户信息接口 identityserver4源码解析_6_结束会话接口 identityserver4源码解析_7_查询令牌信息接口 identityserver4源码解析_8_撤销令牌接口  TO BE UPDATED </description>
+      <description>目录  identityserver4源码解析_1_项目结构 identityserver4源码解析_2_元数据接口 identityserver4源码解析_3_认证接口 identityserver4源码解析_4_令牌发放接口 identityserver4源码解析_5_查询用户信息接口 identityserver4源码解析_6_结束会话接口 identityserver4源码解析_7_查询令牌信息接口 identityserver4源码解析_8_撤销令牌接口  协议简析 UserInfo接口是OAuth2.0中规定的需要认证访问的接口，可以返回认证用户的声明信息。请求UserInfo接口需要使用通行令牌。响应报文通常是json数据格式，包含了一组claim键值对集合。与UserInfo接口通讯必须使用https。
+根据RFC2616协议，UserInfo必须支持GET和POST方法。
+UserInfo接口必须接受Bearer令牌。
+UserInfo接口应该支持javascript客户端跨域访问，可以使用CORS协议或者其他方案。
+UserInfo请求 推荐使用GET方法，使用Authorization头承载Bearer令牌来请求UserInfo接口。
+GET /userinfo HTTP/1.1 Host: server.example.com Authorization: Bearer SlAV32hkKG 成功响应 如果某个claim为空或者null，不返回该键。
+必须返回sub（subject）声明。
+必须校验UserInfo返回的sub与id_token中的sub是否一致
+content-type必须是application/json，必须使用utf-8编码
+如果加密位jwt返回，content-type必须位application/jwt
+HTTP/1.1 200 OK Content-Type: application/json { &amp;#34;sub&amp;#34;: &amp;#34;248289761001&amp;#34;, &amp;#34;name&amp;#34;: &amp;#34;Jane Doe&amp;#34;, &amp;#34;given_name&amp;#34;: &amp;#34;Jane&amp;#34;, &amp;#34;family_name&amp;#34;: &amp;#34;Doe&amp;#34;, &amp;#34;preferred_username&amp;#34;: &amp;#34;j.doe&amp;#34;, &amp;#34;email&amp;#34;: &amp;#34;janedoe@example.com&amp;#34;, &amp;#34;picture&amp;#34;: &amp;#34;http://example.com/janedoe/me.jpg&amp;#34; } 失败响应 HTTP/1.1 401 Unauthorized WWW-Authenticate: error=&amp;#34;invalid_token&amp;#34;, error_description=&amp;#34;The Access Token expired&amp;#34; 响应校验 客户端必须校验如下内容
+ 校验认证服务身份(https) 如果客户端注册时设置了userinfo_encrypted_response_alg ，收到响应时用对应算法解密 如果响应有签名，客户端需要验签  源码解析 校验通行令牌  首先会尝试从Authorizaton头中获取Bearer Token的值，找到的话则返回 如果content-type为表单类型，尝试从表单中获取access_token参数值 两处都没有获取到Beaer Token的话则返回校验失败结果  public async Task&amp;lt;BearerTokenUsageValidationResult&amp;gt; ValidateAsync(HttpContext context) { var result = ValidateAuthorizationHeader(context); if (result.</description>
     </item>
     
     <item>
