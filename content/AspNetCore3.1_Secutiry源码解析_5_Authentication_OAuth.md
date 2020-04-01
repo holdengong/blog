@@ -375,4 +375,43 @@ private class EnsureSignInScheme<TOptions> : IPostConfigureOptions<TOptions> whe
         }
 ```
 
+# 实战
+最近做一个第三方对接的项目，我们有多个站点、自己的IdentityServer认证中心，这个联合项目要求将我们的系统以iframe的形式嵌套在他们的菜单里面。整个对接流程大致如下。
 
+<div class="mermaid">
+sequenceDiagram
+    第三方->>第三方: 登录
+    第三方->>本公司系统: 点击菜单请求地址
+    本公司系统->>第三方: 跳转OAuth静默授权地址（1）
+    第三方->>本公司系统: 带授权码跳转回调地址（2）
+    本公司系统->>第三方: 使用code换token（3）
+    本公司系统->>第三方: 使用token读取个人资料（4）
+    本公司系统->>本公司系统: 用户名密码模式与本公司认证中心静默授权（5）
+    本公司系统->>本公司系统: 上下文注入需要的Claims，使用CookieSchema登录维持登录态（6）
+    本公司系统->>本公司系统: 回跳到开始授权时的地址（7）
+</div>
+
+利用微软框架，可以比较快速实现
+1. 定义XXOptions，继承自OAuthOptions
+    - ClientId：必填，客户端id
+    - ClientSecret：必填，客户端秘钥
+    - AuthorizationEndpoint：必填，授权地址，对应步骤（1）
+    - TokenEndpoint：必填，中间件会带着授权码code跳转到此地址换取token，对应步骤（2，3）
+    - UserInformationEndpoint：选填，用户信息接口地址，框架没有使用此属性，需要自己实现，对应步骤（4）
+    - CallbackPath：必填，授权流程结束之后回跳地址，对应步骤（7）
+    - 订阅事件：Events.OnCreatingTicket += async (OAuthCreatingTicketContext context) => 
+            {
+               //用户凭据签发时触发，将用户信息同步到本公司，使用ClientCredential模式与
+               //本公司IdentityServer认证中心通讯实现静默授权
+               //然后将本公司相关会话信息填充到凭据中
+            };
+    - SignInSchema：认证完后登入架构名（建议Cookies）
+    - 如果有特有的配置，也在此处定义
+
+2. 定义XXOAuthHandler，继承自OAuthHandler
+    - 重写ExchangeCodeAsync，此方法负责使用code换取token，父类实现使用的是form-post，如果任何地方与实际情况不匹配，可以进行重写
+    - 重写HandleChallengeAsync方法，此方法负责构建质询地址，即步骤（1）的静默授权地址+回调地址
+    - 重写CreateTicketAsync方法，此方法负责构建用户凭证，包括所有需要未来维持在Cookie中的信息。可以在此处请求UserInformationEndpoint请求用户资料，然后填充到凭证中。
+    - 重写HandleRemoteAuthenticateAsync：此方法为主干逻辑方法，如果与实际有差异可以进行重写，否则使用父类实现即可。
+
+  

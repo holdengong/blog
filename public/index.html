@@ -110,7 +110,28 @@ A cookie associated with a cross-site resource at {cookie domain} was set withou
     <a href="https://holdengong.com/identityserver4%E6%BA%90%E7%A0%81%E8%A7%A3%E6%9E%90_6_%E7%BB%93%E6%9D%9F%E4%BC%9A%E8%AF%9D%E6%8E%A5%E5%8F%A3/">IdentityServer4源码解析_6_结束会话接口</a>
   </h1>
   <time datetime="2020-03-26T23:49:47&#43;0800" class="post-date">Thu, Mar 26, 2020</time>
-  目录  identityserver4源码解析_1_项目结构 identityserver4源码解析_2_元数据接口 identityserver4源码解析_3_认证接口 identityserver4源码解析_4_令牌发放接口 identityserver4源码解析_5_查询用户信息接口 identityserver4源码解析_6_结束会话接口 identityserver4源码解析_7_查询令牌信息接口 identityserver4源码解析_8_撤销令牌接口  TO BE UPDATED 
+  目录  identityserver4源码解析_1_项目结构 identityserver4源码解析_2_元数据接口 identityserver4源码解析_3_认证接口 identityserver4源码解析_4_令牌发放接口 identityserver4源码解析_5_查询用户信息接口 identityserver4源码解析_6_结束会话接口 identityserver4源码解析_7_查询令牌信息接口 identityserver4源码解析_8_撤销令牌接口  协议简析 会话管理属于可选协议内容，地址如下
+ https://openid.net/specs/openid-connect-session-1_0.html
+ 认证服务元数据 以下参数必须在元数据中提供
+ check_session_iframe：必填。在客户端嵌入一个不可见的iframe，地址指向认证服务的checksession地址，使用HTML5的postMessage API互相通讯，客户端向checksession发送请求，认证服务返回用户的登录状态。注意此处属于跨站请求，Cookie的SameSite设置可能影响此处行为 https://localhost:10000/connect/checksession   登出的两种方式 前端登出 客户端在向认证服务注册的时候需要提供frontchannel_logout_uri（前端登出地址）。域名端口和架构必须与redirect_uri一致。
+登出地址必须是绝对地址，可以包括application/x-www-form-urlencoded编码的query参数。
+认证服务在页面中渲染一个隐藏的iframe，src指向frontchannel_logout_uri。
+&lt;iframe src=&#34;frontchannel_logout_uri&#34;&gt; 客户端的frontchannel_logout_session_required属性，决定认证服务向客户端发送登出请求的时候是否带上iss和sid参数。
+前端登出 - 认证服务发起 如果有多个客户端登入，认证站点会有多个iframe，登出的时候逐个通知。
+认证服务元数据中的frontchannel_logout_supported说明是否支持前端登出。frontchannel_logout_session_supported说明登出是否支持传递iss，sid参数。
+sid : session id，会话id。
+示例：
+客户端注册frontchannel_logout_uri为https://rp.example.org/frontchannel_logout，frontchannel_logout_session_required为true，认证服务渲染如下html代码段触发前端登出。
+&lt;iframe src=&#34;https://rp.example.org/frontchannel_logout ?iss=https://server.example.com &amp;sid=08a5019c-17e1-4977-8f42-65a12843ea02&#34;&gt; &lt;/iframe&gt; 前端登出 - 客户端发起 客户端注册的时候提供post_logout_redirect_uris，前端登出后跳转到此地址，此地址只有在客户端发起的登出才会跳转。
+详细内容查看协议
+后端登出 认证服务发送logout_token到客户端，参数有：
+ iss：必填，签发方 sub：选填，主体标识 aud：必填 iat：必填，签发时间 jtl：必填，token唯一标识 events：必填 sid：选填  示例：
+{ &#34;iss&#34;: &#34;https://server.example.com&#34;, &#34;sub&#34;: &#34;248289761001&#34;, &#34;aud&#34;: &#34;s6BhdRkqt3&#34;, &#34;iat&#34;: 1471566154, &#34;jti&#34;: &#34;bWJq&#34;, &#34;sid&#34;: &#34;08a5019c-17e1-4977-8f42-65a12843ea02&#34;, &#34;events&#34;: { &#34;http://schemas.
+  
+  
+  <div class="read-more-link">
+    <a href="/identityserver4%E6%BA%90%E7%A0%81%E8%A7%A3%E6%9E%90_6_%E7%BB%93%E6%9D%9F%E4%BC%9A%E8%AF%9D%E6%8E%A5%E5%8F%A3/">Read More…</a>
+  </div>
   
 </article><article class="post">
   <h1 class="post-title">

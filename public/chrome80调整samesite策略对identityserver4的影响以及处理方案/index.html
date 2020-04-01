@@ -263,6 +263,15 @@ see more details at https://www.chromestatus.com/feature/5633521622188032.
 <h1 id="译者注">译者注</h1>
 <p>文中提到的方案需要设置SameSiteMode=-1，这个新增加的枚举，需要更新微软相补丁包，.net core2.1由于是长期维护版本微软提供了补丁包，.net core 3.x也已经支持。如果是2.2或者其他不再维护的版本，可能需要升级到3.x。详情见下面的博客。
 <a href="https://devblogs.microsoft.com/aspnet/upcoming-samesite-cookie-changes-in-asp-net-and-asp-net-core/">https://devblogs.microsoft.com/aspnet/upcoming-samesite-cookie-changes-in-asp-net-and-asp-net-core/</a></p>
+<p>如果因为各种原因无法升级.net core，可以使用nginx反向代理，加入如下配置即可。
+这个方案只能解决Chrome，放弃掉Safari部分版本的兼容性。（本人用的这种方式）</p>
+<pre><code>proxy_cookie_path / &quot;/; httponly; secure; SameSite=None;&quot;;
+</code></pre><p>如果希望Chrome和Safari兼顾，可以安装ngx_http_js_module模块，让nginx嗅探浏览器，动态去设置SameSite，参考</p>
+<blockquote>
+<p><a href="https://blog.csdn.net/tmyth/article/details/104340403">https://blog.csdn.net/tmyth/article/details/104340403</a>
+<a href="http://nginx.org/en/docs/http/ngx_http_js_module.html">http://nginx.org/en/docs/http/ngx_http_js_module.html</a></p>
+</blockquote>
+<hr>
 <blockquote>
 <p>原文地址：https://www.thinktecture.com/en/identity/samesite/prepare-your-identityserver/</p>
 </blockquote>

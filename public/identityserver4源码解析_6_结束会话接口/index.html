@@ -68,8 +68,122 @@
 <li><a href="https://holdengong.com/identityserver4%E6%BA%90%E7%A0%81%E8%A7%A3%E6%9E%90_7_%E6%9F%A5%E8%AF%A2%E4%BB%A4%E7%89%8C%E4%BF%A1%E6%81%AF%E6%8E%A5%E5%8F%A3">identityserver4源码解析_7_查询令牌信息接口</a></li>
 <li><a href="https://holdengong.com/identityserver4%E6%BA%90%E7%A0%81%E8%A7%A3%E6%9E%90_8_%E6%92%A4%E9%94%80%E4%BB%A4%E7%89%8C%E6%8E%A5%E5%8F%A3">identityserver4源码解析_8_撤销令牌接口</a></li>
 </ul>
-<h1 id="to-be-updated">TO BE UPDATED</h1>
+<h1 id="协议简析">协议简析</h1>
+<p>会话管理属于可选协议内容，地址如下</p>
+<blockquote>
+<p><a href="https://openid.net/specs/openid-connect-session-1_0.html">https://openid.net/specs/openid-connect-session-1_0.html</a></p>
+</blockquote>
+<h2 id="认证服务元数据">认证服务元数据</h2>
+<p>以下参数必须在元数据中提供</p>
+<ul>
+<li>check_session_iframe：必填。在客户端嵌入一个不可见的iframe，地址指向认证服务的checksession地址，使用HTML5的<code>postMessage API</code>互相通讯，客户端向checksession发送请求，认证服务返回用户的登录状态。<strong>注意此处属于跨站请求，Cookie的SameSite设置可能影响此处行为</strong>
+<pre><code>https://localhost:10000/connect/checksession
+</code></pre></li>
+</ul>
+<h2 id="登出的两种方式">登出的两种方式</h2>
+<h3 id="前端登出">前端登出</h3>
+<p>客户端在向认证服务注册的时候需要提供<code>frontchannel_logout_uri</code>（前端登出地址）。域名端口和架构必须与<code>redirect_uri</code>一致。</p>
+<p>登出地址必须是绝对地址，可以包括<code>application/x-www-form-urlencoded</code>编码的query参数。</p>
+<p>认证服务在页面中渲染一个隐藏的iframe，src指向<code>frontchannel_logout_uri</code>。</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-html" data-lang="html">&lt;<span style="color:#f92672">iframe</span> <span style="color:#a6e22e">src</span><span style="color:#f92672">=</span><span style="color:#e6db74">&#34;frontchannel_logout_uri&#34;</span>&gt;
+</code></pre></div><p>客户端的<code>frontchannel_logout_session_required</code>属性，决定认证服务向客户端发送登出请求的时候是否带上<code>iss</code>和<code>sid</code>参数。</p>
+<h4 id="前端登出---认证服务发起">前端登出 - 认证服务发起</h4>
+<p>如果有多个客户端登入，认证站点会有多个<code>iframe</code>，登出的时候逐个通知。</p>
+<p>认证服务元数据中的<code>frontchannel_logout_supported</code>说明是否支持前端登出。<code>frontchannel_logout_session_supported</code>说明登出是否支持传递<code>iss</code>，<code>sid</code>参数。</p>
+<p><code>sid</code> : session id，会话id。</p>
+<p>示例：<br>
+客户端注册<code>frontchannel_logout_uri</code>为https://rp.example.org/frontchannel_logout，<code>frontchannel_logout_session_required</code>为true，认证服务渲染如下html代码段触发前端登出。</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-http" data-lang="http"><span style="color:#960050;background-color:#1e0010">&lt;iframe src=&#34;https://rp.example.org/frontchannel_logout
+</span><span style="color:#960050;background-color:#1e0010">    ?iss=https://server.example.com
+</span><span style="color:#960050;background-color:#1e0010">    &amp;sid=08a5019c-17e1-4977-8f42-65a12843ea02&#34;&gt;
+</span><span style="color:#960050;background-color:#1e0010">&lt;/iframe&gt;
+</span></code></pre></div><h4 id="前端登出---客户端发起">前端登出 - 客户端发起</h4>
+<p>客户端注册的时候提供<code>post_logout_redirect_uris</code>，前端登出后跳转到此地址，此地址只有在客户端发起的登出才会跳转。</p>
+<p>详细内容<a href="https://openid.net/specs/openid-connect-session-1_0.html#OpenID.FrontChannel">查看协议</a></p>
+<h3 id="后端登出">后端登出</h3>
+<p>认证服务发送<code>logout_token</code>到客户端，参数有：</p>
+<ul>
+<li>iss：必填，签发方</li>
+<li>sub：选填，主体标识</li>
+<li>aud：必填</li>
+<li>iat：必填，签发时间</li>
+<li>jtl：必填，token唯一标识</li>
+<li>events：必填</li>
+<li>sid：选填</li>
+</ul>
+<p>示例：</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-json" data-lang="json">{
+<span style="color:#f92672">&#34;iss&#34;</span>: <span style="color:#e6db74">&#34;https://server.example.com&#34;</span>,
+<span style="color:#f92672">&#34;sub&#34;</span>: <span style="color:#e6db74">&#34;248289761001&#34;</span>,
+<span style="color:#f92672">&#34;aud&#34;</span>: <span style="color:#e6db74">&#34;s6BhdRkqt3&#34;</span>,
+<span style="color:#f92672">&#34;iat&#34;</span>: <span style="color:#ae81ff">1471566154</span>,
+<span style="color:#f92672">&#34;jti&#34;</span>: <span style="color:#e6db74">&#34;bWJq&#34;</span>,
+<span style="color:#f92672">&#34;sid&#34;</span>: <span style="color:#e6db74">&#34;08a5019c-17e1-4977-8f42-65a12843ea02&#34;</span>,
+<span style="color:#f92672">&#34;events&#34;</span>: {
+    <span style="color:#f92672">&#34;http://schemas.openid.net/event/backchannel-logout&#34;</span>: {}
+    }
+}
+</code></pre></div><h4 id="后端登出---认证服务发起">后端登出 - 认证服务发起</h4>
+<p>认证服务向客户端发起<code>POST</code>请求，参数用<code>application/x-www-form-urlencoded</code>编码</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-http" data-lang="http"><span style="color:#960050;background-color:#1e0010">  </span><span style="color:#a6e22e">POST</span> /backchannel_logout <span style="color:#66d9ef">HTTP</span><span style="color:#f92672">/</span><span style="color:#ae81ff">1.1</span>
+  <span style="color:#ae81ff">Host: rp.example.org</span>
+  <span style="color:#ae81ff">Content-Type: application/x-www-form-urlencoded</span>
 
+  logout_token=eyJhbGci ... .eyJpc3Mi ... .T3BlbklE ...
+</code></pre></div><p>客户端收到登出请求后，定位到要登出的会话，注销当前会话不应当撤销已颁发的<code>refresh_token</code>。</p>
+<p>详细内容<a href="https://openid.net/specs/openid-connect-backchannel-1_0.html">查看协议</a></p>
+<h4 id="后端登出---客户端发起">后端登出 - 客户端发起</h4>
+<p>客户端在本地登出后，向<code>end_session_endpoint</code>接口发起请求，通知认证中心退出。<br>
+请求需包含下列参数：</p>
+<ul>
+<li>id_token_hint：推荐，之前签发的id_token，用于验证登出人身份。</li>
+<li>post_logout_redirect_uri：选填。登出后跳转地址。</li>
+<li>state：选填。客户端生成，认证服务原样返回，防跨站伪造攻击。</li>
+</ul>
+<p>请求logout接口，认证服务需要询问用户是否要登出认证中心。如果用户确认退出，认证服务必须登出当前用户。</p>
+<h1 id="源码简析">源码简析</h1>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-csharp" data-lang="csharp"><span style="color:#66d9ef">public</span> <span style="color:#66d9ef">async</span> Task&lt;IEndpointResult&gt; ProcessAsync(HttpContext context)
+    {
+        <span style="color:#66d9ef">if</span> (!HttpMethods.IsGet(context.Request.Method))
+        {
+            _logger.LogWarning(<span style="color:#e6db74">&#34;Invalid HTTP method for end session callback endpoint.&#34;</span>);
+            <span style="color:#66d9ef">return</span> <span style="color:#66d9ef">new</span> StatusCodeResult(HttpStatusCode.MethodNotAllowed);
+        }
+
+        _logger.LogDebug(<span style="color:#e6db74">&#34;Processing signout callback request&#34;</span>);
+
+        <span style="color:#66d9ef">var</span> parameters = context.Request.Query.AsNameValueCollection();
+        <span style="color:#66d9ef">var</span> result = <span style="color:#66d9ef">await</span> _endSessionRequestValidator.ValidateCallbackAsync(parameters);
+
+        <span style="color:#66d9ef">if</span> (result.IsError == <span style="color:#66d9ef">false</span>)
+        {
+            _logger.LogInformation(<span style="color:#e6db74">&#34;Successful signout callback.&#34;</span>);
+
+            <span style="color:#66d9ef">if</span> (result.FrontChannelLogoutUrls?.Any() == <span style="color:#66d9ef">true</span>)
+            {
+                _logger.LogDebug(<span style="color:#e6db74">&#34;Client front-channel iframe urls: {urls}&#34;</span>, result.FrontChannelLogoutUrls);
+            }
+            <span style="color:#66d9ef">else</span>
+            {
+                _logger.LogDebug(<span style="color:#e6db74">&#34;No client front-channel iframe urls&#34;</span>);
+            }
+
+            <span style="color:#66d9ef">if</span> (result.BackChannelLogouts?.Any() == <span style="color:#66d9ef">true</span>)
+            {
+
+                _logger.LogDebug(<span style="color:#e6db74">&#34;Client back-channel iframe urls: {urls}&#34;</span>, result.BackChannelLogouts.Select(x=&gt;x.LogoutUri));
+            }
+            <span style="color:#66d9ef">else</span>
+            {
+                _logger.LogDebug(<span style="color:#e6db74">&#34;No client back-channel iframe urls&#34;</span>);
+            }
+
+            <span style="color:#66d9ef">await</span> InvokeBackChannelClientsAsync(result);
+        }
+
+        <span style="color:#66d9ef">return</span> <span style="color:#66d9ef">new</span> EndSessionCallbackResult(result);
+    }
+</code></pre></div>
 </div>
 
 

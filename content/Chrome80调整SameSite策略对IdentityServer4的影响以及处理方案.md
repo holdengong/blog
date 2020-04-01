@@ -246,7 +246,19 @@ Chrome于2020年2月发布的新版本修改了cookie的默认行为。新版本
 
 # 译者注
 文中提到的方案需要设置SameSiteMode=-1，这个新增加的枚举，需要更新微软相补丁包，.net core2.1由于是长期维护版本微软提供了补丁包，.net core 3.x也已经支持。如果是2.2或者其他不再维护的版本，可能需要升级到3.x。详情见下面的博客。
-https://devblogs.microsoft.com/aspnet/upcoming-samesite-cookie-changes-in-asp-net-and-asp-net-core/
+https://devblogs.microsoft.com/aspnet/upcoming-samesite-cookie-changes-in-asp-net-and-asp-net-core/  
 
+如果因为各种原因无法升级.net core，可以使用nginx反向代理，加入如下配置即可。
+这个方案只能解决Chrome，放弃掉Safari部分版本的兼容性。（本人用的这种方式）
+```
+proxy_cookie_path / "/; httponly; secure; SameSite=None;";
+```  
+
+如果希望Chrome和Safari兼顾，可以安装ngx_http_js_module模块，让nginx嗅探浏览器，动态去设置SameSite，参考
+> https://blog.csdn.net/tmyth/article/details/104340403
+> http://nginx.org/en/docs/http/ngx_http_js_module.html
+
+
+----
 
 > 原文地址：https://www.thinktecture.com/en/identity/samesite/prepare-your-identityserver/
